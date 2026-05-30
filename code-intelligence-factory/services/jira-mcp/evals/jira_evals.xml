@@ -1,0 +1,24 @@
+<!--
+  Evaluation questions for the CIF Jira MCP server (per mcp-builder Phase 4).
+  These test whether an LLM can drive the tool surface to answer realistic,
+  read-only questions. Answers must be filled in and verified against a SEEDED
+  test Jira project (a stable fixture), since they depend on your data.
+
+  Requirements per question: independent, read-only, complex (multiple tool
+  calls), realistic, verifiable (single string answer), and stable over time.
+  Run against a frozen fixture project so answers don't drift.
+-->
+<evaluation>
+  <qa_pair>
+    <question>In project CIFTEST, how many issues of type Story are currently in a statusCategory other than Done? (Use jira_search with JQL and paginate via next_page_token until is_last.)</question>
+    <answer><!-- TODO: fill against fixture, e.g. 7 --></answer>
+  </qa_pair>
+  <qa_pair>
+    <question>For the Story in project CIFTEST whose summary contains "password reset", what is its current workflow status? (Find it with jira_search, then confirm with jira_get_issue.)</question>
+    <answer><!-- TODO: fill against fixture, e.g. In Progress --></answer>
+  </qa_pair>
+  <qa_pair>
+    <question>What issue key does CIFTEST Story with us_id US-0045 map to? (Search by the configured traceability custom field, then return the key.)</question>
+    <answer><!-- TODO: fill against fixture, e.g. CIFTEST-210 --></answer>
+  </qa_pair>
+</evaluation>

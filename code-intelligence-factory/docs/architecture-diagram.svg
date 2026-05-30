@@ -1,0 +1,164 @@
+<svg viewBox="0 0 1480 920" width="1480" height="920" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cif-title cif-desc">
+  <title id="cif-title">Code Intelligence Factory - Reference Architecture (LangGraph)</title>
+  <desc id="cif-desc">Layered architecture: external systems of record (Jira, GitHub, target codebase); an orchestration and services tier with a LangGraph runtime (Python), Go MCP servers, a traceability service, and human gates via interrupt plus PR review; five LangGraph agent subgraphs (Reverse Engineering, Business Analyst, Scrum Master, QA, Gap Analysis) with three human gates; a persistence tier of Git, Graph DB, Object Store and a Postgres checkpointer; and the traceability spine BRD to HLD to LLD to User Story to PR to Test to Defect to Gap.</desc>
+  <defs>
+    <marker id="arrV" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#534AB7"/></marker>
+    <marker id="arrG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#888780"/></marker>
+    <style>
+      text{font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans-serif;}
+      .title{font-size:30px;font-weight:700;fill:#26215C;}
+      .subtitle{font-size:15px;fill:#5F5E5A;}
+      .meta{font-size:12.5px;fill:#888780;}
+      .band{font-size:13px;font-weight:700;fill:#6F6E68;letter-spacing:1.6px;}
+      .btitle{font-size:14.5px;font-weight:700;}
+      .btitle-sm{font-size:13.5px;font-weight:700;}
+      .bsub{font-size:11.5px;fill:#5F5E5A;}
+      .t-cp{fill:#26215C;}
+      .t-dark{fill:#2C2C2A;}
+      .edge{font-size:11px;fill:#6F6E68;}
+      .edge-cp{font-size:11px;fill:#534AB7;font-weight:600;}
+      .gate{font-size:12px;font-weight:700;fill:#633806;}
+      .spine{font-size:13px;font-weight:700;fill:#FFFFFF;}
+      .chiptext{font-size:9px;font-weight:700;fill:#5F5E5A;}
+      .r-ext{fill:#F4F2EC;stroke:#B4B2A9;stroke-width:1.5;}
+      .r-cp{fill:#EEEDFE;stroke:#534AB7;stroke-width:1.75;}
+      .r-ag{fill:#F5F4FD;stroke:#7F77DD;stroke-width:1.75;}
+      .r-store{fill:#F4F2EC;stroke:#888780;stroke-width:1.5;}
+      .r-gate{fill:#FAC775;stroke:#BA7517;stroke-width:1.5;}
+      .r-spine{fill:#534AB7;stroke:#3C3489;stroke-width:1;}
+      .chip{fill:#ECEAE3;stroke:#C9C6BD;stroke-width:1;}
+      .flow{stroke:#534AB7;stroke-width:2.2;fill:none;marker-end:url(#arrV);}
+      .data{stroke:#888780;stroke-width:1.6;fill:none;stroke-dasharray:5 4;marker-end:url(#arrG);}
+      .link{stroke:#A8A69D;stroke-width:1.4;fill:none;}
+      .cyl{fill:#E7E4DC;stroke:#888780;stroke-width:1.3;}
+    </style>
+  </defs>
+  <text x="40" y="56" class="title">Code Intelligence Factory</text>
+  <text x="40" y="83" class="subtitle">Reference architecture &#8212; LangGraph orchestration over a traceability spine</text>
+  <text x="1456" y="48" text-anchor="end" class="meta">v0.2 &#183; 2026-05-30</text>
+  <text x="1456" y="69" text-anchor="end" class="meta">LangGraph (Python) &#183; Go MCP servers</text>
+  <line x1="40" y1="98" x2="1456" y2="98" stroke="#D3D1C7" stroke-width="1"/>
+  <rect x="24" y="112" width="1432" height="116" rx="12" fill="#FAF9F6" stroke="#EDEBE4"/>
+  <rect x="24" y="256" width="1432" height="128" rx="12" fill="#F7F6FD" stroke="#E7E4F7"/>
+  <rect x="24" y="406" width="1432" height="168" rx="12" fill="#F7F6FD" stroke="#E7E4F7"/>
+  <rect x="24" y="584" width="1432" height="122" rx="12" fill="#FAF9F6" stroke="#EDEBE4"/>
+  <rect x="24" y="716" width="1432" height="104" rx="12" fill="#F7F6FD" stroke="#E7E4F7"/>
+  <text x="40" y="132" class="band">SYSTEMS OF RECORD &#8212; EXTERNAL</text>
+  <rect class="r-ext" x="40" y="142" width="380" height="80" rx="9"/>
+  <text x="230" y="176" text-anchor="middle" class="btitle t-dark">Jira Cloud</text>
+  <text x="230" y="198" text-anchor="middle" class="bsub">Stories and defects &#183; REST v3</text>
+  <rect class="r-ext" x="550" y="142" width="380" height="80" rx="9"/>
+  <text x="740" y="176" text-anchor="middle" class="btitle t-dark">GitHub</text>
+  <text x="740" y="198" text-anchor="middle" class="bsub">Code &#183; pull requests &#183; Actions</text>
+  <rect class="r-ext" x="1060" y="142" width="380" height="80" rx="9"/>
+  <text x="1250" y="176" text-anchor="middle" class="btitle t-dark">Target Codebase</text>
+  <text x="1250" y="198" text-anchor="middle" class="bsub">Spring Boot &#183; React &#183; MongoDB</text>
+  <text x="40" y="276" class="band">ORCHESTRATION AND SERVICES</text>
+  <rect class="r-cp" x="40" y="286" width="310" height="92" rx="9"/>
+  <rect class="chip" x="296" y="294" width="46" height="15" rx="7"/>
+  <text x="319" y="305" text-anchor="middle" class="chiptext">Python</text>
+  <text x="195" y="328" text-anchor="middle" class="btitle-sm t-cp">LangGraph Runtime</text>
+  <text x="195" y="350" text-anchor="middle" class="bsub">StateGraph &#183; interrupt() gates</text>
+  <rect class="r-cp" x="403" y="286" width="310" height="92" rx="9"/>
+  <rect class="chip" x="679" y="294" width="26" height="15" rx="7"/>
+  <text x="692" y="305" text-anchor="middle" class="chiptext">Go</text>
+  <text x="558" y="328" text-anchor="middle" class="btitle-sm t-cp">Custom MCP Servers</text>
+  <text x="558" y="350" text-anchor="middle" class="bsub">Jira &#183; GitHub &#183; Repo</text>
+  <rect class="r-cp" x="766" y="286" width="310" height="92" rx="9"/>
+  <rect class="chip" x="1026" y="294" width="44" height="15" rx="7"/>
+  <text x="1048" y="305" text-anchor="middle" class="chiptext">Go / Py</text>
+  <text x="921" y="328" text-anchor="middle" class="btitle-sm t-cp">Traceability Service</text>
+  <text x="921" y="350" text-anchor="middle" class="bsub">Manifests + graph projection</text>
+  <rect class="r-cp" x="1129" y="286" width="310" height="92" rx="9"/>
+  <text x="1284" y="328" text-anchor="middle" class="btitle-sm t-cp">Human Gates</text>
+  <text x="1284" y="350" text-anchor="middle" class="bsub">interrupt() + PR review</text>
+  <text x="40" y="426" class="band">AGENT SUBGRAPHS &#183; LANGGRAPH (PYTHON)</text>
+  <rect class="r-ag" x="40" y="438" width="235" height="98" rx="9"/>
+  <text x="157" y="476" text-anchor="middle" class="btitle-sm t-cp">1 &#183; Reverse Eng.</text>
+  <text x="157" y="498" text-anchor="middle" class="bsub">Code &#8594; System Model</text>
+  <rect class="r-ag" x="331" y="438" width="235" height="98" rx="9"/>
+  <text x="448" y="476" text-anchor="middle" class="btitle-sm t-cp">2 &#183; Business Analyst</text>
+  <text x="448" y="498" text-anchor="middle" class="bsub">BRD &#183; HLD &#183; LLD &#183; stories</text>
+  <rect class="r-ag" x="622" y="438" width="235" height="98" rx="9"/>
+  <text x="739" y="476" text-anchor="middle" class="btitle-sm t-cp">3 &#183; Scrum Master</text>
+  <text x="739" y="498" text-anchor="middle" class="bsub">Plan &#183; leak detection</text>
+  <rect class="r-ag" x="913" y="438" width="235" height="98" rx="9"/>
+  <text x="1030" y="476" text-anchor="middle" class="btitle-sm t-cp">4 &#183; QA</text>
+  <text x="1030" y="498" text-anchor="middle" class="bsub">Test plan &#183; coverage</text>
+  <rect class="r-ag" x="1204" y="438" width="235" height="98" rx="9"/>
+  <text x="1321" y="476" text-anchor="middle" class="btitle-sm t-cp">5 &#183; Gap Analysis</text>
+  <text x="1321" y="498" text-anchor="middle" class="bsub">Defect &#8594; classify</text>
+  <path class="flow" d="M275,487 H329"/>
+  <path class="flow" d="M566,487 H620"/>
+  <path class="flow" d="M857,487 H911"/>
+  <path class="flow" d="M1148,487 H1202"/>
+  <rect class="r-gate" x="285" y="477" width="34" height="20" rx="10"/>
+  <text x="302" y="491" text-anchor="middle" class="gate">G1</text>
+  <rect class="r-gate" x="576" y="477" width="34" height="20" rx="10"/>
+  <text x="593" y="491" text-anchor="middle" class="gate">G2</text>
+  <path class="data" d="M1321,536 V558 H448 V538"/>
+  <rect class="r-gate" x="1276" y="548" width="34" height="20" rx="10"/>
+  <text x="1293" y="562" text-anchor="middle" class="gate">G3</text>
+  <text x="884" y="553" text-anchor="middle" class="edge">confirmed requirement gap &#8594; change request to Business Analyst</text>
+  <text x="40" y="604" class="band">PERSISTENCE</text>
+  <rect class="r-store" x="40" y="614" width="320" height="80" rx="9"/>
+  <ellipse class="cyl" cx="78" cy="641" rx="16" ry="6"/>
+  <path class="cyl" d="M62,641 V665 a16,6 0 0 0 32,0 V641"/>
+  <text x="210" y="648" text-anchor="middle" class="btitle t-dark">Git &#8212; canonical</text>
+  <text x="210" y="670" text-anchor="middle" class="bsub">Docs + traceability manifests</text>
+  <rect class="r-store" x="400" y="614" width="320" height="80" rx="9"/>
+  <ellipse class="cyl" cx="438" cy="641" rx="16" ry="6"/>
+  <path class="cyl" d="M422,641 V665 a16,6 0 0 0 32,0 V641"/>
+  <text x="570" y="648" text-anchor="middle" class="btitle t-dark">Graph DB &#8212; derived</text>
+  <text x="570" y="670" text-anchor="middle" class="bsub">Read-model for queries</text>
+  <rect class="r-store" x="760" y="614" width="320" height="80" rx="9"/>
+  <ellipse class="cyl" cx="798" cy="641" rx="16" ry="6"/>
+  <path class="cyl" d="M782,641 V665 a16,6 0 0 0 32,0 V641"/>
+  <text x="930" y="648" text-anchor="middle" class="btitle t-dark">Object Store</text>
+  <text x="930" y="670" text-anchor="middle" class="bsub">RE artifacts &#183; intermediate</text>
+  <rect class="r-store" x="1120" y="614" width="320" height="80" rx="9"/>
+  <ellipse class="cyl" cx="1158" cy="641" rx="16" ry="6"/>
+  <path class="cyl" d="M1142,641 V665 a16,6 0 0 0 32,0 V641"/>
+  <text x="1290" y="648" text-anchor="middle" class="btitle t-dark">Checkpointer</text>
+  <text x="1290" y="670" text-anchor="middle" class="bsub">LangGraph state &#183; Postgres</text>
+  <text x="40" y="736" class="band">THE TRACEABILITY SPINE &#8212; BIDIRECTIONAL</text>
+  <line x1="48" y1="767" x2="1432" y2="767" stroke="#CECBF6" stroke-width="3"/>
+  <rect class="r-spine" x="40" y="744" width="140" height="46" rx="8"/>
+  <text x="110" y="772" text-anchor="middle" class="spine">BRD</text>
+  <rect class="r-spine" x="220" y="744" width="140" height="46" rx="8"/>
+  <text x="290" y="772" text-anchor="middle" class="spine">HLD</text>
+  <rect class="r-spine" x="400" y="744" width="140" height="46" rx="8"/>
+  <text x="470" y="772" text-anchor="middle" class="spine">LLD</text>
+  <rect class="r-spine" x="580" y="744" width="140" height="46" rx="8"/>
+  <text x="650" y="772" text-anchor="middle" class="spine">User Story</text>
+  <rect class="r-spine" x="760" y="744" width="140" height="46" rx="8"/>
+  <text x="830" y="772" text-anchor="middle" class="spine">PR</text>
+  <rect class="r-spine" x="940" y="744" width="140" height="46" rx="8"/>
+  <text x="1010" y="772" text-anchor="middle" class="spine">Test</text>
+  <rect class="r-spine" x="1120" y="744" width="140" height="46" rx="8"/>
+  <text x="1190" y="772" text-anchor="middle" class="spine">Defect</text>
+  <rect class="r-spine" x="1300" y="744" width="140" height="46" rx="8"/>
+  <text x="1370" y="772" text-anchor="middle" class="spine">Gap</text>
+  <text x="40" y="808" class="edge">BR- &#8594; HL- &#8594; LL- &#8594; US- &#8594; PR &#8594; TC- &#8594; DEF &#8594; GAP &#160;&#183;&#160; every link typed and queryable both ways</text>
+  <line class="link" x1="540" y1="286" x2="250" y2="224"/>
+  <line class="link" x1="558" y1="286" x2="740" y2="224"/>
+  <line class="link" x1="576" y1="286" x2="1240" y2="224"/>
+  <text x="690" y="252" text-anchor="middle" class="edge">REST v3 &#183; OAuth 2.0 / token</text>
+  <path class="flow" d="M195,378 V436"/>
+  <text x="205" y="404" class="edge-cp">orchestrates &#183; enforces gates</text>
+  <path class="data" d="M921,378 V398 H594 V614"/>
+  <text x="604" y="418" class="edge">manifests + graph</text>
+  <path class="data" d="M200,694 V742"/>
+  <text x="210" y="724" class="edge">spine persisted here</text>
+  <rect x="40" y="846" width="14" height="14" rx="3" class="r-ag"/>
+  <text x="60" y="858" class="meta">CIF-built (LangGraph + Go MCP)</text>
+  <rect x="290" y="846" width="14" height="14" rx="3" class="r-ext"/>
+  <text x="310" y="858" class="meta">External and stores</text>
+  <rect x="470" y="846" width="14" height="14" rx="3" class="r-gate"/>
+  <text x="490" y="858" class="meta">Human gate &#8212; interrupt() + PR review</text>
+  <line x1="800" y1="853" x2="832" y2="853" class="flow"/>
+  <text x="840" y="858" class="meta">control flow</text>
+  <line x1="950" y1="853" x2="982" y2="853" class="data"/>
+  <text x="990" y="858" class="meta">data / feedback</text>
+  <text x="40" y="884" class="meta">Hosting: Azure Container Apps / AKS &#183; LangGraph + Postgres checkpointer (Azure DB for PostgreSQL) &#183; Go MCP servers &#183; Key Vault</text>
+</svg>

@@ -1,0 +1,142 @@
+<svg viewBox="0 0 1480 810" width="1480" height="810" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rm-title rm-desc">
+  <title id="rm-title">Code Intelligence Factory - Delivery Roadmap (stakeholder one-pager)</title>
+  <desc id="rm-desc">Stakeholder roadmap. Plan date 6-10 months at one full-time engineer; committed about 11 months at 80 percent confidence; fixed constraint is scope, so time is the output. Four stages: Foundations and spine (M0-M2, ~0-2.5 months); One-time factory (M3-M4, ~3-5 months, proves goals 1-3, gates G1 G2); Wiring and payoff (M5-M6, ~5-8 months, proves goals 4-7, gate G3); Continuous and hardening (M7-M8, ~6-10 months). Biggest lever: a second engineer saves ~6-10 weeks. Top risks: RE accuracy, solo single point of failure, Jira admin dependency.</desc>
+  <defs>
+    <style>
+      text{font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans-serif;}
+      .title{font-size:30px;font-weight:700;fill:#26215C;}
+      .sub{font-size:14px;fill:#5F5E5A;}
+      .meta{font-size:12px;fill:#888780;}
+      .klabel{font-size:11px;font-weight:700;fill:#6F6E68;letter-spacing:1.2px;}
+      .kbig{font-size:24px;font-weight:700;fill:#26215C;}
+      .ksub{font-size:12px;fill:#5F5E5A;}
+      .sname{font-size:15.5px;font-weight:700;fill:#26215C;}
+      .stag{font-size:11px;font-weight:700;fill:#7F77DD;}
+      .srange{font-size:13px;font-weight:700;fill:#26215C;}
+      .scap{font-size:11px;font-weight:700;fill:#6F6E68;letter-spacing:1px;}
+      .sout{font-size:12.5px;fill:#2C2C2A;}
+      .pill{font-size:10.5px;font-weight:700;fill:#26215C;}
+      .gpill{font-size:10.5px;font-weight:700;fill:#633806;}
+      .risk-t{font-size:12.5px;font-weight:700;fill:#2C2C2A;}
+      .risk-s{font-size:11.5px;fill:#5F5E5A;}
+      .tk{font-size:11px;fill:#888780;}
+      .segn{font-size:12px;font-weight:700;}
+      .lev{font-size:13px;fill:#633806;}
+    </style>
+  </defs>
+
+  <text x="40" y="56" class="title">Code Intelligence Factory</text>
+  <text x="40" y="84" class="sub">Delivery roadmap &#8212; recover trustworthy requirements from undocumented systems, and prove &#8220;requirement gap or developer miss?&#8221;</text>
+  <text x="1456" y="50" text-anchor="end" class="meta">Plan v1 &#183; 2026-05-30</text>
+  <text x="1456" y="70" text-anchor="end" class="meta">baseline: ARCHITECTURE.md v0.2</text>
+  <line x1="40" y1="100" x2="1456" y2="100" stroke="#D3D1C7" stroke-width="1"/>
+
+  <rect x="40" y="116" width="448" height="74" rx="8" fill="#F7F6FD" stroke="#534AB7" stroke-width="1.5"/>
+  <text x="60" y="139" class="klabel">PLAN DATE</text>
+  <text x="60" y="168" class="kbig">6-10 months</text>
+  <text x="60" y="184" class="ksub">1 FTE solo &#183; even odds</text>
+  <rect x="516" y="116" width="448" height="74" rx="8" fill="#F7F6FD" stroke="#534AB7" stroke-width="1.5"/>
+  <text x="536" y="139" class="klabel">COMMITTED</text>
+  <text x="536" y="168" class="kbig">~11 months</text>
+  <text x="536" y="184" class="ksub">~80% confidence &#183; buffered</text>
+  <rect x="992" y="116" width="464" height="74" rx="8" fill="#F7F6FD" stroke="#534AB7" stroke-width="1.5"/>
+  <text x="1012" y="139" class="klabel">FIXED CONSTRAINT</text>
+  <text x="1012" y="168" class="kbig">Scope</text>
+  <text x="1012" y="184" class="ksub">team solo &#183; time is the output</text>
+
+  <rect x="40" y="214" width="335" height="240" rx="10" fill="#F5F4FD" stroke="#7F77DD" stroke-width="1.75"/>
+  <text x="58" y="246" class="sname">Foundations &amp; spine</text>
+  <text x="58" y="270" class="stag">M0 &#183; M1 &#183; M2</text>
+  <text x="357" y="270" text-anchor="end" class="srange">~0-2.5 mo</text>
+  <line x1="54" y1="284" x2="361" y2="284" stroke="#DAD7F0" stroke-width="1"/>
+  <text x="58" y="308" class="scap">BUILDS</text>
+  <text x="58" y="330" class="sout">The traceable engine:</text>
+  <text x="58" y="349" class="sout">de-risk spikes, then the</text>
+  <text x="58" y="368" class="sout">spine + orchestrator.</text>
+  <rect x="58" y="410" width="92" height="22" rx="11" fill="#EEEDFE" stroke="#7F77DD"/>
+  <text x="104" y="425" text-anchor="middle" class="pill">Foundation</text>
+
+  <rect x="397" y="214" width="335" height="240" rx="10" fill="#F5F4FD" stroke="#7F77DD" stroke-width="1.75"/>
+  <text x="415" y="246" class="sname">One-time factory</text>
+  <text x="415" y="270" class="stag">M3 &#183; M4</text>
+  <text x="714" y="270" text-anchor="end" class="srange">~3-5 mo</text>
+  <line x1="411" y1="284" x2="718" y2="284" stroke="#DAD7F0" stroke-width="1"/>
+  <text x="415" y="308" class="scap">DELIVERS</text>
+  <text x="415" y="330" class="sout">BRD / HLD / LLD + a</text>
+  <text x="415" y="349" class="sout">Jira backlog, recovered</text>
+  <text x="415" y="368" class="sout">from undocumented code.</text>
+  <rect x="415" y="410" width="96" height="22" rx="11" fill="#EEEDFE" stroke="#7F77DD"/>
+  <text x="463" y="425" text-anchor="middle" class="pill">Proves #1-3</text>
+  <rect x="523" y="410" width="76" height="22" rx="11" fill="#FAC775" stroke="#BA7517"/>
+  <text x="561" y="425" text-anchor="middle" class="gpill">Gates G1 G2</text>
+
+  <rect x="754" y="214" width="335" height="240" rx="10" fill="#F5F4FD" stroke="#7F77DD" stroke-width="1.75"/>
+  <text x="772" y="246" class="sname">Wiring &amp; payoff</text>
+  <text x="772" y="270" class="stag">M5 &#183; M6</text>
+  <text x="1071" y="270" text-anchor="end" class="srange">~5-8 mo</text>
+  <line x1="768" y1="284" x2="1075" y2="284" stroke="#DAD7F0" stroke-width="1"/>
+  <text x="772" y="308" class="scap">DELIVERS</text>
+  <text x="772" y="330" class="sout">PR &#8594; requirement</text>
+  <text x="772" y="349" class="sout">traceability, and the</text>
+  <text x="772" y="368" class="sout">defect &#8594; gap verdict.</text>
+  <rect x="772" y="410" width="96" height="22" rx="11" fill="#EEEDFE" stroke="#7F77DD"/>
+  <text x="820" y="425" text-anchor="middle" class="pill">Proves #4-7</text>
+  <rect x="880" y="410" width="56" height="22" rx="11" fill="#FAC775" stroke="#BA7517"/>
+  <text x="908" y="425" text-anchor="middle" class="gpill">Gate G3</text>
+
+  <rect x="1111" y="214" width="345" height="240" rx="10" fill="#F5F4FD" stroke="#7F77DD" stroke-width="1.75"/>
+  <text x="1129" y="246" class="sname">Continuous &amp; hardening</text>
+  <text x="1129" y="270" class="stag">M7 &#183; M8</text>
+  <text x="1438" y="270" text-anchor="end" class="srange">~6-10 mo</text>
+  <line x1="1125" y1="284" x2="1442" y2="284" stroke="#DAD7F0" stroke-width="1"/>
+  <text x="1129" y="308" class="scap">DELIVERS</text>
+  <text x="1129" y="330" class="sout">Docs stay in sync as</text>
+  <text x="1129" y="349" class="sout">code changes;</text>
+  <text x="1129" y="368" class="sout">production-ready.</text>
+  <rect x="1129" y="410" width="94" height="22" rx="11" fill="#EEEDFE" stroke="#7F77DD"/>
+  <text x="1176" y="425" text-anchor="middle" class="pill">Continuous</text>
+
+  <text x="40" y="492" class="klabel">TIMELINE &#183; MONTHS FROM START (DATE IS THE OUTPUT, NOT A DEADLINE)</text>
+  <rect x="80" y="506" width="246" height="22" fill="#CECBF6"/>
+  <rect x="326" y="506" width="258" height="22" fill="#AFA9EC"/>
+  <rect x="584" y="506" width="246" height="22" fill="#7F77DD"/>
+  <rect x="830" y="506" width="147" height="22" fill="#534AB7"/>
+  <rect x="977" y="506" width="403" height="22" fill="#ECEAE3"/>
+  <text x="203" y="521" text-anchor="middle" class="segn" fill="#26215C">1</text>
+  <text x="455" y="521" text-anchor="middle" class="segn" fill="#26215C">2</text>
+  <text x="707" y="521" text-anchor="middle" class="segn" fill="#FFFFFF">3</text>
+  <text x="903" y="521" text-anchor="middle" class="segn" fill="#FFFFFF">4</text>
+  <text x="1178" y="521" text-anchor="middle" class="segn" fill="#888780">buffer</text>
+  <circle cx="476" cy="506" r="6" fill="#FAC775" stroke="#BA7517"/>
+  <text x="476" y="499" text-anchor="middle" class="tk" fill="#633806">G1</text>
+  <circle cx="584" cy="506" r="6" fill="#FAC775" stroke="#BA7517"/>
+  <text x="600" y="499" class="tk" fill="#633806">G2</text>
+  <circle cx="830" cy="506" r="6" fill="#FAC775" stroke="#BA7517"/>
+  <text x="830" y="499" text-anchor="middle" class="tk" fill="#633806">G3</text>
+  <line x1="80" y1="528" x2="80" y2="535" stroke="#B4B2A9"/><text x="80" y="547" text-anchor="middle" class="tk">0</text>
+  <line x1="316" y1="528" x2="316" y2="535" stroke="#B4B2A9"/><text x="316" y="547" text-anchor="middle" class="tk">2</text>
+  <line x1="553" y1="528" x2="553" y2="535" stroke="#B4B2A9"/><text x="553" y="547" text-anchor="middle" class="tk">4</text>
+  <line x1="789" y1="528" x2="789" y2="535" stroke="#B4B2A9"/><text x="789" y="547" text-anchor="middle" class="tk">6</text>
+  <line x1="1026" y1="528" x2="1026" y2="535" stroke="#B4B2A9"/><text x="1026" y="547" text-anchor="middle" class="tk">8</text>
+  <line x1="1262" y1="528" x2="1262" y2="535" stroke="#B4B2A9"/><text x="1262" y="547" text-anchor="middle" class="tk">10</text>
+  <line x1="1380" y1="500" x2="1380" y2="535" stroke="#534AB7" stroke-width="1.5"/>
+  <text x="1380" y="547" text-anchor="middle" class="tk" fill="#534AB7">~11 committed</text>
+
+  <rect x="40" y="566" width="1416" height="50" rx="9" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1.5"/>
+  <text x="60" y="588" class="lev"><tspan font-weight="700">Biggest lever:</tspan> a 2nd engineer running the Go/MCP + GitHub + QA workstream in parallel with the Python agents &#8594; ~6-10 weeks sooner.</text>
+  <text x="60" y="606" class="lev">Solo is the main schedule risk; the plan assumes sustained full-time focus.</text>
+
+  <text x="40" y="644" class="klabel">TOP RISKS</text>
+  <rect x="40" y="654" width="448" height="72" rx="8" fill="#F7F6FD" stroke="#B4B2A9"/>
+  <text x="60" y="680" class="risk-t">RE accuracy on real code</text>
+  <text x="60" y="701" class="risk-s">Retired first by the M0 spike.</text>
+  <rect x="516" y="654" width="448" height="72" rx="8" fill="#F7F6FD" stroke="#B4B2A9"/>
+  <text x="536" y="680" class="risk-t">Solo = single point of failure</text>
+  <text x="536" y="701" class="risk-s">See lever; assumes sustained 1 FTE.</text>
+  <rect x="992" y="654" width="464" height="72" rx="8" fill="#F7F6FD" stroke="#B4B2A9"/>
+  <text x="1012" y="680" class="risk-t">Jira admin / custom fields</text>
+  <text x="1012" y="701" class="risk-s">External dependency &#8212; resolve early (gates M4-M5).</text>
+
+  <text x="40" y="758" class="meta">Date is the output of a fixed-scope, solo plan &#8212; a baseline to re-cut after the M0 spikes, not a fixed commitment.  &#183;  Full detail: docs/DELIVERY-PLAN.md</text>
+  <text x="40" y="778" class="meta">Roadmap view per AaraMinds Project Planner (Milestone Roadmap mode).</text>
+</svg>

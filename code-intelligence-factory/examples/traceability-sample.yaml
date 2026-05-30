@@ -1,0 +1,99 @@
+# Code Intelligence Factory — sample traceability manifest
+# Canonical, Git-versioned. Holds IDs, typed links, and provenance — never copies
+# ticket bodies or source code. The graph read-model is rebuilt from files like this.
+#
+# Worked example: a single capability ("a user can reset their password") traced
+# from business requirement all the way to a defect and its gap classification.
+
+version: 1
+system: acme-billing
+generated_by: cif-traceability-service@0.1
+note: >
+  confidence=INFERRED means recovered from code by Reverse Engineering and not yet
+  human-confirmed. source_refs are mandatory for every INFERRED requirement; a
+  requirement with neither source_refs nor human confirmation is rejected.
+
+business_requirements:
+  - id: BR-0007
+    title: Self-service password reset
+    statement: A registered user who has forgotten their password can reset it via email.
+    confidence: CONFIRMED            # human-confirmed at gate G2
+    source_refs:
+      - repo: acme/billing-api
+        path: src/main/java/com/acme/auth/PasswordResetController.java
+      - repo: acme/billing-web
+        path: src/features/auth/ResetPassword.tsx
+
+hld_elements:
+  - id: HL-0012
+    name: Authentication service — reset flow
+    kind: service
+    derives_from: [BR-0007]
+    confidence: CONFIRMED
+
+lld_elements:
+  - id: LL-0031
+    name: POST /api/auth/reset-request
+    kind: endpoint
+    derives_from: [HL-0012]
+    code_refs:
+      - repo: acme/billing-api
+        path: src/main/java/com/acme/auth/PasswordResetController.java
+        symbol: requestReset
+    confidence: CONFIRMED
+  - id: LL-0032
+    name: password_reset_tokens
+    kind: collection                 # MongoDB collection — schema INFERRED by sampling
+    derives_from: [HL-0012]
+    confidence: INFERRED
+    schema_inference:
+      sampled_documents: 500
+      fields:
+        - { name: userId, type: ObjectId, presence: 1.0 }
+        - { name: tokenHash, type: string, presence: 1.0 }
+        - { name: expiresAt, type: date, presence: 0.98 }   # variance flagged: 2% missing
+      variance_flagged: true
+
+user_stories:
+  - id: US-0045
+    jira_key: PROJ-210
+    traces_to: [BR-0007]
+    acceptance_criteria:
+      - Given a valid registered email, a reset link is sent within 1 minute.
+      - A reset link is single-use and expires after 30 minutes.
+
+pull_requests:
+  - repo: acme/billing-api
+    number: 488
+    url: https://github.com/acme/billing-api/pull/488
+    implemented_by: [US-0045]
+    declared_reqs: [BR-0007, LL-0031]
+    out_of_scope: "Rate-limiting of reset requests (deferred — see PROJ-233)."
+
+test_cases:
+  - id: TC-0101
+    verifies: [US-0045, LL-0031]
+    type: api
+    status: passing
+  # NOTE: no test verifies link expiry (the 30-minute criterion). This is the
+  # gap the defect below exposes.
+
+defects:
+  - jira_key: PROJ-412
+    summary: Expired reset links still work after 30 minutes.
+    severity: high
+
+gaps:
+  - id: GAP-0003
+    gap_of: PROJ-412
+    classification: test_gap          # requirement + design + impl all present; no TC covers expiry
+    points_to: [LL-0031]
+    evidence: >
+      BR-0007 -> HL-0012 -> LL-0031 -> US-0045 chain is complete and the expiry
+      criterion exists on US-0045, but no test_case verifies expiry (TC-0101 covers
+      request only). Routed to QA component, not to the developer.
+    confirmed_by: triage-lead         # human confirmation at gate G3
+
+# Link types used above: traces_to, derives_from, implemented_by, declared_reqs (=> violates if false),
+# verifies, gap_of, points_to. Every agent-created link also carries created_by/created_at/approved_by
+# (omitted here for readability).
