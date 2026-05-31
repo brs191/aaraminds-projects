@@ -1,0 +1,294 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1240" font-family='Segoe UI, "Helvetica Neue", Helvetica, Arial, sans-serif' role="img" aria-label="Aara System Architecture">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B3A39"/>
+    </marker>
+    <marker id="arr-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A8886"/>
+    </marker>
+    <marker id="arr-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#107C10"/>
+    </marker>
+    <marker id="arr-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF6900"/>
+    </marker>
+  </defs>
+  <rect width="1820" height="1240" fill="#FAFAFA"/>
+
+  <rect x="0" y="0" width="1820" height="76" fill="#1F3864"/>
+  <text x="36" y="34" fill="#FFFFFF" font-size="22" font-weight="700">Aara Teams Aggregator — System Architecture</text>
+  <text x="36" y="58" fill="#A6BBD9" font-size="13">Microsoft Teams bot · Azure-hosted · AskAT&amp;T LLM · AT&amp;T tenant</text>
+  <text x="1784" y="50" fill="#A6BBD9" font-size="12" text-anchor="end">Owner: Raja (Product) · v0.2 · May 2026</text>
+
+  <g>
+    <rect x="40" y="110" width="1740" height="110" rx="10" ry="10"
+          fill="#F3EDFA" stroke="#5C2D91" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="97" width="512" height="22" rx="4" ry="4"
+          fill="#5C2D91"/>
+    <text x="56" y="113" fill="#FFFFFF" font-size="12" font-weight="600">USERS  (Aara channel members, project leads, exec stakeholders)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="138" width="380" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="80" y="138" width="5" height="70" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="94" y="160" fill="#201F1E" font-size="13" font-weight="700">Teams Desktop</text>
+    <text x="94" y="180" fill="#201F1E" font-size="12">Native Windows / macOS client</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="510" y="138" width="380" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="510" y="138" width="5" height="70" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="524" y="160" fill="#201F1E" font-size="13" font-weight="700">Teams Mobile</text>
+    <text x="524" y="180" fill="#201F1E" font-size="12">iOS / Android</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="940" y="138" width="380" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="940" y="138" width="5" height="70" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="954" y="160" fill="#201F1E" font-size="13" font-weight="700">Teams Web</text>
+    <text x="954" y="180" fill="#201F1E" font-size="12">Browser-based</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1370" y="138" width="380" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1370" y="138" width="5" height="70" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="1384" y="160" fill="#201F1E" font-size="13" font-weight="700">Outlook</text>
+    <text x="1384" y="180" fill="#201F1E" font-size="12">Receives email digests</text>
+  </g>
+  <g><line x1="910.0" y1="222" x2="910.0" y2="254" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="826.0" y="217.0" width="168" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="910.0" y="228.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">Teams protocol / HTTPS</text></g>
+
+  <g>
+    <rect x="40" y="260" width="1740" height="280" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#2B579A" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="247" width="384" height="22" rx="4" ry="4"
+          fill="#2B579A"/>
+    <text x="56" y="263" fill="#FFFFFF" font-size="12" font-weight="600">MICROSOFT 365  (AT&amp;T tenant · Entra ID-secured)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="70" y="290" width="400" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="70" y="290" width="5" height="110" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="84" y="312" fill="#201F1E" font-size="13" font-weight="700">Microsoft Teams</text>
+    <text x="84" y="332" fill="#201F1E" font-size="12">Chats, channels, group chats</text><text x="84" y="348" fill="#201F1E" font-size="12">Bot installed via Teams app</text><text x="84" y="364" fill="#201F1E" font-size="12">Adaptive Cards as digest UI</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="500" y="290" width="400" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="500" y="290" width="5" height="110" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="514" y="312" fill="#201F1E" font-size="13" font-weight="700">Microsoft Graph</text>
+    <text x="514" y="332" fill="#201F1E" font-size="12">Teams Messages read/write</text><text x="514" y="348" fill="#201F1E" font-size="12">Change-notification subscriptions</text><text x="514" y="364" fill="#201F1E" font-size="12">Users / People resolution</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="930" y="290" width="400" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="930" y="290" width="5" height="110" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="944" y="312" fill="#201F1E" font-size="13" font-weight="700">Entra ID (Azure AD)</text>
+    <text x="944" y="332" fill="#201F1E" font-size="12">Bot identity &amp; app registration</text><text x="944" y="348" fill="#201F1E" font-size="12">Resource-Specific Consent (RSC)</text><text x="944" y="364" fill="#201F1E" font-size="12">Managed Identity for backend</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1360" y="290" width="400" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1360" y="290" width="5" height="110" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="1374" y="312" fill="#201F1E" font-size="13" font-weight="700">Adaptive Cards</text>
+    <text x="1374" y="332" fill="#201F1E" font-size="12">Interactive digest cards</text><text x="1374" y="348" fill="#201F1E" font-size="12">Confirm / edit action items</text><text x="1374" y="364" fill="#201F1E" font-size="12">Source-message deep links</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="70" y="412" width="400" height="90" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="70" y="412" width="5" height="90" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="84" y="434" fill="#201F1E" font-size="13" font-weight="700">Microsoft Planner</text>
+    <text x="84" y="454" fill="#201F1E" font-size="12">Canonical task tracker</text><text x="84" y="470" fill="#201F1E" font-size="12">Action-item write-back (v1.1)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="500" y="412" width="400" height="90" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="500" y="412" width="5" height="90" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="514" y="434" fill="#201F1E" font-size="13" font-weight="700">SharePoint Online</text>
+    <text x="514" y="454" fill="#201F1E" font-size="12">Digest archive (versioned)</text><text x="514" y="470" fill="#201F1E" font-size="12">Site retention + labels</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="930" y="412" width="400" height="90" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="930" y="412" width="5" height="90" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="944" y="434" fill="#201F1E" font-size="13" font-weight="700">Microsoft Loop</text>
+    <text x="944" y="454" fill="#201F1E" font-size="12">Live action-item component</text><text x="944" y="470" fill="#201F1E" font-size="12">Embeddable in Teams / Outlook</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1360" y="412" width="400" height="90" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1360" y="412" width="5" height="90" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="1374" y="434" fill="#201F1E" font-size="13" font-weight="700">Outlook / Exchange</text>
+    <text x="1374" y="454" fill="#201F1E" font-size="12">Email weekly digest to execs</text><text x="1374" y="470" fill="#201F1E" font-size="12">Calendar-aware scheduling</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="70" y="510" width="540" height="22" rx="6" ry="6"
+          fill="#FFEFEE" stroke="#8A8886" stroke-width="1"/>
+    <rect x="70" y="510" width="5" height="22" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="84" y="532" fill="#201F1E" font-size="13" font-weight="700">Microsoft Purview  ·  sensitivity labels &amp; DLP applied to Aara content</text>
+    
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="630" y="510" width="540" height="22" rx="6" ry="6"
+          fill="#FFEFEE" stroke="#8A8886" stroke-width="1"/>
+    <rect x="630" y="510" width="5" height="22" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="644" y="532" fill="#201F1E" font-size="13" font-weight="700">Microsoft Defender for Cloud Apps  ·  session policy + alerts</text>
+    
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1190" y="510" width="590" height="22" rx="6" ry="6"
+          fill="#F3EFFC" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1190" y="510" width="5" height="22" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="1204" y="532" fill="#201F1E" font-size="13" font-weight="700">Microsoft 365 Search / M365 Copilot (v2+)  ·  BCLM-wide retrieval surface</text>
+    
+  </g>
+  <g><line x1="690.0" y1="542" x2="690.0" y2="580" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="571.0" y="540.0" width="238" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="690.0" y="551.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">Graph API · HTTPS · OAuth2 / RSC</text></g>
+  <g><line x1="1130.0" y1="580" x2="1130.0" y2="542" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="909.5" y="562.0" width="441" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="1130.0" y="573.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">post Adaptive Cards · write to Planner / SharePoint / Outlook</text></g>
+
+  <g>
+    <rect x="40" y="586" width="1740" height="400" rx="10" ry="10"
+          fill="#E6F2FB" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="573" width="608" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="56" y="589" fill="#FFFFFF" font-size="12" font-weight="600">AZURE TENANT  (AT&amp;T subscription · Region: East US 2 primary, West US 3 DR)</text>
+  </g>
+
+  <g>
+    <rect x="70" y="632" width="1680" height="280" rx="10" ry="10"
+          fill="#D5E8F7" stroke="#005A9E" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="82" y="619" width="440" height="22" rx="4" ry="4"
+          fill="#005A9E"/>
+    <text x="86" y="635" fill="#FFFFFF" font-size="12" font-weight="600">Hub VNet · Private Endpoints · NSGs · Managed Identity</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="660" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="660" width="5" height="120" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="114" y="682" fill="#201F1E" font-size="13" font-weight="700">Azure Bot Service</text>
+    <text x="114" y="702" fill="#201F1E" font-size="12">Bot registration</text><text x="114" y="718" fill="#201F1E" font-size="12">Teams channel adapter</text><text x="114" y="734" fill="#201F1E" font-size="12">Activity routing</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="520" y="660" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="520" y="660" width="5" height="120" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="534" y="682" fill="#201F1E" font-size="13" font-weight="700">App Service (Premium)</text>
+    <text x="534" y="702" fill="#201F1E" font-size="12">Bot Framework SDK (Node.js)</text><text x="534" y="718" fill="#201F1E" font-size="12">@mention + slash command</text><text x="534" y="734" fill="#201F1E" font-size="12">Auth: Managed Identity</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="940" y="660" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="940" y="660" width="5" height="120" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="954" y="682" fill="#201F1E" font-size="13" font-weight="700">Timer-trigger Function</text>
+    <text x="954" y="702" fill="#201F1E" font-size="12">Scheduled digests</text><text x="954" y="718" fill="#201F1E" font-size="12">Weekly Monday 08:00 default</text><text x="954" y="734" fill="#201F1E" font-size="12">Cadence configurable</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1360" y="660" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1360" y="660" width="5" height="120" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="1374" y="682" fill="#201F1E" font-size="13" font-weight="700">Azure AI Search</text>
+    <text x="1374" y="702" fill="#201F1E" font-size="12">Semantic retrieval (opt.)</text><text x="1374" y="718" fill="#201F1E" font-size="12">Vector index over digests</text><text x="1374" y="734" fill="#201F1E" font-size="12">Standard S1</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="786" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="786" width="5" height="120" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="114" y="808" fill="#201F1E" font-size="13" font-weight="700">Cosmos DB (NoSQL)</text>
+    <text x="114" y="828" fill="#201F1E" font-size="12">Messages, items, decisions</text><text x="114" y="844" fill="#201F1E" font-size="12">Zone-redundant write region</text><text x="114" y="860" fill="#201F1E" font-size="12">Geo-replicated read</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="520" y="786" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="520" y="786" width="5" height="120" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="534" y="808" fill="#201F1E" font-size="13" font-weight="700">Azure Key Vault</text>
+    <text x="534" y="828" fill="#201F1E" font-size="12">Bot secrets, Graph creds</text><text x="534" y="844" fill="#201F1E" font-size="12">AskAT&amp;T credentials</text><text x="534" y="860" fill="#201F1E" font-size="12">Premium HSM-backed</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="940" y="786" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="940" y="786" width="5" height="120" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="954" y="808" fill="#201F1E" font-size="13" font-weight="700">Application Insights</text>
+    <text x="954" y="828" fill="#201F1E" font-size="12">Telemetry &amp; traces</text><text x="954" y="844" fill="#201F1E" font-size="12">Custom KPI dashboards</text><text x="954" y="860" fill="#201F1E" font-size="12">Alert rules on SLO</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1360" y="786" width="390" height="120" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1360" y="786" width="5" height="120" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="1374" y="808" fill="#201F1E" font-size="13" font-weight="700">Azure Storage (Blob)</text>
+    <text x="1374" y="828" fill="#201F1E" font-size="12">Adaptive Card payloads</text><text x="1374" y="844" fill="#201F1E" font-size="12">Digest export bundles</text><text x="1374" y="860" fill="#201F1E" font-size="12">Cool tier archive</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="928" width="1620" height="36" rx="6" ry="6"
+          fill="#FFEFEE" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="928" width="5" height="36" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="114" y="950" fill="#201F1E" font-size="13" font-weight="700">Azure Front Door + WAF  ·  global ingress, TLS termination, rate limiting (only required for admin web UI in v2)</text>
+    
+  </g>
+  <g><line x1="910.0" y1="988" x2="910.0" y2="1024" stroke="#FF6900" stroke-width="2" marker-end="url(#arr-ai)"/>
+    <rect x="700.0" y="985.0" width="420" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#FF6900" stroke-width="0.5" opacity="0.95"/>
+    <text x="910.0" y="996.0" fill="#FF6900" font-size="11" font-weight="600" text-anchor="middle">AskAT&amp;T inference · HTTPS over Private Link / ExpressRoute</text></g>
+
+  <g>
+    <rect x="40" y="1030" width="1740" height="130" rx="10" ry="10"
+          fill="#FFF1E5" stroke="#FF6900" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="1017" width="592" height="22" rx="4" ry="4"
+          fill="#FF6900"/>
+    <text x="56" y="1033" fill="#FFFFFF" font-size="12" font-weight="600">AT&amp;T NETWORK  (AskAT&amp;T enterprise LLM platform · inside AT&amp;T AI boundary)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="120" y="1062" width="760" height="80" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="120" y="1062" width="5" height="80" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="134" y="1084" fill="#201F1E" font-size="13" font-weight="700">AskAT&amp;T — LLM Endpoint</text>
+    <text x="134" y="1104" fill="#201F1E" font-size="12">Structured-output inference for extraction (action items, decisions, follow-ups, TL;DR)</text><text x="134" y="1120" fill="#201F1E" font-size="12">Single pinned model + version per Aara release  ·  AT&amp;T-approved model catalog</text><text x="134" y="1136" fill="#201F1E" font-size="12">Optional embeddings endpoint for semantic search in Azure AI Search</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="910" y="1062" width="770" height="80" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="910" y="1062" width="5" height="80" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="924" y="1084" fill="#201F1E" font-size="13" font-weight="700">AT&amp;T Identity / Network Controls</text>
+    <text x="924" y="1104" fill="#201F1E" font-size="12">AT&amp;T-internal authentication  ·  no public Internet path</text><text x="924" y="1120" fill="#201F1E" font-size="12">Connectivity: ExpressRoute, Private Link, or AT&amp;T VNet peering</text><text x="924" y="1136" fill="#201F1E" font-size="12">Rate limits / quotas governed by AskAT&amp;T policy; reserved capacity for the &lt; 30s SLO</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="40" y="1175" width="420" height="184" rx="6" ry="6" fill="#FFFFFF" stroke="#8A8886"/>
+    <text x="54" y="1195" fill="#201F1E" font-size="12" font-weight="700">Legend</text>
+<rect x="54" y="1205" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/><text x="84" y="1215" fill="#201F1E" font-size="11">Compute / service</text><rect x="54" y="1227" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/><text x="84" y="1237" fill="#201F1E" font-size="11">Data store</text><rect x="54" y="1249" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#C42B1C" stroke-width="2"/><text x="84" y="1259" fill="#201F1E" font-size="11">Security / identity</text><rect x="54" y="1271" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#FF6900" stroke-width="2"/><text x="84" y="1281" fill="#201F1E" font-size="11">AskAT&amp;T (AI inference)</text><line x1="54" y1="1299" x2="74" y2="1299" stroke="#3B3A39" stroke-width="2.5"/><text x="84" y="1303" fill="#201F1E" font-size="11">Synchronous call</text><line x1="54" y1="1321" x2="74" y2="1321" stroke="#8A8886" stroke-width="2" stroke-dasharray="4 3"/><text x="84" y="1325" fill="#201F1E" font-size="11">Async / webhook</text><line x1="54" y1="1343" x2="74" y2="1343" stroke="#FF6900" stroke-width="2.5"/><text x="84" y="1347" fill="#201F1E" font-size="11">Private-network LLM call</text>  </g>
+  <text x="480" y="1196" fill="#605E5C" font-size="11" font-weight="400" text-anchor="start">Trust boundaries shown as dashed-stroke zones.  Internal arrows omitted in this view — see Data-flow diagram (page 3) for the full sequence.</text>
+</svg>

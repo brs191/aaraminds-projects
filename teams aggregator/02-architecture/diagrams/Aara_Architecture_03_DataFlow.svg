@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1240" font-family='Segoe UI, "Helvetica Neue", Helvetica, Arial, sans-serif' role="img" aria-label="Aara Data Flow Sequence">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B3A39"/>
+    </marker>
+    <marker id="arr-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A8886"/>
+    </marker>
+    <marker id="arr-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#107C10"/>
+    </marker>
+    <marker id="arr-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF6900"/>
+    </marker>
+  </defs>
+  <rect width="1820" height="1240" fill="#FAFAFA"/>
+
+  <rect x="0" y="0" width="1820" height="76" fill="#1F3864"/>
+  <text x="36" y="34" fill="#FFFFFF" font-size="22" font-weight="700">Aara — Data Flow / Sequence</text>
+  <text x="36" y="58" fill="#A6BBD9" font-size="13">One digest run, end-to-end · captures Mode A (designated channel) and Mode B (@mention) inputs</text>
+  <text x="1784" y="50" fill="#A6BBD9" font-size="12" text-anchor="end">Owner: Raja (Product) · v0.2 · May 2026</text>
+
+  <g filter="url(#soft)">
+    <rect x="46.666666666666686" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2"/>
+<text x="136.66666666666669" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Channel</text><text x="136.66666666666669" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">member</text>  </g><line x1="136.66666666666669" y1="138" x2="136.66666666666669" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="240.0" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+<text x="330.0" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Microsoft</text><text x="330.0" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Teams</text>  </g><line x1="330.0" y1="138" x2="330.0" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="433.33333333333337" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+<text x="523.3333333333334" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Microsoft</text><text x="523.3333333333334" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Graph</text>  </g><line x1="523.3333333333334" y1="138" x2="523.3333333333334" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="626.6666666666667" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+<text x="716.6666666666667" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Bot Backend</text><text x="716.6666666666667" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">(App Service)</text>  </g><line x1="716.6666666666667" y1="138" x2="716.6666666666667" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="820.0" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+<text x="910.0" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Cosmos DB</text>  </g><line x1="910.0" y1="138" x2="910.0" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="1013.3333333333335" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+<text x="1103.3333333333335" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Pre-filter</text><text x="1103.3333333333335" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">(rules + small LLM)</text>  </g><line x1="1103.3333333333335" y1="138" x2="1103.3333333333335" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="1206.6666666666667" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#FF6900" stroke-width="2"/>
+<text x="1296.6666666666667" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">AskAT&amp;T</text>  </g><line x1="1296.6666666666667" y1="138" x2="1296.6666666666667" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="1400.0" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/>
+<text x="1490.0" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Planner /</text><text x="1490.0" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">SharePoint</text>  </g><line x1="1490.0" y1="138" x2="1490.0" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <g filter="url(#soft)">
+    <rect x="1593.3333333333335" y="80" width="180" height="58" rx="6" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+<text x="1683.3333333333335" y="100" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Adaptive</text><text x="1683.3333333333335" y="116" fill="#201F1E" font-size="12" font-weight="700" text-anchor="middle">Card reply</text>  </g><line x1="1683.3333333333335" y1="138" x2="1683.3333333333335" y2="1140" stroke="#8A8886" stroke-width="1" stroke-dasharray="3 3"/>
+  <g><line x1="136.66666666666669" y1="180" x2="330.0" y2="180" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="30.333333333333343" y="163.0" width="406" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="233.33333333333334" y="174.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">1 · Posts message in Aara channel  /  @Aara include this</text></g>
+  <g><line x1="330.0" y1="215" x2="523.3333333333334" y2="215" stroke="#8A8886" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-async)"/>
+    <rect x="230.66666666666669" y="198.0" width="392" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#8A8886" stroke-width="0.5" opacity="0.95"/>
+    <text x="426.6666666666667" y="209.0" fill="#8A8886" font-size="11" font-weight="600" text-anchor="middle">2 · Graph emits change-notification subscription event</text></g>
+  <g><line x1="523.3333333333334" y1="250" x2="716.6666666666667" y2="250" stroke="#8A8886" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-async)"/>
+    <rect x="462.5" y="233.0" width="315" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#8A8886" stroke-width="0.5" opacity="0.95"/>
+    <text x="620.0" y="244.0" fill="#8A8886" font-size="11" font-weight="600" text-anchor="middle">3 · Webhook → bot (validated, deduplicated)</text></g>
+  <g><line x1="716.6666666666667" y1="290" x2="910.0" y2="290" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="589.3333333333334" y="273.0" width="448" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="813.3333333333334" y="284.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">4 · Persist raw message + inclusion_reason (channel | mention)</text></g>
+  <g><line x1="716.6666666666667" y1="330" x2="523.3333333333334" y2="330" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="371.5" y="313.0" width="497" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="620.0" y="324.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">5 · Resolve author identity, thread parent (Graph: People + Messages)</text></g>
+<rect x="336.66666666666674" y="368" width="760" height="22" rx="4" fill="#FFF4CE" stroke="#F2C811" stroke-width="1"/><text x="716.6666666666667" y="383" fill="#201F1E" font-size="11.5" font-weight="600" text-anchor="middle">── /Aara summary  OR  scheduled timer fires (next window) ──</text>  <g><line x1="716.6666666666667" y1="420" x2="910.0" y2="420" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="711.8333333333334" y="403.0" width="203" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="813.3333333333334" y="414.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">6 · Load in-window messages</text></g>
+  <g><line x1="716.6666666666667" y1="460" x2="1103.3333333333335" y2="460" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="637.0000000000001" y="443.0" width="546" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="910.0000000000001" y="454.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">7 · Pre-filter pass  (drop banter; keep task / decision / follow-up signals)</text></g>
+  <g><line x1="1103.3333333333335" y1="495" x2="716.6666666666667" y2="495" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="815.5000000000001" y="478.0" width="189" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="910.0000000000001" y="489.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">    filtered set returned</text></g>
+  <g><line x1="716.6666666666667" y1="540" x2="1296.6666666666667" y2="540" stroke="#FF6900" stroke-width="2" marker-end="url(#arr-ai)"/>
+    <rect x="758.1666666666667" y="523.0" width="497" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#FF6900" stroke-width="0.5" opacity="0.95"/>
+    <text x="1006.6666666666667" y="534.0" fill="#FF6900" font-size="11" font-weight="600" text-anchor="middle">8 · Call AskAT&amp;T with structured-output schema  (mTLS · ExpressRoute)</text></g>
+  <g><line x1="1296.6666666666667" y1="580" x2="716.6666666666667" y2="580" stroke="#FF6900" stroke-width="2" marker-end="url(#arr-ai)"/>
+    <rect x="737.1666666666667" y="563.0" width="539" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#FF6900" stroke-width="0.5" opacity="0.95"/>
+    <text x="1006.6666666666667" y="574.0" fill="#FF6900" font-size="11" font-weight="600" text-anchor="middle">    action_items[], decisions[], follow_ups[], tl_dr, risks, open_questions</text></g>
+  <g><line x1="716.6666666666667" y1="625" x2="910.0" y2="625" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="547.3333333333334" y="608.0" width="532" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="813.3333333333334" y="619.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">9 · Dedupe vs. open items;  merge updates;  flag low-confidence for review</text></g>
+  <g><line x1="716.6666666666667" y1="670" x2="910.0" y2="670" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="568.3333333333334" y="653.0" width="490" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="813.3333333333334" y="664.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">10 · Persist new ActionItems / Decisions / FollowUps / Digest record</text></g>
+  <g><line x1="716.6666666666667" y1="720" x2="1490.0" y2="720" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="826.8333333333335" y="703.0" width="553" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="1103.3333333333335" y="714.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">11 · Write action items to Planner plan  +  archive digest page in SharePoint</text></g>
+  <g><line x1="716.6666666666667" y1="770" x2="1683.3333333333335" y2="770" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="951.5" y="753.0" width="497" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="1200.0" y="764.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">12 · Compose Adaptive Card  (TL;DR + items + Edit / Confirm controls)</text></g>
+  <g><line x1="1683.3333333333335" y1="815" x2="330.0" y2="815" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="758.1666666666667" y="798.0" width="497" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="1006.6666666666667" y="809.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">13 · Post card via Graph into BCLM Status channel  +  DM project lead</text></g>
+  <g><line x1="330.0" y1="855" x2="136.66666666666669" y2="855" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="75.83333333333334" y="838.0" width="315" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="233.33333333333334" y="849.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">14 · Card rendered to Aara members in Teams</text></g>
+  <g><line x1="136.66666666666669" y1="905" x2="330.0" y2="905" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="5.833333333333343" y="888.0" width="455" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="233.33333333333334" y="899.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">15 · User taps  Mark complete  /  Reassign  /  Edit on the card</text></g>
+  <g><line x1="330.0" y1="945" x2="716.6666666666667" y2="945" stroke="#8A8886" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr-async)"/>
+    <rect x="341.33333333333337" y="928.0" width="364" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#8A8886" stroke-width="0.5" opacity="0.95"/>
+    <text x="523.3333333333334" y="939.0" fill="#8A8886" font-size="11" font-weight="600" text-anchor="middle">16 · Bot Framework activity → bot  (action invoke)</text></g>
+  <g><line x1="716.6666666666667" y1="985" x2="1490.0" y2="985" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="907.3333333333335" y="968.0" width="392" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="1103.3333333333335" y="979.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">17 · Two-way sync:  update Planner task status / owner</text></g>
+  <g><line x1="716.6666666666667" y1="1025" x2="910.0" y2="1025" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="561.3333333333334" y="1008.0" width="504" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="813.3333333333334" y="1019.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">18 · Update Cosmos record + write AuditEvent (actor, before/after, ts)</text></g>
+  <g><line x1="716.6666666666667" y1="1075" x2="330.0" y2="1075" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="341.33333333333337" y="1058.0" width="364" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="523.3333333333334" y="1069.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">19 · Update card in place  (Adaptive Card refresh)</text></g>
+<line x1="18" y1="175" x2="18" y2="335" stroke="#0078D4" stroke-width="4" stroke-linecap="round"/><text x="26" y="259.0" fill="#0078D4" font-size="11" font-weight="700">Capture</text><line x1="18" y1="375" x2="18" y2="505" stroke="#FF6900" stroke-width="4" stroke-linecap="round"/><text x="26" y="444.0" fill="#FF6900" font-size="11" font-weight="700">Extract</text><line x1="18" y1="535" x2="18" y2="705" stroke="#107C10" stroke-width="4" stroke-linecap="round"/><text x="26" y="624.0" fill="#107C10" font-size="11" font-weight="700">Persist &amp; integrate</text><line x1="18" y1="715" x2="18" y2="855" stroke="#0078D4" stroke-width="4" stroke-linecap="round"/><text x="26" y="789.0" fill="#0078D4" font-size="11" font-weight="700">Deliver</text><line x1="18" y1="895" x2="18" y2="1090" stroke="#5C2D91" stroke-width="4" stroke-linecap="round"/><text x="26" y="996.5" fill="#5C2D91" font-size="11" font-weight="700">Interact &amp; sync back</text>
+  <g filter="url(#soft)">
+    <rect x="40" y="1160" width="320" height="118" rx="6" ry="6" fill="#FFFFFF" stroke="#8A8886"/>
+    <text x="54" y="1180" fill="#201F1E" font-size="12" font-weight="700">Connection types</text>
+<line x1="54" y1="1196" x2="74" y2="1196" stroke="#3B3A39" stroke-width="2.5"/><text x="84" y="1200" fill="#201F1E" font-size="11">Synchronous call</text><line x1="54" y1="1218" x2="74" y2="1218" stroke="#8A8886" stroke-width="2" stroke-dasharray="4 3"/><text x="84" y="1222" fill="#201F1E" font-size="11">Async / event / webhook</text><line x1="54" y1="1240" x2="74" y2="1240" stroke="#107C10" stroke-width="2.5"/><text x="84" y="1244" fill="#201F1E" font-size="11">Data write / read</text><line x1="54" y1="1262" x2="74" y2="1262" stroke="#FF6900" stroke-width="2.5"/><text x="84" y="1266" fill="#201F1E" font-size="11">AskAT&amp;T inference</text>  </g>
+  <text x="380" y="1180" fill="#605E5C" font-size="11" font-weight="400" text-anchor="start">Trigger (step 6) fires from either user command /Aara summary or the scheduled Timer Function.</text>
+  <text x="380" y="1198" fill="#605E5C" font-size="11" font-weight="400" text-anchor="start">Steps 11–19 are v1.1 (Planner + SharePoint integrations enabled in beta).</text>
+  <text x="380" y="1216" fill="#605E5C" font-size="11" font-weight="400" text-anchor="start">Every extracted item carries a source_message_url. Items with no citation are rejected and routed to a triage list.</text>
+</svg>

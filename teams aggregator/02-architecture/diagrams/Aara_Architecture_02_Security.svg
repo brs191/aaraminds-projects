@@ -1,0 +1,333 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1240" font-family='Segoe UI, "Helvetica Neue", Helvetica, Arial, sans-serif' role="img" aria-label="Aara Network &amp; Security">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B3A39"/>
+    </marker>
+    <marker id="arr-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A8886"/>
+    </marker>
+    <marker id="arr-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#107C10"/>
+    </marker>
+    <marker id="arr-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF6900"/>
+    </marker>
+  </defs>
+  <rect width="1820" height="1240" fill="#FAFAFA"/>
+
+  <rect x="0" y="0" width="1820" height="76" fill="#1F3864"/>
+  <text x="36" y="34" fill="#FFFFFF" font-size="22" font-weight="700">Aara — Network &amp; Security View</text>
+  <text x="36" y="58" fill="#A6BBD9" font-size="13">Identity, network perimeters, secrets, sensitivity, DLP · IT/Security review artifact</text>
+  <text x="1784" y="50" fill="#A6BBD9" font-size="12" text-anchor="end">Owner: Raja (Product) · v0.2 · May 2026</text>
+
+  <g>
+    <rect x="40" y="110" width="360" height="200" rx="10" ry="10"
+          fill="#F3F2F1" stroke="#605E5C" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="97" width="168" height="22" rx="4" ry="4"
+          fill="#605E5C"/>
+    <text x="56" y="113" fill="#FFFFFF" font-size="12" font-weight="600">Internet (untrusted)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="140" width="320" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="60" y="140" width="5" height="60" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="74" y="162" fill="#201F1E" font-size="13" font-weight="700">Teams Clients</text>
+    <text x="74" y="182" fill="#201F1E" font-size="12">Desktop / Mobile / Web · TLS 1.2+</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="215" width="320" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="60" y="215" width="5" height="60" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="74" y="237" fill="#201F1E" font-size="13" font-weight="700">Inbound user identity</text>
+    <text x="74" y="257" fill="#201F1E" font-size="12">Entra ID OAuth2 token (PKCE)</text><text x="74" y="273" fill="#201F1E" font-size="12">MFA enforced by tenant CA policy</text>
+  </g>
+
+  <g>
+    <rect x="440" y="110" width="1340" height="200" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#2B579A" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="452" y="97" width="416" height="22" rx="4" ry="4"
+          fill="#2B579A"/>
+    <text x="456" y="113" fill="#FFFFFF" font-size="12" font-weight="600">Microsoft 365  (AT&amp;T tenant) — managed by Microsoft</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="460" y="140" width="300" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="460" y="140" width="5" height="150" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="474" y="162" fill="#201F1E" font-size="13" font-weight="700">Entra ID (Azure AD)</text>
+    <text x="474" y="182" fill="#201F1E" font-size="12">Tenant: ATT.onmicrosoft.com</text><text x="474" y="198" fill="#201F1E" font-size="12">App registration: Aara-Bot</text><text x="474" y="214" fill="#201F1E" font-size="12">Managed Identity (system-assigned)</text><text x="474" y="230" fill="#201F1E" font-size="12">Conditional Access: MFA + compliant device</text><text x="474" y="246" fill="#201F1E" font-size="12">PIM: just-in-time for admin roles</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="780" y="140" width="300" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="780" y="140" width="5" height="150" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="794" y="162" fill="#201F1E" font-size="13" font-weight="700">Microsoft Graph</text>
+    <text x="794" y="182" fill="#201F1E" font-size="12">Scopes (RSC, per-team):</text><text x="794" y="198" fill="#201F1E" font-size="12">  ChannelMessage.Read.Group</text><text x="794" y="214" fill="#201F1E" font-size="12">  ChatMessage.Read.Chat</text><text x="794" y="230" fill="#201F1E" font-size="12">  TeamsAppInstallation.Read.Group</text><text x="794" y="246" fill="#201F1E" font-size="12">Change-notification subscriptions (push)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1100" y="140" width="320" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1100" y="140" width="5" height="150" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1114" y="162" fill="#201F1E" font-size="13" font-weight="700">Microsoft Purview</text>
+    <text x="1114" y="182" fill="#201F1E" font-size="12">Sensitivity labels applied to:</text><text x="1114" y="198" fill="#201F1E" font-size="12">  · digest pages in SharePoint</text><text x="1114" y="214" fill="#201F1E" font-size="12">  · Adaptive Card content</text><text x="1114" y="230" fill="#201F1E" font-size="12">DLP policies inherited by bot writes</text><text x="1114" y="246" fill="#201F1E" font-size="12">Audit trail of label changes</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1440" y="140" width="320" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1440" y="140" width="5" height="150" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1454" y="162" fill="#201F1E" font-size="13" font-weight="700">Microsoft Defender</text>
+    <text x="1454" y="182" fill="#201F1E" font-size="12">Defender for Cloud Apps:</text><text x="1454" y="198" fill="#201F1E" font-size="12">  session policy on Aara app</text><text x="1454" y="214" fill="#201F1E" font-size="12">Defender for Office 365:</text><text x="1454" y="230" fill="#201F1E" font-size="12">  Safe Links on digest emails</text><text x="1454" y="246" fill="#201F1E" font-size="12">Sentinel: M365 audit log ingest</text>
+  </g>
+
+  <g>
+    <rect x="40" y="340" width="1340" height="590" rx="10" ry="10"
+          fill="#E6F2FB" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="327" width="512" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="56" y="343" fill="#FFFFFF" font-size="12" font-weight="600">Azure Tenant — Subscription: ATT-AARA-PROD  (Region: East US 2)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="380" width="1300" height="50" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="60" y="380" width="5" height="50" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="74" y="402" fill="#201F1E" font-size="13" font-weight="700">Azure Front Door Premium + WAF</text>
+    <text x="74" y="422" fill="#201F1E" font-size="12">Global anycast ingress · TLS 1.3 · OWASP managed ruleset · per-IP rate limits · geo-fence (US only) · bot protection</text>
+  </g>
+
+  <g>
+    <rect x="60" y="450" width="1300" height="460" rx="10" ry="10"
+          fill="#D5E8F7" stroke="#005A9E" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="72" y="437" width="520" height="22" rx="4" ry="4"
+          fill="#005A9E"/>
+    <text x="76" y="453" fill="#FFFFFF" font-size="12" font-weight="600">Hub VNet  10.0.0.0/16  ·  NSGs at every subnet  ·  DDoS Standard</text>
+  </g>
+
+  <g>
+    <rect x="80" y="490" width="410" height="200" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="92" y="477" width="200" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="96" y="493" fill="#FFFFFF" font-size="12" font-weight="600">Subnet: app  10.0.1.0/24</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="520" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="520" width="5" height="70" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="114" y="542" fill="#201F1E" font-size="13" font-weight="700">App Service Premium P1v3 (zone-redundant)</text>
+    <text x="114" y="562" fill="#201F1E" font-size="12">System-assigned Managed Identity</text><text x="114" y="578" fill="#201F1E" font-size="12">VNet integration · Private Endpoint</text><text x="114" y="594" fill="#201F1E" font-size="12">No public inbound (origin = Front Door only)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="600" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="600" width="5" height="70" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="114" y="622" fill="#201F1E" font-size="13" font-weight="700">Functions Premium EP1 (Timer)</text>
+    <text x="114" y="642" fill="#201F1E" font-size="12">Managed Identity for Graph + AskAT&amp;T</text><text x="114" y="658" fill="#201F1E" font-size="12">Egress to AskAT&amp;T over Private Link</text>
+  </g>
+
+  <g>
+    <rect x="510" y="490" width="410" height="200" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="522" y="477" width="208" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="526" y="493" fill="#FFFFFF" font-size="12" font-weight="600">Subnet: data  10.0.2.0/24</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="530" y="520" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="530" y="520" width="5" height="70" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="544" y="542" fill="#201F1E" font-size="13" font-weight="700">Cosmos DB (NoSQL, Private Endpoint)</text>
+    <text x="544" y="562" fill="#201F1E" font-size="12">CMK encryption (Key Vault HSM)</text><text x="544" y="578" fill="#201F1E" font-size="12">Continuous backup · zone-redundant</text><text x="544" y="594" fill="#201F1E" font-size="12">RBAC data-plane (no shared keys)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="530" y="600" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="530" y="600" width="5" height="70" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="544" y="622" fill="#201F1E" font-size="13" font-weight="700">Azure Key Vault Premium (HSM)</text>
+    <text x="544" y="642" fill="#201F1E" font-size="12">Secrets: AskAT&amp;T credentials, Bot Framework keys</text><text x="544" y="658" fill="#201F1E" font-size="12">Soft-delete + purge protection</text><text x="544" y="674" fill="#201F1E" font-size="12">RBAC roles, no access policies</text>
+  </g>
+
+  <g>
+    <rect x="940" y="490" width="410" height="200" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="952" y="477" width="192" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="956" y="493" fill="#FFFFFF" font-size="12" font-weight="600">Subnet: ai  10.0.3.0/24</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="960" y="520" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="960" y="520" width="5" height="70" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="974" y="542" fill="#201F1E" font-size="13" font-weight="700">Azure AI Search Standard S1 (optional)</text>
+    <text x="974" y="562" fill="#201F1E" font-size="12">Private Endpoint</text><text x="974" y="578" fill="#201F1E" font-size="12">Vector index over digests for semantic recall</text><text x="974" y="594" fill="#201F1E" font-size="12">CMK-encrypted</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="960" y="600" width="370" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="960" y="600" width="5" height="70" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="974" y="622" fill="#201F1E" font-size="13" font-weight="700">ExpressRoute Gateway · UltraPerformance</text>
+    <text x="974" y="642" fill="#201F1E" font-size="12">Private peering to AT&amp;T network</text><text x="974" y="658" fill="#201F1E" font-size="12">BGP routes to AskAT&amp;T endpoint only</text><text x="974" y="674" fill="#201F1E" font-size="12">Active/active across availability zones</text>
+  </g>
+
+  <g>
+    <rect x="80" y="705" width="1270" height="190" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="92" y="692" width="448" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="96" y="708" fill="#FFFFFF" font-size="12" font-weight="600">Subnet: ops  10.0.4.0/24  ·  Observability + Governance</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="735" width="300" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="735" width="5" height="70" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="114" y="757" fill="#201F1E" font-size="13" font-weight="700">Application Insights</text>
+    <text x="114" y="777" fill="#201F1E" font-size="12">End-to-end traces</text><text x="114" y="793" fill="#201F1E" font-size="12">Custom KPI metrics</text><text x="114" y="809" fill="#201F1E" font-size="12">PII scrubber on telemetry</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="420" y="735" width="300" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="420" y="735" width="5" height="70" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="434" y="757" fill="#201F1E" font-size="13" font-weight="700">Log Analytics workspace</text>
+    <text x="434" y="777" fill="#201F1E" font-size="12">Activity logs + diagnostic settings</text><text x="434" y="793" fill="#201F1E" font-size="12">365-day retention</text><text x="434" y="809" fill="#201F1E" font-size="12">Pipes to Sentinel</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="740" y="735" width="300" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="740" y="735" width="5" height="70" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="754" y="757" fill="#201F1E" font-size="13" font-weight="700">Microsoft Sentinel (SIEM)</text>
+    <text x="754" y="777" fill="#201F1E" font-size="12">Connectors: AAD, M365, Defender, Azure</text><text x="754" y="793" fill="#201F1E" font-size="12">Alerts on anomalous Aara activity</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1060" y="735" width="280" height="70" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1060" y="735" width="5" height="70" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1074" y="757" fill="#201F1E" font-size="13" font-weight="700">Azure Policy</text>
+    <text x="1074" y="777" fill="#201F1E" font-size="12">Initiative: NIST 800-53 R5</text><text x="1074" y="793" fill="#201F1E" font-size="12">No public IP allowed</text><text x="1074" y="809" fill="#201F1E" font-size="12">CMK required on PaaS</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="100" y="815" width="1240" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="100" y="815" width="5" height="60" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="114" y="837" fill="#201F1E" font-size="13" font-weight="700">Backups &amp; DR  ·  Cosmos DB continuous backup (30-day PITR) · App Service slot swap · Key Vault HSM-backed · West US 3 paired region for DR</text>
+    
+  </g>
+
+  <g>
+    <rect x="1400" y="340" width="380" height="590" rx="10" ry="10"
+          fill="#FFF1E5" stroke="#FF6900" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="1412" y="327" width="192" height="22" rx="4" ry="4"
+          fill="#FF6900"/>
+    <text x="1416" y="343" fill="#FFFFFF" font-size="12" font-weight="600">AT&amp;T Network  (private)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1420" y="380" width="340" height="100" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1420" y="380" width="5" height="100" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1434" y="402" fill="#201F1E" font-size="13" font-weight="700">ExpressRoute Circuit  ·  AT&amp;T peering</text>
+    <text x="1434" y="422" fill="#201F1E" font-size="12">Private peering — no Internet hop</text><text x="1434" y="438" fill="#201F1E" font-size="12">BGP-advertised AskAT&amp;T endpoint</text><text x="1434" y="454" fill="#201F1E" font-size="12">10 Gbps · active/active</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1420" y="500" width="340" height="130" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1420" y="500" width="5" height="130" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="1434" y="522" fill="#201F1E" font-size="13" font-weight="700">AskAT&amp;T Endpoint</text>
+    <text x="1434" y="542" fill="#201F1E" font-size="12">mTLS · client cert in Key Vault</text><text x="1434" y="558" fill="#201F1E" font-size="12">AT&amp;T-internal identity (no AAD)</text><text x="1434" y="574" fill="#201F1E" font-size="12">Per-tenant quota &amp; RPM limits</text><text x="1434" y="590" fill="#201F1E" font-size="12">Content-classification gating</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1420" y="650" width="340" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1420" y="650" width="5" height="110" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="1434" y="672" fill="#201F1E" font-size="13" font-weight="700">AskAT&amp;T Audit Plane</text>
+    <text x="1434" y="692" fill="#201F1E" font-size="12">Per-call audit log (prompt hash, model, latency)</text><text x="1434" y="708" fill="#201F1E" font-size="12">Retained in AT&amp;T audit store</text><text x="1434" y="724" fill="#201F1E" font-size="12">Reviewable by AT&amp;T AI Governance</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1420" y="780" width="340" height="130" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1420" y="780" width="5" height="130" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1434" y="802" fill="#201F1E" font-size="13" font-weight="700">Data-handling guarantees</text>
+    <text x="1434" y="822" fill="#201F1E" font-size="12">Prompts never persisted by AskAT&amp;T</text><text x="1434" y="838" fill="#201F1E" font-size="12">No training on AT&amp;T tenant data</text><text x="1434" y="854" fill="#201F1E" font-size="12">No egress to public AI providers</text><text x="1434" y="870" fill="#201F1E" font-size="12">Region-locked inference</text>
+  </g>
+  <g><line x1="220" y1="312" x2="220" y2="376" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="171.0" y="327.0" width="98" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="220.0" y="338.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">OAuth2 + MFA</text></g>
+  <g><line x1="1380" y1="600" x2="1418" y2="600" stroke="#FF6900" stroke-width="2" marker-end="url(#arr-ai)"/>
+    <rect x="1325.5" y="583.0" width="147" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#FF6900" stroke-width="0.5" opacity="0.95"/>
+    <text x="1399.0" y="594.0" fill="#FF6900" font-size="11" font-weight="600" text-anchor="middle">ExpressRoute · mTLS</text></g>
+  <g><line x1="610" y1="312" x2="610" y2="376" stroke="#3B3A39" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="536.5" y="327.0" width="147" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#3B3A39" stroke-width="0.5" opacity="0.95"/>
+    <text x="610.0" y="338.0" fill="#3B3A39" font-size="11" font-weight="600" text-anchor="middle">RSC consent · Graph</text></g>
+  <g><line x1="950" y1="312" x2="950" y2="376" stroke="#107C10" stroke-width="2" marker-end="url(#arr-data)"/>
+    <rect x="883.5" y="327.0" width="133" height="15" rx="3" ry="3" fill="#FFFFFF" stroke="#107C10" stroke-width="0.5" opacity="0.95"/>
+    <text x="950.0" y="338.0" fill="#107C10" font-size="11" font-weight="600" text-anchor="middle">label propagation</text></g>
+
+  <g>
+    <rect x="40" y="950" width="1740" height="220" rx="10" ry="10"
+          fill="#F3F2F1" stroke="#605E5C" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="937" width="624" height="22" rx="4" ry="4"
+          fill="#605E5C"/>
+    <text x="56" y="953" fill="#FFFFFF" font-size="12" font-weight="600">COMPLIANCE &amp; CONTROLS  (mapped to NIST 800-53 R5 + AT&amp;T enterprise standards)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="985" width="420" height="170" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="60" y="985" width="5" height="170" rx="2.5" ry="2.5" fill="#5C2D91"/>
+    <text x="74" y="1007" fill="#201F1E" font-size="13" font-weight="700">Identity</text>
+    <text x="74" y="1027" fill="#201F1E" font-size="12">AAD-only authentication</text><text x="74" y="1043" fill="#201F1E" font-size="12">Managed Identity for service-to-service</text><text x="74" y="1059" fill="#201F1E" font-size="12">PIM for admins</text><text x="74" y="1075" fill="#201F1E" font-size="12">Conditional Access (MFA, compliant device)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="500" y="985" width="420" height="170" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="500" y="985" width="5" height="170" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="514" y="1007" fill="#201F1E" font-size="13" font-weight="700">Data at rest</text>
+    <text x="514" y="1027" fill="#201F1E" font-size="12">CMK via Key Vault HSM</text><text x="514" y="1043" fill="#201F1E" font-size="12">Cosmos DB encrypted</text><text x="514" y="1059" fill="#201F1E" font-size="12">AI Search encrypted</text><text x="514" y="1075" fill="#201F1E" font-size="12">SharePoint inherits sensitivity labels</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="940" y="985" width="420" height="170" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="940" y="985" width="5" height="170" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="954" y="1007" fill="#201F1E" font-size="13" font-weight="700">Data in transit</text>
+    <text x="954" y="1027" fill="#201F1E" font-size="12">TLS 1.3 north–south</text><text x="954" y="1043" fill="#201F1E" font-size="12">mTLS east–west to AskAT&amp;T</text><text x="954" y="1059" fill="#201F1E" font-size="12">Private Endpoints only</text><text x="954" y="1075" fill="#201F1E" font-size="12">No public PaaS endpoints</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1380" y="985" width="420" height="170" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1380" y="985" width="5" height="170" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="1394" y="1007" fill="#201F1E" font-size="13" font-weight="700">Audit &amp; response</text>
+    <text x="1394" y="1027" fill="#201F1E" font-size="12">AAD sign-in logs → Sentinel</text><text x="1394" y="1043" fill="#201F1E" font-size="12">AskAT&amp;T audit plane → SIEM mirror</text><text x="1394" y="1059" fill="#201F1E" font-size="12">30-day Cosmos PITR</text><text x="1394" y="1075" fill="#201F1E" font-size="12">Incident runbook in OneNote</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1500" y="1175" width="280" height="118" rx="6" ry="6" fill="#FFFFFF" stroke="#8A8886"/>
+    <text x="1514" y="1195" fill="#201F1E" font-size="12" font-weight="700">Legend</text>
+<rect x="1514" y="1205" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#5C2D91" stroke-width="2"/><text x="1544" y="1215" fill="#201F1E" font-size="11">Identity boundary</text><rect x="1514" y="1227" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#C42B1C" stroke-width="2"/><text x="1544" y="1237" fill="#201F1E" font-size="11">Security control</text><rect x="1514" y="1249" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#107C10" stroke-width="2"/><text x="1544" y="1259" fill="#201F1E" font-size="11">Data protection</text><rect x="1514" y="1271" width="20" height="12" rx="2" fill="#FFFFFF" stroke="#FF6900" stroke-width="2"/><text x="1544" y="1281" fill="#201F1E" font-size="11">AskAT&amp;T (private)</text>  </g>
+</svg>

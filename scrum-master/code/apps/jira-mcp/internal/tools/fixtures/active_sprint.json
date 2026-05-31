@@ -1,0 +1,9 @@
+{
+  "id": 101,
+  "state": "active",
+  "name": "CRS Sprint 24",
+  "boardId": 1,
+  "startDate": "2026-05-26T09:00:00.000Z",
+  "endDate": "2026-06-09T17:00:00.000Z",
+  "goal": "Stabilize the credit-routing decision API and clear the blocker backlog"
+}

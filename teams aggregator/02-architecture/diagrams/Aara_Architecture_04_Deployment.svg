@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1240" font-family='Segoe UI, "Helvetica Neue", Helvetica, Arial, sans-serif' role="img" aria-label="Aara Deployment View">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B3A39"/>
+    </marker>
+    <marker id="arr-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A8886"/>
+    </marker>
+    <marker id="arr-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#107C10"/>
+    </marker>
+    <marker id="arr-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF6900"/>
+    </marker>
+  </defs>
+  <rect width="1820" height="1240" fill="#FAFAFA"/>
+
+  <rect x="0" y="0" width="1820" height="76" fill="#1F3864"/>
+  <text x="36" y="34" fill="#FFFFFF" font-size="22" font-weight="700">Aara — Deployment View</text>
+  <text x="36" y="58" fill="#A6BBD9" font-size="13">Azure regions · SKUs · zone redundancy · scaling · CI/CD · DR posture</text>
+  <text x="1784" y="50" fill="#A6BBD9" font-size="12" text-anchor="end">Owner: Raja (Product) · v0.2 · May 2026</text>
+
+  <g filter="url(#soft)">
+    <rect x="40" y="100" width="1740" height="38" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="40" y="100" width="5" height="38" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="54" y="122" fill="#201F1E" font-size="13" font-weight="700">Subscription: ATT-AARA-PROD  ·  Resource Groups: rg-aara-net, rg-aara-app, rg-aara-data, rg-aara-ops  ·  Tags: env=prod, costCenter=aara, owner=raja@att.com</text>
+    
+  </g>
+
+  <g>
+    <rect x="40" y="160" width="1120" height="920" rx="10" ry="10"
+          fill="#E6F2FB" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="147" width="592" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="56" y="163" fill="#FFFFFF" font-size="12" font-weight="600">PRIMARY  ·  Azure Region: East US 2  ·  Availability Zones: 1, 2, 3 (ZRS)</text>
+  </g>
+
+  <g>
+    <rect x="1180" y="160" width="600" height="920" rx="10" ry="10"
+          fill="#FFF7ED" stroke="#FF6900" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="1192" y="147" width="480" height="22" rx="4" ry="4"
+          fill="#FF6900"/>
+    <text x="1196" y="163" fill="#FFFFFF" font-size="12" font-weight="600">DR  ·  Azure Region: West US 3  ·  warm-standby, geo-paired</text>
+  </g>
+
+  <g>
+    <rect x="60" y="200" width="1080" height="200" rx="10" ry="10"
+          fill="#D5E8F7" stroke="#005A9E" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="72" y="187" width="88" height="22" rx="4" ry="4"
+          fill="#005A9E"/>
+    <text x="76" y="203" fill="#FFFFFF" font-size="12" font-weight="600">Networking</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="230" width="250" height="160" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="80" y="230" width="5" height="160" rx="2.5" ry="2.5" fill="#005A9E"/>
+    <text x="94" y="252" fill="#201F1E" font-size="13" font-weight="700">Hub VNet 10.0.0.0/16</text>
+    <text x="94" y="272" fill="#201F1E" font-size="12">app: 10.0.1.0/24 (ZRS)</text><text x="94" y="288" fill="#201F1E" font-size="12">data: 10.0.2.0/24</text><text x="94" y="304" fill="#201F1E" font-size="12">ai: 10.0.3.0/24</text><text x="94" y="320" fill="#201F1E" font-size="12">ops: 10.0.4.0/24</text><text x="94" y="336" fill="#201F1E" font-size="12">pe: 10.0.5.0/24 (PEs)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="345" y="230" width="250" height="160" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="345" y="230" width="5" height="160" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="359" y="252" fill="#201F1E" font-size="13" font-weight="700">Azure Front Door Premium</text>
+    <text x="359" y="272" fill="#201F1E" font-size="12">Global · WAF Managed Ruleset</text><text x="359" y="288" fill="#201F1E" font-size="12">Geo-fence: US only</text><text x="359" y="304" fill="#201F1E" font-size="12">Origin: App Service</text><text x="359" y="320" fill="#201F1E" font-size="12">TLS 1.3</text><text x="359" y="336" fill="#201F1E" font-size="12">$ ~$320/mo + traffic</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="610" y="230" width="250" height="160" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="610" y="230" width="5" height="160" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="624" y="252" fill="#201F1E" font-size="13" font-weight="700">ExpressRoute Gateway</text>
+    <text x="624" y="272" fill="#201F1E" font-size="12">SKU: UltraPerformance</text><text x="624" y="288" fill="#201F1E" font-size="12">Active/active dual-circuit</text><text x="624" y="304" fill="#201F1E" font-size="12">Peering: AT&amp;T private</text><text x="624" y="320" fill="#201F1E" font-size="12">BGP-advertised AskAT&amp;T</text><text x="624" y="336" fill="#201F1E" font-size="12">10 Gbps</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="875" y="230" width="250" height="160" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="875" y="230" width="5" height="160" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="889" y="252" fill="#201F1E" font-size="13" font-weight="700">Private DNS zones</text>
+    <text x="889" y="272" fill="#201F1E" font-size="12">privatelink.documents.azure.com</text><text x="889" y="288" fill="#201F1E" font-size="12">privatelink.vaultcore.azure.net</text><text x="889" y="304" fill="#201F1E" font-size="12">privatelink.search.windows.net</text><text x="889" y="320" fill="#201F1E" font-size="12">askatt.internal.att.net (peered)</text><text x="889" y="336" fill="#201F1E" font-size="12">linked to Hub VNet</text>
+  </g>
+
+  <g>
+    <rect x="60" y="410" width="1080" height="220" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="72" y="397" width="64" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="76" y="413" fill="#FFFFFF" font-size="12" font-weight="600">Compute</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="440" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="80" y="440" width="5" height="180" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="94" y="462" fill="#201F1E" font-size="13" font-weight="700">App Service Plan: ASP-aara-prod</text>
+    <text x="94" y="482" fill="#201F1E" font-size="12">SKU: Premium P1v3 (2 vCPU, 8 GiB)</text><text x="94" y="498" fill="#201F1E" font-size="12">Zone-redundant (ZRS)</text><text x="94" y="514" fill="#201F1E" font-size="12">Autoscale 2 → 10 instances</text><text x="94" y="530" fill="#201F1E" font-size="12">Rule: CPU &gt; 65 % for 5 min → +1</text><text x="94" y="546" fill="#201F1E" font-size="12">Rule: Req queue &gt; 50 → +2</text><text x="94" y="562" fill="#201F1E" font-size="12">VNet integration (delegated subnet)</text><text x="94" y="578" fill="#201F1E" font-size="12">Slots: prod, staging (slot-swap)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="435" y="440" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="435" y="440" width="5" height="180" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="449" y="462" fill="#201F1E" font-size="13" font-weight="700">Function App: func-aara-timer</text>
+    <text x="449" y="482" fill="#201F1E" font-size="12">Plan: Premium EP1 (1 vCPU, 3.5 GiB)</text><text x="449" y="498" fill="#201F1E" font-size="12">Triggers: Timer (cron), HTTP (admin)</text><text x="449" y="514" fill="#201F1E" font-size="12">Always-on instances: 1</text><text x="449" y="530" fill="#201F1E" font-size="12">VNet integration enabled</text><text x="449" y="546" fill="#201F1E" font-size="12">Managed Identity: system-assigned</text><text x="449" y="562" fill="#201F1E" font-size="12">App Insights connected</text><text x="449" y="578" fill="#201F1E" font-size="12">Deployment via zip-deploy + slots</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="790" y="440" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="790" y="440" width="5" height="180" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="804" y="462" fill="#201F1E" font-size="13" font-weight="700">Azure Bot Service</text>
+    <text x="804" y="482" fill="#201F1E" font-size="12">SKU: Standard (S1)</text><text x="804" y="498" fill="#201F1E" font-size="12">Messaging endpoint: bot App Service</text><text x="804" y="514" fill="#201F1E" font-size="12">Teams channel enabled</text><text x="804" y="530" fill="#201F1E" font-size="12">App ID / password: Key Vault refs</text><text x="804" y="546" fill="#201F1E" font-size="12">Multi-tenant app registration</text><text x="804" y="562" fill="#201F1E" font-size="12">Teams app catalog: published</text><text x="804" y="578" fill="#201F1E" font-size="12">Side-load policy: admin-only</text>
+  </g>
+
+  <g>
+    <rect x="60" y="640" width="1080" height="220" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="72" y="627" width="40" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="76" y="643" fill="#FFFFFF" font-size="12" font-weight="600">Data</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="670" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="80" y="670" width="5" height="180" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="94" y="692" fill="#201F1E" font-size="13" font-weight="700">Cosmos DB (NoSQL)</text>
+    <text x="94" y="712" fill="#201F1E" font-size="12">Account: cosmos-aara-prod</text><text x="94" y="728" fill="#201F1E" font-size="12">Throughput: autoscale 4 000 → 40 000 RU/s</text><text x="94" y="744" fill="#201F1E" font-size="12">Consistency: Session</text><text x="94" y="760" fill="#201F1E" font-size="12">Containers: messages, items, decisions,</text><text x="94" y="776" fill="#201F1E" font-size="12">  follow_ups, digests, audit_events</text><text x="94" y="792" fill="#201F1E" font-size="12">Backup: continuous (PITR 30 days)</text><text x="94" y="808" fill="#201F1E" font-size="12">Geo-redundant: West US 3 read region</text><text x="94" y="824" fill="#201F1E" font-size="12">CMK from Key Vault</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="435" y="670" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="435" y="670" width="5" height="180" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="449" y="692" fill="#201F1E" font-size="13" font-weight="700">Azure Key Vault Premium</text>
+    <text x="449" y="712" fill="#201F1E" font-size="12">Vault: kv-aara-prod</text><text x="449" y="728" fill="#201F1E" font-size="12">Tier: Premium (HSM-backed)</text><text x="449" y="744" fill="#201F1E" font-size="12">Secrets: AskAT&amp;T creds, Bot pwd,</text><text x="449" y="760" fill="#201F1E" font-size="12">  Graph app secret (rotated 60d)</text><text x="449" y="776" fill="#201F1E" font-size="12">Keys: CMK for Cosmos / Storage</text><text x="449" y="792" fill="#201F1E" font-size="12">Network: Private Endpoint only</text><text x="449" y="808" fill="#201F1E" font-size="12">Soft-delete + purge protection</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="790" y="670" width="340" height="180" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="790" y="670" width="5" height="180" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="804" y="692" fill="#201F1E" font-size="13" font-weight="700">Storage + AI Search</text>
+    <text x="804" y="712" fill="#201F1E" font-size="12">Storage Account (GPv2, ZRS)</text><text x="804" y="728" fill="#201F1E" font-size="12">  · digest export blobs (cool tier)</text><text x="804" y="744" fill="#201F1E" font-size="12">  · adaptive card attachments</text><text x="804" y="760" fill="#201F1E" font-size="12">AI Search Standard S1</text><text x="804" y="776" fill="#201F1E" font-size="12">  · 1 replica × 2 partitions</text><text x="804" y="792" fill="#201F1E" font-size="12">  · vector index (1536 dim)</text><text x="804" y="808" fill="#201F1E" font-size="12">  · scaling: manual review @ 60% load</text>
+  </g>
+
+  <g>
+    <rect x="60" y="870" width="1080" height="190" rx="10" ry="10"
+          fill="#EAF1F8" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="72" y="857" width="216" height="22" rx="4" ry="4"
+          fill="#0078D4"/>
+    <text x="76" y="873" fill="#FFFFFF" font-size="12" font-weight="600">Observability &amp; Governance</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="900" width="340" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="80" y="900" width="5" height="150" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="94" y="922" fill="#201F1E" font-size="13" font-weight="700">Application Insights + Log Analytics</text>
+    <text x="94" y="942" fill="#201F1E" font-size="12">Workspace: la-aara-prod (East US 2)</text><text x="94" y="958" fill="#201F1E" font-size="12">Retention: 365 days  ·  Daily cap: 50 GB</text><text x="94" y="974" fill="#201F1E" font-size="12">Live Metrics streaming</text><text x="94" y="990" fill="#201F1E" font-size="12">Workbooks: SLO, AskAT&amp;T latency, costs</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="435" y="900" width="340" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="435" y="900" width="5" height="150" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="449" y="922" fill="#201F1E" font-size="13" font-weight="700">Sentinel + Defender</text>
+    <text x="449" y="942" fill="#201F1E" font-size="12">Sentinel workspace: la-aara-prod</text><text x="449" y="958" fill="#201F1E" font-size="12">Connectors: AAD, M365, Defender, Azure</text><text x="449" y="974" fill="#201F1E" font-size="12">Analytics rules: anomaly + brute-force</text><text x="449" y="990" fill="#201F1E" font-size="12">SOC playbook: Aara-IR-v1</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="790" y="900" width="340" height="150" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="790" y="900" width="5" height="150" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="804" y="922" fill="#201F1E" font-size="13" font-weight="700">Azure Policy &amp; Cost</text>
+    <text x="804" y="942" fill="#201F1E" font-size="12">Initiative: NIST 800-53 R5 (built-in)</text><text x="804" y="958" fill="#201F1E" font-size="12">Custom: no-public-PaaS, CMK-required</text><text x="804" y="974" fill="#201F1E" font-size="12">Cost Mgmt budget: $4 500 / mo (alert @ 75%)</text><text x="804" y="990" fill="#201F1E" font-size="12">Forecasted spend: $3 800 / mo (prod)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="200" width="560" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="200" width="5" height="110" rx="2.5" ry="2.5" fill="#107C10"/>
+    <text x="1214" y="222" fill="#201F1E" font-size="13" font-weight="700">Cosmos DB read replica</text>
+    <text x="1214" y="242" fill="#201F1E" font-size="12">Region: West US 3</text><text x="1214" y="258" fill="#201F1E" font-size="12">Auto-failover priority: 1</text><text x="1214" y="274" fill="#201F1E" font-size="12">RPO: &lt; 5 s  ·  RTO: &lt; 10 min (failover)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="320" width="560" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="320" width="5" height="110" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="1214" y="342" fill="#201F1E" font-size="13" font-weight="700">App Service Plan (warm)</text>
+    <text x="1214" y="362" fill="#201F1E" font-size="12">SKU: Premium P1v3 · 1 instance idle</text><text x="1214" y="378" fill="#201F1E" font-size="12">Slot-swap-ready · same image</text><text x="1214" y="394" fill="#201F1E" font-size="12">Activated via Front Door origin swap</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="440" width="560" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="440" width="5" height="110" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1214" y="462" fill="#201F1E" font-size="13" font-weight="700">Storage + Key Vault replica</text>
+    <text x="1214" y="482" fill="#201F1E" font-size="12">GZRS Storage (geo-redundant)</text><text x="1214" y="498" fill="#201F1E" font-size="12">Key Vault: paired soft-deleted region</text><text x="1214" y="514" fill="#201F1E" font-size="12">Backups replicated nightly</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="560" width="560" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="560" width="5" height="110" rx="2.5" ry="2.5" fill="#8764B8"/>
+    <text x="1214" y="582" fill="#201F1E" font-size="13" font-weight="700">Log Analytics / Sentinel (mirror)</text>
+    <text x="1214" y="602" fill="#201F1E" font-size="12">Workspace replication: enabled</text><text x="1214" y="618" fill="#201F1E" font-size="12">Sentinel cross-region: incident sync</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="680" width="560" height="110" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="680" width="5" height="110" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1214" y="702" fill="#201F1E" font-size="13" font-weight="700">DR runbook (Azure Automation)</text>
+    <text x="1214" y="722" fill="#201F1E" font-size="12">Trigger: regional outage health-check</text><text x="1214" y="738" fill="#201F1E" font-size="12">Steps: 1) Cosmos failover  2) Front Door origin swap  3) DNS TTL bump  4) Sentinel alert</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1200" y="800" width="560" height="260" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1200" y="800" width="5" height="260" rx="2.5" ry="2.5" fill="#FF6900"/>
+    <text x="1214" y="822" fill="#201F1E" font-size="13" font-weight="700">AskAT&amp;T connectivity</text>
+    <text x="1214" y="842" fill="#201F1E" font-size="12">Primary: ExpressRoute via East US 2 gateway</text><text x="1214" y="858" fill="#201F1E" font-size="12">Backup: ExpressRoute via West US 3 gateway</text><text x="1214" y="874" fill="#201F1E" font-size="12">BGP withdrawal triggers automatic re-route</text><text x="1214" y="890" fill="#201F1E" font-size="12">Same AskAT&amp;T endpoint serves both regions</text><text x="1214" y="906" fill="#201F1E" font-size="12"></text><text x="1214" y="922" fill="#201F1E" font-size="12">Reserved capacity:  agreed quota with AskAT&amp;T team</text><text x="1214" y="938" fill="#201F1E" font-size="12">   · 12 RPS sustained / 30 RPS burst (v1)</text><text x="1214" y="954" fill="#201F1E" font-size="12">   · 24 hr lead time to scale (notified by ServiceNow)</text><text x="1214" y="970" fill="#201F1E" font-size="12">   · model pinned to a versioned alias</text>
+  </g>
+
+  <g>
+    <rect x="40" y="1100" width="1740" height="90" rx="10" ry="10"
+          fill="#F3F2F1" stroke="#605E5C" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+    <rect x="52" y="1087" width="560" height="22" rx="4" ry="4"
+          fill="#605E5C"/>
+    <text x="56" y="1103" fill="#FFFFFF" font-size="12" font-weight="600">CI/CD  ·  GitHub Actions  →  Azure DevOps environments  ·  IaC: Bicep</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="1120" width="410" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="60" y="1120" width="5" height="60" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="74" y="1142" fill="#201F1E" font-size="13" font-weight="700">Build &amp; test</text>
+    <text x="74" y="1162" fill="#201F1E" font-size="12">GH Actions: lint · unit · OWASP dep-check · SBOM (CycloneDX) · container scan (Defender)</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="485" y="1120" width="410" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="485" y="1120" width="5" height="60" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="499" y="1142" fill="#201F1E" font-size="13" font-weight="700">Promote: dev → staging → prod</text>
+    <text x="499" y="1162" fill="#201F1E" font-size="12">ADO Environments with approval gates · slot-deploy + smoke test · auto-rollback on health-check fail</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="910" y="1120" width="410" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="910" y="1120" width="5" height="60" rx="2.5" ry="2.5" fill="#0078D4"/>
+    <text x="924" y="1142" fill="#201F1E" font-size="13" font-weight="700">IaC: Bicep modules under /infra</text>
+    <text x="924" y="1162" fill="#201F1E" font-size="12">network · app · data · ops · what-if on PR · drift-detection nightly</text>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1335" y="1120" width="425" height="60" rx="6" ry="6"
+          fill="#FFFFFF" stroke="#8A8886" stroke-width="1"/>
+    <rect x="1335" y="1120" width="5" height="60" rx="2.5" ry="2.5" fill="#C42B1C"/>
+    <text x="1349" y="1142" fill="#201F1E" font-size="13" font-weight="700">Secrets</text>
+    <text x="1349" y="1162" fill="#201F1E" font-size="12">GitHub OIDC → Azure (no static creds)  ·  Key Vault references resolved at deploy</text>
+  </g>
+</svg>

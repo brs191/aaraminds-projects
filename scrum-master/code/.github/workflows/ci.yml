@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: jira-mcp
+        working-directory: apps/jira-mcp
+        run: |
+          go vet ./...
+          go build ./...
+          go test ./...
+      - name: teams-adapter
+        working-directory: apps/teams-adapter
+        run: |
+          go vet ./...
+          go build ./...
+          go test ./...
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: orchestrator
+        working-directory: apps/orchestrator
+        run: |
+          pip install -e ".[dev]"
+          PYTHONPATH=. python -m pytest tests -q
+
+  # TODO(P1): terraform fmt/validate + plan, deploy to Azure Container Apps via OIDC.

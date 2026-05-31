@@ -1,0 +1,67 @@
+{
+  "sprintId": 101,
+  "issues": [
+    {
+      "key": "CRS-405",
+      "summary": "Cache AOP interceptor for decision audit log",
+      "status": "Done",
+      "assignee": "Priya N.",
+      "blocked": false,
+      "timeoriginalestimate": 18000,
+      "timeestimate": 0,
+      "timespent": 17100,
+      "daysInStatus": 1,
+      "updated": "2026-05-30T16:45:00.000Z"
+    },
+    {
+      "key": "CRS-412",
+      "summary": "Add idempotency keys to routing decision endpoint",
+      "status": "In Progress",
+      "assignee": "Priya N.",
+      "blocked": false,
+      "timeoriginalestimate": 28800,
+      "timeestimate": 7200,
+      "timespent": 21600,
+      "daysInStatus": 1,
+      "updated": "2026-05-30T14:00:00.000Z"
+    },
+    {
+      "key": "CRS-417",
+      "summary": "SOAP fault mapping for downstream bureau timeouts",
+      "status": "In Progress",
+      "assignee": "Marco D.",
+      "blocked": true,
+      "blockReason": "Waiting on bureau sandbox creds (is blocked by CRS-420)",
+      "timeoriginalestimate": 14400,
+      "timeestimate": 10800,
+      "timespent": 3600,
+      "daysInStatus": 4,
+      "updated": "2026-05-27T09:30:00.000Z"
+    },
+    {
+      "key": "CRS-420",
+      "summary": "Provision bureau sandbox credentials",
+      "status": "Blocked",
+      "assignee": null,
+      "blocked": true,
+      "blockReason": "Vendor ticket open, no ETA",
+      "timeoriginalestimate": 7200,
+      "timeestimate": 7200,
+      "timespent": 0,
+      "daysInStatus": 6,
+      "updated": "2026-05-25T11:00:00.000Z"
+    },
+    {
+      "key": "CRS-431",
+      "summary": "Tune Mongo connection pool for peak routing load",
+      "status": "To Do",
+      "assignee": "Sam K.",
+      "blocked": false,
+      "timeoriginalestimate": null,
+      "timeestimate": null,
+      "timespent": 0,
+      "daysInStatus": 2,
+      "updated": "2026-05-29T10:00:00.000Z"
+    }
+  ]
+}

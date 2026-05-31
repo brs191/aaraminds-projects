@@ -1,0 +1,33 @@
+# --- Raw data / exports (keep message data off the remote) ---
+teams aggregator/03-data/
+
+# --- Scratch / working files ---
+_audit_filelist.txt
+*.tmp
+scratch/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# --- Secrets / local env (note: .env.example is kept) ---
+.env
+*.local
+
+# --- Node ---
+node_modules/
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+_t1

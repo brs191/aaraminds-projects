@@ -1,0 +1,20 @@
+[project]
+name = "scrum-orchestrator"
+version = "0.1.0"
+description = "LangGraph orchestrator for the Scrum Master Agent (P0 skeleton)"
+requires-python = ">=3.11"
+# Bounded ranges (not lower-bound-only): langchain-mcp-adapters had a breaking
+# change at 0.1.0 (client no longer an async context manager), so pin a tested band.
+dependencies = [
+    "langgraph>=0.2.60,<2",
+    "langgraph-checkpoint-postgres>=2.0.0,<4",
+    "langchain-mcp-adapters>=0.2,<0.3",
+    "psycopg[binary]>=3.2.0,<4",
+    "httpx>=0.27.0,<0.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+run-d

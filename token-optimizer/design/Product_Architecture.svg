@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" width="1500" height="1000" role="img" aria-labelledby="t d">
+<title id="t">AI Token Optimizer — Production-Grade Architecture</title>
+<desc id="d">Implementation-ready architecture: seven supervised processes on the developer workstation with concrete binaries, ports, IPC, on-disk paths, per-OS supervision. IDE plugin sets assistant base URL to http://127.0.0.1:43117. No source code leaves the workstation; agent egress is metadata only.</desc>
+<defs>
+<marker id="ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0E8C82"/></marker>
+<marker id="ah-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A56A0A"/></marker>
+<style>
+text{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.title{font-size:28px;font-weight:600;fill:#1E2761}
+.sub{font-size:14px;fill:#5D6478}
+.meta{font-size:11px;fill:#8a92a8}
+.eye{font-size:11px;font-weight:700;fill:#0E8C82;letter-spacing:1.6px}
+.eN{font-size:11px;font-weight:700;fill:#1E2761;letter-spacing:1.6px}
+.bt{font-size:14.5px;font-weight:600;fill:#1E2761}
+.bs{font-size:11px;fill:#454A63}
+.bi{font-size:10.5px;fill:#0E8C82;font-family:Consolas,monospace}
+.bn{font-size:10.5px;fill:#A56A0A;font-style:italic}
+.b2{font-size:10.5px;fill:#5D6478;font-style:italic}
+.tt2{font-size:11.5px;font-weight:600;fill:#1E2761}
+.ts{font-size:9.5px;fill:#6B7280}
+.fw{font-size:11px;fill:#0E8C82;font-style:italic}
+.fwd{font-size:11.5px;fill:#0A6661;font-weight:600}
+.by{font-size:11px;fill:#7A5A0A}
+.byT{font-size:11px;font-weight:700;fill:#7A5A0A;letter-spacing:1.4px}
+.lg{font-size:11px;fill:#454A63}
+.tag{font-size:9px;font-weight:700;letter-spacing:1px}
+.opS{font-size:10.5px;font-weight:600;fill:#0E8C82}
+.opB{font-size:10.5px;fill:#454A63}
+.opM{font-size:10px;fill:#1E2761;font-family:Consolas,monospace}
+</style>
+</defs>
+
+<text class="title" x="30" y="48">AI Token Optimizer — Production-Grade Architecture</text>
+<text class="sub" x="30" y="72">Target M2 · bundled local sidecar · localhost loopback proxy · metadata-only agent egress · Fidelity Floor</text>
+<text class="meta" x="30" y="94">Implementation-ready · 2026-05-26 · seven supervised processes · OS-native service management · signed bundled install · Module 5 fixes folded in</text>
+
+<rect x="30" y="120" width="1080" height="860" rx="10" fill="#FAFBFD" stroke="#1E2761" stroke-width="1.5"/>
+<text class="eN" x="48" y="146">DEVELOPER WORKSTATION</text>
+<text class="meta" x="232" y="146" font-style="italic">single-developer · supervised processes · no egress beyond the assistant provider</text>
+
+<rect x="70" y="160" width="240" height="90" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="190" y="184" text-anchor="middle">AITO IDE Plugin</text>
+<text class="bs" x="190" y="202" text-anchor="middle">VS Code .vsix · IntelliJ plugin</text>
+<text class="bi" x="190" y="221" text-anchor="middle">base URL → http://127.0.0.1:43117</text>
+<text class="b2" x="190" y="239" text-anchor="middle">+ polls /status for approval &amp; rollback</text>
+
+<rect x="340" y="160" width="720" height="90" rx="8" fill="#FEF6DF" stroke="#E5C97A"/>
+<text class="byT" x="360" y="184">TRUST BOUNDARY</text>
+<text class="by" x="360" y="206">All assistant requests routed via http://127.0.0.1 — no TLS interception, no CA certificate installed (Module 5 Finding 4).</text>
+<text class="by" x="360" y="222">Source code never leaves the workstation except as part of the compressed assistant request body.</text>
+<text class="by" x="360" y="238" font-style="italic">Background agent calls to the provider carry metadata only — paths, symbols, dependency edges, recency.</text>
+
+<line x1="190" y1="252" x2="190" y2="318" stroke="#0E8C82" stroke-width="2" marker-end="url(#ah-teal)"/>
+<text class="fw" x="210" y="272">HTTP/1.1 · loopback request</text>
+
+<rect x="50" y="275" width="1040" height="685" rx="10" fill="#F1F4FB" stroke="#1E2761" stroke-width="1" stroke-dasharray="6 5"/>
+<text class="eN" x="1083" y="298" text-anchor="end">TOKEN OPTIMIZER SIDECAR — bundled, OS-supervised, isolated loopback ports</text>
+
+<rect x="70" y="320" width="220" height="100" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="180" y="344" text-anchor="middle">Passthrough Listener</text>
+<text class="bs" x="180" y="362" text-anchor="middle">always-on · owns the port</text>
+<text class="bs" x="180" y="377" text-anchor="middle">separately supervised</text>
+<text class="bi" x="180" y="394" text-anchor="middle">AITO-passthrough · :43117/tcp</text>
+<text class="bn" x="180" y="412" text-anchor="middle">forwards verbatim if Core unhealthy</text>
+
+<rect x="310" y="320" width="270" height="100" rx="8" fill="#FFFFFF" stroke="#1E2761" stroke-width="1.5"/>
+<text class="bt" x="445" y="344" text-anchor="middle">Optimizer Core (Go)</text>
+<text class="bs" x="445" y="362" text-anchor="middle">interception proxy · compression dispatch</text>
+<text class="bs" x="445" y="377" text-anchor="middle">request taxonomy · policy · audit hook</text>
+<text class="bi" x="445" y="394" text-anchor="middle">AITO-core · Unix socket to Listener</text>
+<text class="b2" x="445" y="412" text-anchor="middle">exposes /status to IDE plugin</text>
+
+<line x1="292" y1="370" x2="308" y2="370" stroke="#0E8C82" stroke-width="2" marker-end="url(#ah-teal)"/>
+
+<line x1="445" y1="420" x2="445" y2="442" stroke="#1E2761" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="310" y="445" width="270" height="75" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="445" y="467" text-anchor="middle">Compression Sidecar</text>
+<text class="bs" x="445" y="484" text-anchor="middle">Python · LLMLingua-2 · local IPC over loopback</text>
+<text class="bi" x="445" y="502" text-anchor="middle">AITO-compress (PyInstaller) · :43118/tcp</text>
+<text class="b2" x="445" y="516" text-anchor="middle">skips short msgs · fail-open on errors</text>
+
+<text class="eye" x="70" y="555">MCP TOOL SURFACE (Go)</text>
+<text class="meta" x="240" y="555" font-style="italic">one AITO-mcp process · five typed tools · stdio transport · record_telemetry is the only write-tier</text>
+
+<rect x="70" y="567" width="160" height="76" rx="6" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="tag" x="218" y="582" text-anchor="end" fill="#0E8C82">READ</text>
+<text class="tt2" x="78" y="602">get_context_metadata</text>
+<text class="ts" x="78" y="618">paths, symbols, deps</text>
+<text class="ts" x="78" y="632" font-style="italic">metadata only — no source</text>
+
+<rect x="240" y="567" width="160" height="76" rx="6" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="tag" x="388" y="582" text-anchor="end" fill="#0E8C82">READ</text>
+<text class="tt2" x="248" y="602">get_compression_policy</text>
+<text class="ts" x="248" y="618">per-repo, per-request-type</text>
+<text class="ts" x="248" y="632">tunable risk threshold</text>
+
+<rect x="410" y="567" width="160" height="76" rx="6" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="tag" x="558" y="582" text-anchor="end" fill="#0E8C82">READ</text>
+<text class="tt2" x="418" y="602">get_quality_signal</text>
+<text class="ts" x="418" y="618">Fidelity Floor verdict</text>
+<text class="ts" x="418" y="632">per compression strategy</text>
+
+<rect x="580" y="567" width="160" height="76" rx="6" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="tag" x="728" y="582" text-anchor="end" fill="#0E8C82">READ</text>
+<text class="tt2" x="588" y="602">get_recent_decisions</text>
+<text class="ts" x="588" y="618">audit-log lookup</text>
+<text class="ts" x="588" y="632">risk score per cut</text>
+
+<rect x="750" y="567" width="160" height="76" rx="6" fill="#FFFFFF" stroke="#A56A0A" stroke-width="1.4"/>
+<text class="tag" x="898" y="582" text-anchor="end" fill="#A56A0A">WRITE</text>
+<text class="tt2" x="758" y="602">record_telemetry</text>
+<text class="ts" x="758" y="618">the only write-tier tool</text>
+<text class="ts" x="758" y="632" font-style="italic">local only</text>
+
+<text class="eye" x="70" y="672">BACKGROUND PROCESSES — OFF THE HOT PATH</text>
+
+<rect x="70" y="684" width="475" height="100" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="86" y="708">Compression Advisor Agent</text>
+<text class="bs" x="86" y="726">LangGraph · runs in the background only</text>
+<text class="bs" x="86" y="741">observes completed requests · tunes policy</text>
+<text class="bi" x="86" y="759">AITO-advisor (Python) · MCP-stdio client</text>
+<text class="bn" x="86" y="776">egress: metadata only — never source code</text>
+
+<rect x="560" y="684" width="510" height="100" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="576" y="708">Quality-Regression Evaluator</text>
+<text class="bs" x="576" y="726">local judge model OR deterministic structural scoring</text>
+<text class="bs" x="576" y="741">closes the Module-5 Finding-5 code-egress hole</text>
+<text class="bi" x="576" y="759">AITO-evaluator (Python) · MCP-stdio client</text>
+<text class="b2" x="576" y="776">rolls back any strategy that degrades answers</text>
+
+<text class="eye" x="70" y="824">LOCAL STATE &amp; SUPERVISION</text>
+
+<rect x="70" y="836" width="320" height="110" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="86" y="858">Audit Log &amp; Telemetry</text>
+<text class="bs" x="86" y="876">OpenTelemetry shape · local-only</text>
+<text class="bs" x="86" y="891">risk score + approval per lossy cut</text>
+<text class="bi" x="86" y="909">SQLite · $XDG_STATE_HOME/AITO/audit.db</text>
+<text class="b2" x="86" y="926">no bodies, headers, or secrets recorded</text>
+
+<rect x="410" y="836" width="320" height="110" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="bt" x="426" y="858">Control Plane</text>
+<text class="bs" x="426" y="876">policy · per-repo budgets · isolation key</text>
+<text class="bs" x="426" y="891">approval queue (chat only)</text>
+<text class="bi" x="426" y="909">SQLite policy.db + TOML config overlay</text>
+<text class="b2" x="426" y="926">$XDG_CONFIG_HOME/AITO/config.toml</text>
+
+<rect x="750" y="836" width="320" height="110" rx="8" fill="#FFFFFF" stroke="#1E2761" stroke-dasharray="3 3"/>
+<text class="bt" x="766" y="858">Process Supervisor</text>
+<text class="bs" x="766" y="876">supervises Core · Compression · MCP · Advisor · Evaluator</text>
+<text class="bs" x="766" y="891">restart: exp backoff, max 5 retries</text>
+<text class="bi" x="766" y="909">systemd · LaunchAgent · Windows Service</text>
+<text class="b2" x="766" y="926">Listener supervised independently</text>
+
+<rect x="1130" y="300" width="355" height="200" rx="10" fill="#EAEFFA" stroke="#1E2761" stroke-width="1.5"/>
+<text class="eN" x="1148" y="325">LLM PROVIDER</text>
+<text class="bt" x="1148" y="350">External LLM service</text>
+<text class="bs" x="1148" y="372">Anthropic · OpenAI · Azure OpenAI</text>
+<text class="bs" x="1148" y="390">the assistant real backend</text>
+<text class="bs" x="1148" y="416" font-style="italic">Authorization header passed through</text>
+<text class="bs" x="1148" y="433" font-style="italic">request body = compressed prompt</text>
+<text class="bs" x="1148" y="457" font-style="italic">Advisor calls land here too —</text>
+<text class="bs" x="1148" y="473" font-style="italic">metadata only, no source code</text>
+
+<line x1="582" y1="358" x2="1128" y2="358" stroke="#0E8C82" stroke-width="2.2" marker-end="url(#ah-teal)"/>
+<text class="fwd" x="855" y="350" text-anchor="middle">HTTPS · request body = compressed prompt</text>
+<line x1="1128" y1="382" x2="584" y2="382" stroke="#0E8C82" stroke-width="2" marker-end="url(#ah-teal)"/>
+<text class="fw" x="855" y="398" text-anchor="middle">response</text>
+
+<path d="M 545,738 L 555,738 L 555,800 L 1080,800 L 1080,400 L 1128,400" fill="none" stroke="#A56A0A" stroke-width="1.8" stroke-dasharray="7 4" marker-end="url(#ah-amber)"/>
+<rect x="660" y="790" width="280" height="20" fill="#F1F4FB"/>
+<text class="byT" x="800" y="804" text-anchor="middle">HTTPS · metadata only · no source code</text>
+
+<rect x="1130" y="520" width="355" height="280" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="eN" x="1148" y="544">OPERATIONAL</text>
+<text class="opS" x="1148" y="567">Build &amp; distribute</text>
+<text class="opB" x="1148" y="582">Go matrix: linux/{amd64,arm64} · darwin/{amd64,arm64} · win/amd64</text>
+<text class="opB" x="1148" y="596">Python: PyInstaller per platform · LLMLingua-2 lazy cache</text>
+<text class="opB" x="1148" y="610">Plugins: VS Code &amp; JetBrains Marketplaces (private listing)</text>
+<text class="opB" x="1148" y="624">Sign: codesign+notarize · Authenticode · GPG tarball</text>
+<text class="opS" x="1148" y="648">Run &amp; supervise</text>
+<text class="opM" x="1148" y="663">Linux:   systemd --user AITO-supervisor</text>
+<text class="opM" x="1148" y="678">macOS:   LaunchAgent com.AITO.supervisor</text>
+<text class="opM" x="1148" y="693">Windows: Service AITOSupervisor</text>
+<text class="opS" x="1148" y="717">Update</text>
+<text class="opB" x="1148" y="732">Plugins: marketplace auto-update</text>
+<text class="opB" x="1148" y="746">Sidecar: weekly signed-manifest check · atomic install</text>
+<text class="opS" x="1148" y="770">Health &amp; failover</text>
+<text class="opB" x="1148" y="785">Heartbeat Listener↔Core every 1 s · failover &lt; 200 ms</text>
+<text class="opM" x="1148" y="798">CLI: AITO audit query --since 7d</text>
+
+<rect x="1130" y="820" width="355" height="160" rx="8" fill="#FFFFFF" stroke="#C7D2EA"/>
+<text class="eN" x="1148" y="843">LEGEND</text>
+<line x1="1148" y1="861" x2="1188" y2="861" stroke="#0E8C82" stroke-width="2.2" marker-end="url(#ah-teal)"/>
+<text class="lg" x="1196" y="865">hot request path (HTTPS / HTTP)</text>
+<line x1="1148" y1="881" x2="1188" y2="881" stroke="#A56A0A" stroke-width="1.8" stroke-dasharray="7 4" marker-end="url(#ah-amber)"/>
+<text class="lg" x="1196" y="885">egress — metadata only</text>
+<line x1="1148" y1="901" x2="1188" y2="901" stroke="#1E2761" stroke-width="1" stroke-dasharray="3 3"/>
+<text class="lg" x="1196" y="905">internal sub-component link</text>
+<rect x="1146" y="915" width="14" height="14" fill="#FEF6DF" stroke="#E5C97A"/>
+<text class="lg" x="1196" y="926">trust boundary callout</text>
+<line x1="1148" y1="945" x2="1188" y2="945" stroke="#1E2761" stroke-width="1" stroke-dasharray="6 5"/>
+<text class="lg" x="1196" y="949">sidecar (bundled, OS-supervised)</text>
+<line x1="1148" y1="965" x2="1188" y2="965" stroke="#1E2761" stroke-width="1.5"/>
+<text class="lg" x="1196" y="969">workstation boundary</text>
+
+</svg>
+                      

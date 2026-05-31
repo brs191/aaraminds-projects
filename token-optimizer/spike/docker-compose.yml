@@ -1,0 +1,48 @@
+# Token Optimizer Option C spike — local proxy stack.
+#
+#   docker compose up --build
+#
+# Exposes the LiteLLM proxy on http://localhost:4000 (OpenAI-compatible at
+# /v1, Anthropic-compatible at /v1/messages). Point your coding agents at it
+# (see README.md). Per-request metrics land in ./metrics/requests.jsonl.
+
+services:
+  litellm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: token-optimizer-spike
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      # Compression behaviour — tune during Week 1.
+      COMPRESSION_ENABLED: "true"
+      COMPRESSION_RATE: "0.5"
+      MIN_CHARS_TO_COMPRESS: "800"
+      METRICS_PATH: "/app/metrics/requests.jsonl"
+    volumes:
+      # Metrics persisted to the host so measure.py / summarize.py can read them.
+      - ./metrics:/app/metrics
+      # First model download is cached here instead of re-downloading per build.
+      - hf-cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  # --- Optional: enable per-key budgets + persistent spend reporting ---------
+  # LiteLLM needs a database for budget ENFORCEMENT. Telemetry for the spike
+  # comes from metrics/requests.jsonl, so this is off by default. To enable,
+  # uncomment, set database_url in litellm_config.yaml, and restart.
+  #
+  # postgres:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: litellm
+  #     POSTGRES_USER: litellm
+  #     POSTGRES_PASSWORD: litellm
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+volumes:
+  hf-cache:
+  # pgdata:

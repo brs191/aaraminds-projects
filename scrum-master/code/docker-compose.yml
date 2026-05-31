@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: scrum
+      POSTGRES_PASSWORD: scrum
+      POSTGRES_DB: scrum
+    ports:
+      - "5432:5432"
+    volumes:
+      # Domain schema auto-applies on first init.
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scrum -d scrum"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  jira-mcp:
+    build: ./apps/jira-mcp
+    environment:
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+
+  teams-adapter:
+    build: ./apps/teams-adapter
+    environment:
+      PORT: "8090"
+      # Leave empty for stub mode (logs the brief instead of posting).
+      TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL:-}
+    ports:
+      - "8090:8090"
+
+  orchestrator:
+    build: ./apps/orchestrator
+    environment:
+      JIRA_MCP_URL: http://jira-mcp:8080/mcp
+      TEAMS_ADAPTER_URL: http://teams-adapter:8090
+      DATABASE_URL: postgresql://scrum:scrum@postgres:5432/scrum
+      BOARD_ID: ${BOARD_ID:-1}
+      AUTO_APPROVE: ${AUTO_APPROVE:-true}
+      STALE_DAYS: ${STALE_DAYS:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      jira-mcp:
+        condition: service_started
+      teams-adapter:
+        condition: service_started

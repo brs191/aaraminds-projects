@@ -1,0 +1,9 @@
+# Extra Python deps layered onto the LiteLLM proxy image for the spike.
+# The LiteLLM image already provides litellm itself.
+#
+# [VERIFY] Versions below are pinned starting points — check for current
+# releases and security advisories before the spike, and re-pin.
+
+llmlingua==0.2.2          # LLMLingua / LLMLingua-2 prompt compression
+torch==2.4.1              # LLMLingua-2 runtime (CPU build is fine for the spike)
+transformers==4.44.2      # model backbone for LLMLingua-2

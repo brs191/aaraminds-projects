@@ -1,0 +1,61 @@
+# LiteLLM proxy config — Token Optimizer Option C spike.
+#
+# Each backend is exposed twice: a normal alias (compression applied) and a
+# "<name>-raw" alias (compression skipped — see compression_hook.py). The A/B
+# harness sends identical prompts to both to measure compression's effect.
+#
+# Fill provider keys in .env (see .env.example). You only need the provider(s)
+# your coding agents actually use — delete the model_list entries you don't.
+#
+# Image pinned in Dockerfile to ghcr.io/berriai/litellm:v1.83.14-stable.patch.3
+# (2026-05-27). This config schema is verified against that version's docs.
+# When re-pinning the Dockerfile, re-verify this file matches the new version's
+# schema — LiteLLM occasionally renames config keys at minor-version bumps.
+
+model_list:
+  # --- Azure OpenAI (AITO default per workspace stack) -----------------
+  - model_name: gpt-4o
+    litellm_params:
+      model: azure/gpt-4o
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: os.environ/AZURE_API_VERSION
+  - model_name: gpt-4o-raw           # same backend, compression skipped
+    litellm_params:
+      model: azure/gpt-4o
+      api_base: os.environ/AZURE_API_BASE
+      api_key: os.environ/AZURE_API_KEY
+      api_version: os.environ/AZURE_API_VERSION
+
+  # --- Anthropic (for Claude Code / Claude-based agents) --------------------
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: claude-sonnet-raw
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # --- OpenAI (optional) ----------------------------------------------------
+  - model_name: gpt-4o-openai
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-4o-openai-raw
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+litellm_settings:
+  # Registers the LLMLingua-2 compression hook (compression_hook.py).
+  callbacks: ["compression_hook.proxy_handler_instance"]
+  # Lightweight exact-match cache; optional, helps confirm cache vs compression effects.
+  set_verbose: false
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # Budget enforcement and persistent spend reporting need a database. Left off
+  # for the spike (telemetry comes from metrics/requests.jsonl + proxy logs).
+  # To enable: add the postgres service in docker-compose.yml and set
+  # database_url here, then per-key budgets become available.
