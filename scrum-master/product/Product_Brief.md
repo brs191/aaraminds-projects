@@ -27,4 +27,4 @@ Existing tools cover slices — Spinach (standups/summaries), Rovo/Jira AI (Jira
 
 ## MVP in one line
 
-Five features — Daily Scrum Brief, Sprint Health Summary, Blocker & Stale Detection, Story Quality Review, Sprint Closing/Retro Insights — all advisory o
+Five features — Daily Scrum Brief, Sprint Health Summary, Blocker & Stale Detection, Story Quality Review, Sprint Closing/Retro Insights — all advisory or gated-write, on one team, one channel.

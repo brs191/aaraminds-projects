@@ -17,4 +17,11 @@ dependencies = [
 dev = ["pytest>=8.0.0"]
 
 [project.scripts]
-run-d
+run-daily-brief = "scrum_orchestrator.main:cli"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["scrum_orchestrator"]

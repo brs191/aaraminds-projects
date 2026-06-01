@@ -41,4 +41,16 @@ Drift from the AaraMinds fixed stack (Go / Spring) is bounded: Python is scoped 
 | JQL | `POST /rest/api/3/search/jql` + `nextPageToken` (legacy `/search` deprecated 2025-05-01, fully removed ~2025-10-31 → 410; new endpoint returns IDs only — pass `fields`, and use `/search/approximate-count` for totals) |
 | Rich text | ADF (Atlassian Document Format) for comments/descriptions |
 | Events | Dynamic Webhooks API (3LO, scope `manage:jira-webhook`) + scheduled JQL fallback |
-| Rate limits | Points-ba
+| Rate limits | Points-based, enforced since 2026-03-02 — webhooks over polling + cache + backoff; watch the per-issue write limit on gated comment/label writes |
+| Channel (Teams) | Post via Power Automate **Workflows** webhook + Adaptive Card. O365 connector + MessageCard retires 2026-05-18..22 — do not use |
+
+Full scope list and rationale: PRD §8.
+
+## Data model (Postgres, indicative)
+
+`team_config` · `sprint_snapshot` · `issue_snapshot` (+ changelog-derived time-in-status, time-tracking fields) · `recommendation` · `approval` · `action_audit` · `metric_event`.
+
+**Estimation:** time-based — read Jira time-tracking fields (`timeoriginalestimate`, `timeestimate` = remaining, `timespent`; integer seconds); story points are not used. These flat fields are **read-only/computed** — any future write (P1) must go through the `timetracking` composite (`originalEstimate`/`remainingEstimate`), not these fields.
+**Reports:** the Sprint Closing / Retro feature emits a `Report.md` with a table of contents (a generated artifact, not a remote write); optional Confluence publish is P2.
+
+The `recommendation → approval → action_audit` chain is the trust backbone — every write traces to a human decision.

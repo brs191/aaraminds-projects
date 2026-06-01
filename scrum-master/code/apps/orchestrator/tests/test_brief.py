@@ -45,4 +45,11 @@ def test_blocked_status_issue_appears_in_body_not_only_blockers():
     md = build_brief(SPRINT, ISSUES, stale_days=3)
     assert "## Other" in md
     other_section = md.split("## Other")[1].split("##")[0]
-    assert 
+    assert "CRS-420" in other_section
+
+
+def test_report_has_toc():
+    report = build_report(SPRINT, {"Went well": "shipped audit log", "Risks": "vendor blocker"})
+    assert "## Table of contents" in report
+    assert "[Went well](#went-well)" in report
+    assert "[Risks](#risks)" in report

@@ -83,4 +83,7 @@ Thresholds are proposed starting points — adjust to AITO's economics before th
 ## Known risks and how the spike handles them
 
 - **LLMLingua-2 was trained on prose, not source code.** Compressing code blocks may degrade answers badly. The hook is conservative by default — it skips short messages and preserves the latest user message verbatim — and the A/B fixture set **must** include code-heavy prompts so the quality measurement catches this. This is the most likely cause of a Red outcome, and finding it now is the point.
-- **Quality scoring is subjective.** LLM-as-judge is a starting signal, not a verdict; pair it with human spot-c
+- **Quality scoring is subjective.** LLM-as-judge is a starting signal, not a verdict; pair it with human spot-checks. Do not let a single number decide the gate.
+- **Compression adds latency.** The hook runs LLMLingua-2 inference (a small model) per request. CPU is fine for a spike; the latency metric tells you if it is viable.
+- **LiteLLM supply-chain.** A LiteLLM security incident was reported in 2026 `[VERIFY]`. Pin the image to a specific, advisory-checked tag before running (see `README.md`).
+- **Compression must fail open.** The hook never breaks a request over a compression error — it logs and passes the request through raw. Verified in Week 1.

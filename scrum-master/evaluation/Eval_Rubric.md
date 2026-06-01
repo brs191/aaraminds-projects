@@ -21,4 +21,4 @@ The Definition of Done for agent output. A feature ships only when it clears thi
 
 ## Usefulness
 - Pilot SM agrees the Daily Brief is standup-ready with minimal edits
-- Recommendations are specific and actionable, not gener
+- Recommendations are specific and actionable, not generic advice

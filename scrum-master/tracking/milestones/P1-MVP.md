@@ -13,4 +13,7 @@
 - [ ] Gated writes: comment, label, follow-up sub-task, generate `Report.md` (with TOC)
 - [ ] Sprint Health + Story Quality use Jira time-tracking fields (time-based estimation)
 - [ ] Scheduler (daily brief) + webhook listener (sprint / issue events)
-- [ ] `recommendation → approval → action_audit`
+- [ ] `recommendation → approval → action_audit` trail
+
+## Gate check
+- [ ] 5 features live on a real sprint; writes all gated; pilot sign-off (cite-checked)

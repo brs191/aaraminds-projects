@@ -70,4 +70,15 @@ def build_graph(checkpointer: Any, jira: JiraMCP, cfg: Config):
         return {"delivery_status": status}
 
     graph = StateGraph(BriefState)
-    graph.add_node("fetch_sprint", fetch_spri
+    graph.add_node("fetch_sprint", fetch_sprint)
+    graph.add_node("build_brief", build_brief_node)
+    graph.add_node("approval_gate", approval_gate)
+    graph.add_node("publish", publish)
+
+    graph.add_edge(START, "fetch_sprint")
+    graph.add_edge("fetch_sprint", "build_brief")
+    graph.add_edge("build_brief", "approval_gate")
+    graph.add_edge("approval_gate", "publish")
+    graph.add_edge("publish", END)
+
+    return graph.compile(checkpointer=checkpointer)

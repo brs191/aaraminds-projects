@@ -182,4 +182,31 @@ No baselines are invented here — these are **definitions and targets to baseli
 ## 11. Risks & mitigations
 
 - **Jira API changes** — the old `/search` endpoints are gone (deprecated 2025-05-01, removed ~2025-10-31) and points-based rate limits are live (2026-03-02). Isolate all Jira calls behind the MCP layer; watch the Atlassian changelog.
-- **Teams connector EOL** — O365 Incoming Webhook connectors retire 2026-05-18..22; the channel adapter targets a P
+- **Teams connector EOL** — O365 Incoming Webhook connectors retire 2026-05-18..22; the channel adapter targets a Power Automate Workflows webhook with Adaptive Cards from the start, not the dead connector path.
+- **Rate limits at scale** → webhooks over polling + snapshot caching + backoff, sized against the points/quota model.
+- **Inaccurate / hallucinated recommendations** → advisory + approval gate + cited issue keys; never silent writes.
+- **Adoption / trust** → human-in-the-loop, transparency, opt-in writes.
+- **Data privacy** (issue content sent to LLM) → scope minimization, redaction of sensitive fields, tenant isolation, Azure region pinning.
+- **Stack drift** → ADR required for any LangGraph adoption (§7.1).
+
+---
+
+## 12. Roadmap
+
+**Phase 0 — Foundation.** Jira MCP integration (read), OAuth 3LO auth, board/sprint config, Postgres, one channel (Microsoft Teams). Snapshot + changelog ingestion.
+
+**Phase 1 — MVP.** The 5 features (§6), advisory + gated comment/label/report writes, scheduler + webhook listener, approval queue. Pilot on one team.
+
+**Phase 2 — Expand.** Backlog grooming assistant, sprint planning (capacity), Jira hygiene sweeps, Slack + Web UI, optional Confluence publishing (reports already generated as `Report.md` in MVP).
+
+**Phase 3 — Controlled autonomy.** Policy-bounded auto-actions, multi-team rollups, in-Atlassian surface via Rovo/Forge agent, analytics dashboard.
+
+---
+
+## 13. Open questions
+
+1. ~~**Tenancy:** single-tenant pilot vs multi-tenant?~~ **Resolved 2026-05-31 → OAuth 2.0 3LO from day one; no API-token pilot.**
+2. ~~**Channel:** Slack or Teams first?~~ **Resolved 2026-05-31 → Microsoft Teams first; Slack in P2 (parity).**
+3. ~~**Integration layer:** Go MCP vs Python-native?~~ **Resolved 2026-05-31 → Go MCP server (§7.1).**
+4. ~~**Estimation:** story points vs. time-based?~~ **Resolved 2026-05-31 → time-based** (Jira time-tracking fields).
+5. ~~**Reports:** Confluence in MVP, or channel only?~~ **Resolved 2026-05-31 → generate a `Report.md` with table of contents.** Confluence publish optional in P2.

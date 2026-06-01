@@ -78,4 +78,10 @@ Backend/frontend role mapping per individual is TBD — to be filled in before P
 - [ ] Day 5 / weekend: run `measure.py` over fixtures → `results/ab_results.jsonl`
 - [ ] Day 5 / weekend: human quality review on code-heavy A/B pairs
 - [ ] Day 5 / weekend: aggregate via `summarize.py`; write verdict against R ≥ 10% threshold
-- [ ] Hand
+- [ ] Hand verdict to `M1-Decision-Gate.md` for confirmation or reversion
+
+## Notes
+
+- The M1 verdict (GREEN) is conditional on this measurement. R-lite < 10% reverts the verdict and cancels M2-lite per `M1-Decision-Gate.md`.
+- Setup support burden is the unbudgeted risk. Track time spent helping devs install — if it exceeds ~4 engineer-hours total across PoC + measurement, it's an early signal that M2-lite's "manual install via docker-compose" assumption is breaking down at even 7 users, and the verdict's scale-trigger ought to be examined sooner.
+- The original M0-Spike.md remains in the repository with a deprecation header, for historical record.

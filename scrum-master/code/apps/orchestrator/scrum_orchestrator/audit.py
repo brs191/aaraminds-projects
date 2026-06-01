@@ -42,4 +42,6 @@ async def record_action(database_url: str, recommendation_id: int, action: str, 
         async with conn.cursor() as cur:
             await cur.execute(
                 "INSERT INTO action_audit (recommendation_id, action, result) VALUES (%s, %s, %s)",
-     
+                (recommendation_id, action, result),
+            )
+        await conn.commit()

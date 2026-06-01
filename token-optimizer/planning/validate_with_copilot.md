@@ -134,4 +134,11 @@ What you're looking for: outbound HTTPS connections from VS Code to:
 ## What happens next once mode is determined
 
 - **Mode C** → Mark task #21 (this validation) complete; proceed to the 6/8–6/12 measurement window per `../tracking/milestones/M0-lite.md`. (The 5/28–5/29 PoC window has already elapsed — record its outcome there.)
-- **Mode B** → Mark this validation complete with the methodological caveat; update `../tracking/milestones/M0-lite.md` to specify the assistant being used by the cohort during the measurement (Claude Code or Cursor); update `../planning/M0-lite_Cohort_Recruitmen
+- **Mode B** → Mark this validation complete with the methodological caveat; update `../tracking/milestones/M0-lite.md` to specify the assistant being used by the cohort during the measurement (Claude Code or Cursor); update `../planning/M0-lite_Cohort_Recruitment.md` setup pack to reference the chosen tool. The measurement proceeds with the tool swap (the 5/28–5/29 PoC window has elapsed).
+- **Mode A** → Mark this validation complete; STOP M0-lite (no measurement is meaningful); revert M1 verdict pending S re-validation; pull billing line items and redo the M1 economic math with the actual cost basis. The project may not survive this re-litigation.
+
+## Cohort-level caveat
+
+Even if you personally are in Mode C, the 7 committed devs might not be. A mixed-mode cohort (some Mode A, some Mode C) measures inconsistently: the proxy sees traffic from some devs and not others, and the R calculation is meaningless if we can't tell what fraction of "real usage" actually went through the proxy.
+
+**Once your own mode is determined, the cohort needs the same check** before they start the PoC. Add a "Mode validated" column to the cohort table in `../planning/M0-lite_Cohort_Recruitment.md` and confirm each of the 7 is in the same mode as you (or document the mix and decide how to handle it).

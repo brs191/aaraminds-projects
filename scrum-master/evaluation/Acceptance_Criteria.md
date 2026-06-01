@@ -34,4 +34,4 @@ Each feature is "done" only when its criteria pass on a live sprint.
 
 ## Cross-cutting
 - [ ] Every recommendation cites issue key(s) and the triggering signal
-- [ ] No writ
+- [ ] No write occurs without an approval record in `action_audit`

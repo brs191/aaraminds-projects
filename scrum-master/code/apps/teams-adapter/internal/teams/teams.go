@@ -46,4 +46,35 @@ func (p *Poster) Post(msg Message) (delivered bool, err error) {
 	if p.WebhookURL == "" {
 		return false, nil
 	}
-	// Adaptive Card wrapped in the Teams
+	// Adaptive Card wrapped in the Teams Workflows `attachments` envelope.
+	payload := map[string]any{
+		"type": "message",
+		"attachments": []map[string]any{
+			{
+				"contentType": "application/vnd.microsoft.card.adaptive",
+				"content": map[string]any{
+					"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+					"type":    "AdaptiveCard",
+					"version": "1.4",
+					"body": []map[string]any{
+						{"type": "TextBlock", "text": msg.Title, "weight": "Bolder", "size": "Large", "wrap": true},
+						{"type": "TextBlock", "text": msg.Markdown, "wrap": true},
+					},
+				},
+			},
+		},
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return false, err
+	}
+	resp, err := p.client.Post(p.WebhookURL, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= 300 {
+		return false, fmt.Errorf("teams webhook returned status %d", resp.StatusCode)
+	}
+	return true, nil
+}

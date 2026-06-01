@@ -12,4 +12,4 @@
 - [ ] Optional Confluence publishing (MVP already emits `Report.md`)
 
 ## Gate check
-- [ ] 2nd team 
+- [ ] 2nd team live via config only; Slack parity verified

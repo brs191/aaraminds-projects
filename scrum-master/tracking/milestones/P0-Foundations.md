@@ -13,4 +13,4 @@
 - [ ] LangGraph skeleton consuming the MCP server via `langchain-mcp-adapters`
 
 ## Gate check
-- [ ] End-to-end: authenticate (OAuth 3LO) → ingest one sprint → po
+- [ ] End-to-end: authenticate (OAuth 3LO) → ingest one sprint → post to Teams

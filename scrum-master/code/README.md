@@ -96,4 +96,5 @@ scrum-master/code/
 ## Decisions (locked)
 
 Orchestration **LangGraph** · integration **Go MCP** · auth **OAuth 2.0 3LO** · channel
-**Teams** (Slack in P2) · estimation **time-based** · reports **`Report.md` with TOC*
+**Teams** (Slack in P2) · estimation **time-based** · reports **`Report.md` with TOC**.
+Full rationale in the parent home [`../`](../).

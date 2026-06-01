@@ -26,4 +26,4 @@ Backlog grooming assistant, sprint planning (capacity), Jira hygiene sweeps, Sla
 
 Policy-bounded auto-actions, multi-team rollups, in-Atlassian surface via Rovo/Forge agent, analytics dashboard.
 
-**Gate:** at least one auto-action runs under policy with a
+**Gate:** at least one auto-action runs under policy with a full audit trail and a tested rollback / undo.

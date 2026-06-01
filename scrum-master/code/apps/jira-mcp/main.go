@@ -29,4 +29,5 @@ func getenv(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
-	r
+	return def
+}

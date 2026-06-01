@@ -61,4 +61,16 @@ scrum-master/
 
 `tracking/Status.md` is the dashboard — active phase, gate states, locked decisions, open threads. Open it at the start of every working session. Each file under `tracking/milestones/` is the working checklist for one phase: its deliverables, its gate, and a checkbox list. A phase is **not done until its gate passes** — gates, not checkbox counts, govern progress.
 
-## Planning 
+## Planning vs. execution split
+
+`planning/Roadmap.md` is the durable plan — it changes only when strategy changes. `tracking/` is the volatile execution layer — it changes constantly. Keeping them separate keeps the plan stable while day-to-day state churns.
+
+## Implementation (`code/`)
+
+The implementation lives in [`code/`](code/) — a monorepo holding the Python/LangGraph orchestrator, the Go `jira-mcp` server, the Go `teams-adapter`, the Postgres schema, and infra/CI. It is the **P0 vertical slice**: the Daily Brief wired end-to-end through every layer, with Jira data stubbed so it runs with zero credentials. Run instructions are in `code/README.md`; live status is in `tracking/Status.md`.
+
+This nests code inside the project home rather than a separate repo — docs and code in one place. If `code/` later needs independent versioning or deployment, it can be split into its own repo without disturbing the brain.
+
+## Inspiration
+
+Structure and conventions are modeled on `../clear-cortex` — its README index, the product / design / planning / evaluation / tracking split, the Status dashboard, and milestone files governed by gates. This project applies that working-home pattern to building the Scrum Master Agent.

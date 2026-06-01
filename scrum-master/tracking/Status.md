@@ -23,4 +23,16 @@
 - **Channel:** Microsoft Teams first (Power Automate **Workflows** webhook + Adaptive Card; O365 connectors retire 2026-05); Slack is P2 parity
 - **Jira:** REST v3 + Agile API, `/search/jql` (legacy `/search` removed ~2025-10-31), ADF, dynamic webhooks
 - **Estimation:** time-based (Jira time-tracking fields, read-only; writes via `timetracking` composite) — not story points
-- **Reports:** generate a `Report.md` with table of contents — Confluence 
+- **Reports:** generate a `Report.md` with table of contents — Confluence optional in P2
+- **Control model (DOC):** *human-approved writes by construction* — Read → Recommend → Approve → Write
+
+## Open threads (need a decision)
+
+None — all P0–P1 decisions locked. See `../planning/Open_Questions.md`.
+
+## Next actions
+
+1. Register the Atlassian OAuth 2.0 3LO app + consent flow (scopes per `../design/Architecture.md`)
+2. Stand up Postgres + Go MCP read path
+3. Ingest one real board's active sprint
+4. Teams adapter: post a hello-world (P0 gate)

@@ -43,4 +43,36 @@ This is a capability-acquisition decision, so alternatives are enumerated (not j
 **Pros:** zero new language; no drift; one deploy toolchain.
 **Cons:** re-implements durable HITL state machine — error-prone for the exact mechanism the product can least afford to get wrong.
 
-### Option C
+### Option C — All-Python (LangGraph + Python-native Jira client)
+
+| Dimension | Assessment |
+|-----------|------------|
+| Complexity | Low — single runtime |
+| Cost | Low |
+| Scalability | Medium |
+| Team familiarity | Medium |
+| DOC fit | High |
+
+**Pros:** simplest ops; no cross-language hop.
+**Cons:** forfeits the reusable Go MCP asset; pushes integration into a non-fixed-stack language — drift spreads from the reasoning layer into integration, the opposite of containment.
+
+## Trade-off Analysis
+
+The decision turns on *where the risk should live*. The HITL gate is the product's safety-critical mechanism; Option B places that exact mechanism in bespoke code, which is the worst place for the highest-stakes logic. Option A buys a battle-tested durable-interrupt primitive and pays for it in polyglot ops — an operational cost, not a correctness risk. Option C minimizes ops but lets Python leak into the integration layer, spreading drift rather than containing it. Choosing A accepts a bounded, well-understood cost (two runtimes) to de-risk the thing that matters most (durable approvals) while keeping drift fenced to one layer.
+
+## Consequences
+
+- **Easier:** durable approvals; reusable Go MCP integration; Postgres-only state.
+- **Harder:** two runtimes to build/test/deploy; an orchestrator↔MCP network hop to secure and observe.
+- **Revisit when:** the orchestration graph stays trivial enough that native tool-calling would do (then Option B/C reopen); or LangGraph introduces a breaking change in the interrupt/checkpoint API.
+
+## Action Items
+
+1. [ ] Pin LangGraph + checkpointer + adapters to tested ranges (not lower-bound-only).
+2. [ ] Stand up the Postgres checkpointer and assert "no write without an approval row" in an integration test (DOC scorer).
+3. [ ] Document the orchestrator↔MCP hop in the threat model (auth, network policy).
+4. [ ] Re-evaluate at the P1 gate whether graph complexity still justifies LangGraph.
+
+## Open sub-decision
+
+Go MCP server vs Python-native Jira client — **resolved: Go MCP server** (see [Open_Questions.md](../../planning/Open_Questions.md) #3).

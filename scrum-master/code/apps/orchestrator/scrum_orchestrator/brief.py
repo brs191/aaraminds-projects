@@ -126,4 +126,12 @@ def _todo_line(i: Issue) -> str:
 # exists; the P0 demo path uses build_brief above.
 
 def build_report(sprint: dict[str, Any], sections: dict[str, str]) -> str:
-    """Assemble a Report.md with a nav
+    """Assemble a Report.md with a navigable table of contents from {heading: body}."""
+    title = f"Sprint Report — {sprint.get('name', 'Sprint')}"
+    toc = ["## Table of contents"]
+    body: list[str] = []
+    for heading, content in sections.items():
+        anchor = heading.lower().replace(" ", "-")
+        toc.append(f"- [{heading}](#{anchor})")
+        body.append(f"## {heading}\n\n{content}\n")
+    return f"# {title}\n\n" + "\n".join(toc) + "\n\n" + "\n".join(body)
