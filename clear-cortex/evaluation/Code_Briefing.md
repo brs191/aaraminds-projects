@@ -1,7 +1,7 @@
 # Code Briefing — Credit Routing Service
 
-**Status:** STUB — fill in P1 (breadth) then extend in P2 (deepen)
-**Fixture:** `apm0045942-credit-routing-service` @ `44b6b8659a33ad7ac2227b6d88696d1946b9ce1a` (read-only working copy — confirmed by Raja on his macOS P0-validation system; see §0 SHA note)
+**Status:** P1 breadth complete — reviewer gate assistive PASS; post-gate corrections applied (extends the P0 §0–§1 below with §2–§9).
+**Fixture:** `apm0045942-credit-routing-service` @ `44b6b8659a33ad7ac2227b6d88696d1946b9ce1a` (read-only working copy — confirmed by Raja on his macOS P0-validation system; see §0 SHA note). **P1 facts below were extracted from the workspace clone at `e17fe410` — pending reconciliation (see §0).**
 **Purpose:** organize _verified_ facts from source in HLD section order, so `HLD.md` is written from real code, not memory. This is raw material, not the HLD.
 
 > Every fact cites a repo-relative locator (`file › Type#member › L<start>–<end>`) and provenance. Mark `[not deep-read]` where inventoried but not read line-by-line. Build the repo first (`./mvnw clean compile`) so MapStruct/SOAP/OpenAPI generated members are present.
@@ -9,7 +9,7 @@
 ## 0 · Read coverage
 
 - **Fully read (P0):** `README.md` (overview + build/run guidance), `.github/copilot-instructions.md` (build conventions + package map), `Credit.yaml` (contract header + top-level paths), `src/main/resources/application.yml` (runtime/config surface), and `start-credit-service.sh` (current helper build/run flow). Sample locators: `README.md` › `## Overview` / `## Building the Service` / `## Running the Service` › L5/L55/L82; `.github/copilot-instructions.md` › `Maven Wrapper` / `MongoDB` / `application.yml` guidance › L24-L41; `Credit.yaml` › `info.title` / `info.version` / `/credit-checks` / `/ping` › L3/L7/L15/L155; `src/main/resources/application.yml` › SpringDoc groups / Mongo / security / context path / IEBus / CAS › L1-L14/L29-L33/L42-L69/L70-L71/L336-L352/L354-L359; `start-credit-service.sh` › Java selection / Maven selection / generated-source cleanup / build / run › L9-L16/L27-L31/L33-L38/L41-L43. Provenance: deterministic.
-- **Working copy pinned [human_confirmed — Raja, macOS]:** on Raja's macOS P0-validation system, local branch ref `develop` resolved to `44b6b8659a33ad7ac2227b6d88696d1946b9ce1a` (Locators: `.git/HEAD` › L1, `.git/refs/heads/develop` › L1). **Reconciliation note:** this could not be re-verified from the workspace-accessible clone (`coderepos/clear/apm0045942-credit-routing-service`), which is at `e17fe410e79e8784d67c9e4dc505f210500e7cf1` (= AT&T `origin/develop` tip seen here); `44b6b86…` is absent from that clone's objects, packed-refs, and reflog. Reconcile the two copies to one revision before P1.
+- **Working copy pinned [human_confirmed — Raja, macOS]:** on Raja's macOS P0-validation system, local branch ref `develop` resolved to `44b6b8659a33ad7ac2227b6d88696d1946b9ce1a` (Locators: `.git/HEAD` › L1, `.git/refs/heads/develop` › L1). **Reconciliation note:** this could not be re-verified from the workspace-accessible clone (`coderepos/clear/apm0045942-credit-routing-service`), which is at `e17fe410e79e8784d67c9e4dc505f210500e7cf1` (= AT&T `origin/develop` tip seen here); `44b6b86…` is absent from that clone's objects, packed-refs, and reflog. The P1 inventory (§2–§9) was extracted from that `e17fe410` clone. Reconcile the two copies to one revision.
 - **Generated-source surface verified [deterministic + runtime-observed]:** `start-credit-service.sh` was rerun in this session and regenerated code under the expected slices, including MapStruct annotations output plus SOAP/OpenAPI-derived client/server sources. Sample anchors: `target/generated-sources/annotations/com/att/creditcheck/policy/mapper/EUCPCMapperImpl.java` › package / `@Generated` › L1/L20; `target/generated-sources/csi/com/att/csi/csi/namespaces/orderandsubscriptionmanagementmobility/types/_public/commondatamodel/package-info.java` › package declaration › L9; `target/generated-sources/openapi-client/src/main/java/com/att/creditcheck/client/api/UnifiedCreditCheckServiceApi.java` › package declaration › L1; `target/generated-sources/crsms/src/main/java/com/att/creditcheck/client/crsms/api/CustomerRiskSystemManagerServiceApi.java` › package declaration › L1. Provenance: deterministic + runtime-observed.
 - **Build-gate status [runtime-observed]:** P0 build confirmation now passes. The checked-in `start-credit-service.sh` executed through package/build, regenerated generated-source output, produced the application jar, and launched the Spring Boot service. A follow-up HTTP check to `/CreditCheck/health` returned `401 Unauthorized`, which confirms the service was serving under the configured context path with security enabled. Runtime Kafka listener authentication errors were still present after startup, but those occur after the requested P0 build/generation gate and do not invalidate the P0 deliverable. Locators: `start-credit-service.sh` › package command / jar launch › L41-L43/L52-L60; `src/main/resources/application.yml` › `server.servlet.context-path` / `management.endpoints.web` › L70-L71/L88-L91.
 
@@ -23,30 +23,106 @@
 - **Named external integrations [deterministic]:** runtime configuration names CSI SOAP endpoints, UBCT, IEBus/Kafka, and CAS APIs, while repo guidance maps the package names `csi`, `ubct`, `iebus`, and `cas` to those integration roles. Locators: `src/main/resources/application.yml` › `csi.host` and CSI API blocks › L115-L211, `ubct.host` / `ubct.api` › L256-L263, `ie.bootstrap.servers` / `iebus.topic` › L336-L352, `cas-api.host` › L354-L359; `.github/copilot-instructions.md` › package map bullets › L8-L16.
 - **Build convention vs helper reality [deterministic + runtime-observed]:** repo guidance expects Java 17 and the Maven Wrapper, while the helper script uses system `mvn` and local `java -jar`. On this machine, the rerun executed under Java 25 because no Java 17 installation was available, but the script still completed package/build and launched the application. That environment mismatch is important for later runtime debugging, but it did not block the P0 deliverable. Locators: `.github/copilot-instructions.md` › Java 17 / Maven Wrapper guidance › L22-L27; `README.md` › Maven Wrapper build steps › L55-L80; `start-credit-service.sh` › Java selection › L9-L16, `MVN="mvn"` › L27, package command › L43, `java -jar` launch › L60.
 
+---
+_§2–§9 below: P1 breadth, extracted from the `e17fe410` workspace clone via six parallel sub-inventories. Component altitude; `[not deep-read]` where shallow._
+
 ## 2 · Architecture overview & component view (HLD §4–5)
 
-_TODO P1 — the 14 packages and their roles; the @Service / controller / repository shape. Decode `cas`, `ubct`, `iebus`._
+**Stereotype census [deterministic]:** 27 `@RestController` (all endpoint-bearing) + 1 `@RestControllerAdvice` (`exceptions/GlobalExceptionHandler`), ~83 `@Service`, 29 `MongoRepository`, **30 `@Document` (29 physical collections)**, 21 `@Configuration`, **11 `@Aspect`**, 6 `@ConfigurationProperties`. Single module, `com.att.creditcheck.*`, context-path `/CreditCheck`.
+
+**Top-level packages [deterministic]:**
+
+| Package | Files | Role | Anchor |
+|---|---:|---|---|
+| `routing/` | 179 | **Core domain** — v1 + v2 (single/multi/internal/policy) APIs; `RoutingService`; `CreditCheckProcessor`; the **live DSL evaluator** `routing/services/CCRuleExecutionService`; strategy `CreditCheckService` impls + 2 factories; enrichers; validators; `CreditCheckRequestScope` (request-scoped state blackboard); 4 routing aspects | `routing/v2/RoutingService` › L19-40 |
+| `admin/` | 157 | 19 controllers / **62 endpoints** — rules (DSL CRUD + a *second* rule evaluator), key-value config, product/policy/account-type/EIP/pre-approval/BCES/SAART/UBCT reference data, roles+RBAC, OIDC, audit, analytics (stats+views), result search/export, monitoring, ops | `admin/rules/CreditAdminController`; `admin/rules/RuleExecutionService` |
+| `csi/` | 49 | **Credit Services Integration** — outbound SOAP (raw SAAJ + JAXB) to AT&T's CSI ESB → Equifax; 9 operations | `csi/SoapCallService#getSoapResponse` › L40-92 |
+| `ubct/` | 29 | Outbound REST to **Equifax** business-credit API — legacy UBCT + ICAAM ("UBCT2.0", OAuth2); poll scheduler; a second use of the rule engine for request-type derivation | `ubct/UBCTAPIService#callUBCTPost` › L39-79 |
+| `cas/` | 16 | Outbound REST to the **CAS** gateway → UCCS (Unified Credit Check Service): identity verification (IUCVQ/VUCVA), SUCA | `cas/iucvq/services/IdentityVerificationServiceImpl#fetchIUCVQ` › L86-91 |
+| `policy/` | 10 | Risk-mitigation policy via **CRSMS** (Customer Risk System Manager Service) REST client on the same CAS gateway; EUCPC/IUCP/UUCP | `policy/service/PolicyServiceImpl` › L113/L234/L348 |
+| `iebus/` | 7 | **Kafka eventing** (Confluent Cloud on Azure; SASL_SSL/OAUTHBEARER via Entra) despite the `servicebus` sub-name; publishes `CreditCheckResponse` to `com.att.clear.dev.creditcheckupdates` | `iebus/servicebus/MessageBrokerClient#clientProducer` › L41-76 |
+| `multiproduct/` | 5 | Multi-product result model (`MultiProductCreditCheckResult`) | `multiproduct/dto/MultiProductCreditCheckResult` › L18-53 |
+| `config/` | — | 21 `@Configuration` — security filter chain, RestTemplate, CAS/CRSMS API clients, ShedLock, TaskExecutor, retry, transform, proxy | `config/SecurityConfiguration` › L233-272 |
+| `common/` | — | `AspectHelperClass` (the substrate behind most aspects), `ModelConstant` (system/API name constants) | `common/AspectHelperClass` › L28-179 |
+| `exceptions/` | — | `GlobalExceptionHandler` — the only `@RestControllerAdvice`, 14 handlers | `exceptions/GlobalExceptionHandler` › L43-432 |
+| `internal/` | — | actuator ping + cache-evict controllers | `internal/actuator/ActuatorController` › L43-68 |
+| `logging/` | — | MDC filter (W3C `traceparent`, `sourceSystem`, `creditProcessNumber`) + body-logging filter | `logging/CustomMdcFilterConfig` › L42-185 |
+| `util/` | — | shared helpers | `[not deep-read]` |
+
+**Decoded acronyms:** **CLEAR** = Credit Logging and Evaluation Assistance Repository `[deterministic — Credit.yaml title]`; **CSI** = Credit Services Integration `[inferred: high]`; **IEBUS** = Integration Event Bus `[inferred: high]`; **CRSMS/CSRM** = Customer Risk System Manager Service `[deterministic — generated README]`; **UCCS** = Unified Credit Check Service `[deterministic]`; **UBCT** ≈ Unified Business Credit Transaction `[inferred: medium]`; **ICAAM** = "UBCT2.0" `[deterministic that it is the v2; letters unexpanded]`; **CAS** = gateway host, letters unexpanded `[inferred: medium]`; **SAART**, **BCES** = upstream reference-data systems, unexpanded `[inferred: low]`.
 
 ## 3 · Domain & data model (HLD §6)
 
-_TODO P1/P2 — the 32 `@Document` collections; inferred relationships (by reference/embedding); indexes._
+**30 `@Document` classes → 29 physical MongoDB collections** (one, `AuditableEntity`, is a mapped superclass mapped to no collection of its own; every other `@Document` has its own collection), **29 `MongoRepository`** interfaces. No JPA — relationships are by shared key or embedding only; ids are `String`. `[deterministic]`
+
+**Core documents:**
+- `CreditCheckResult` → collection `creditCheckResult`; `@Id creditCheckProcessId` (the cross-collection join key); state fields `creditDecisionStatus/Code/Reason`, `creditCheckInternalStatus`, `isExpired`, `isCancellationEligible`; embeds debt/limit/product value objects. `admin/creditcheckresult/dto/CreditCheckResult` › L23-132. Collection name confirmed at `CCResultRepository` › L87. `[deterministic]`
+- `CCRule` → collection `cCRule`; `@Id ccRuleId`, `@Indexed creditCheckType`, `status: CCRuleStatus {ACTIVE,INACTIVE,DELETED}` (soft-delete), embeds `Rule<CCTarget>` (the `when/then` routing rule). `admin/rules/dto/CCRule` › L18-37. `[deterministic]`
+- `MultiProductCreditCheckResult` → collection `multiProductCreditCheckResult`; `@Id creditProcessNumber` (parent/rollup over single checks); `status`, `expirationDate`. `multiproduct/dto/MultiProductCreditCheckResult` › L18-53. `[deterministic]`
+
+**Aggregates [inferred: high]:** (1) credit-check results & runtime — `creditCheckResult`, `creditCheckDetails` (1:1 same PK), `credit_check_retries`, `multiProductCreditCheckResult`, `creditCheckParameter` (payload monitoring), `ubctTransactions`; (2) routing & request-type rules — `cCRule`, `ubct-requestType-mappings` (both use the `Rule<T>` engine); (3) config/reference data — `keyValueConfig`, `productMapping`, `productPolicyMappings`, `eiplimit`, `saartsegment`, `customerAccountTypeMapping`, `bCESFallout`, `preapproval`; (4) RBAC — `roles`, `userroleassignments`; (5) analytics — `credit_check_stats_snapshots`; (6) audit — 10 `*_audit` collections (generic `Audit<T>` embedding full doc snapshots).
+
+**Relationships [inferred: high]:** by shared key — `creditCheckProcessId` links result↔details↔retry↔monitoring; `creditProcessNumber` links single→multi-product parent; `UserRoleAssignment.roles` references `Role.roleName` by string (not id); `segmentCode`/`productCode` denormalized links to reference data `[inferred: medium]`. By embedding — `CCRule.rule`, `ProductPolicy.policyBands`, `Role.permissions`, all `Audit<T>.changes`.
+
+**Index inventory [deterministic]:** only **3 annotation-driven indexes** exist across all 29 collections — `CCRule.creditCheckType` (`@Indexed`); `CreditCheckStats` `@CompoundIndex{granularity,periodKey}` + `@Indexed(expireAfterSeconds=0)` TTL. No programmatic secondary indexes confirmed (an earlier-suspected `SaartSegmentService` index path was a misread of a `changeIndex` data field). **Risk:** `creditCheckResult` (the hottest collection) has no declared secondary index yet supports `findByDynamicField` regex queries (`CCResultRepository` › L26-41) — flag for P2/§11.
 
 ## 4 · REST surface (HLD §8)
 
-_TODO P1 — 28 controllers, ~107 endpoints, v1 vs v2 under `/CreditCheck`. Cross-check against `Credit.yaml`._
+**27 endpoint-bearing `@RestController` classes; 89 routable endpoints** (counting canonical path per method + the 3 ping paths). The v2 dual-mount alias `/v2/credit-check` is live on **3 controllers** (single-product, multi-product, policy); counting those aliases alongside the canonical `/v2/credit/credit-checks` raises the all-mounts total to **104**. `[deterministic]`
+
+By area: **v1** credit-check (3) `routing/v1/CreditRoutingController`; **v2 single-product** (4) `routing/v2/singleproduct/CreditCheckController`; **v2 multi-product** (8, the widest) `routing/v2/multiproduct/MultiProductCreditCheckController`; **v2 policy** (3) `routing/CreditPolicyController`; **v2 internal** (2, incl. the `routing-rule` evaluation probe) `routing/v2/internal/CreditCheckInternalController`; **admin** (62 across the 19 `admin/` controllers) + the `ubct` request-type-config controller (3); **internal/ops** ping + cache-evict (4) — area breakdown sums to 89. All under `/CreditCheck`. The v2 base is **dual-mounted** `{"/v2/credit-check","/v2/credit/credit-checks"}` — both live, canonical is `/v2/credit/credit-checks`. `[deterministic]`
+
+**Credit.yaml cross-check [deterministic]:** `Credit.yaml` (title "Credit Logging and Evaluation Assistance Repository API" v2.0.0) defines only **6 operations across 3 path keys** — the v2 single-product happy path (POST/GET/PATCH `/credit-checks`), `/{cpn}/products`, `/cancel`, `/ping` — all of which **match** real handlers. **Gaps:** (a) it omits **83 of 89** endpoints, most materially the **entire multi-product + policy v2 surface** that its own sibling SpringDoc groups (`multi-product-credit-check`, `credit-checks-sentry`) advertise; (b) it has **no `servers:`/base-path**, so a literal reader hits the wrong URL (real base `/CreditCheck/v2/credit/credit-checks`). No phantom endpoints (nothing in the contract is missing from code). **Treat the SpringDoc runtime groups as authoritative, not `Credit.yaml`.**
 
 ## 5 · External interfaces & integrations (HLD §8)
 
-_TODO P1 — CSI/SOAP (external credit services), IEBus/Kafka eventing, OIDC, `ubct`._
+| # | Surface | Direction | Protocol | External system | Config / anchor |
+|---|---|---|---|---|---|
+| 1 | `csi/` | Outbound | SOAP (SAAJ + JAXB, `@Retryable`) | **CSI** ESB → **Equifax** (9 ops: ECC, AddAccount, ICCR, IUCAD, CUCADP, ESOCC, USOCC, EUCC, IUCCR) | `csi.host`, per-op `.jws` URLs; `csi/SoapCallService` › L40-92 |
+| 2 | `cas/` | Outbound | REST (generated `ApiClient`, Basic auth) | **CAS** gateway → **UCCS** (IUCVQ/VUCVA/SUCA) | `cas-api.host`+`uccsBasePath`; `config/ApiClientConfig` › L33-56 |
+| 3 | `policy/` | Outbound | REST (generated `ApiClient`) | **CAS** gateway → **CSRM** (EUCPC/IUCP/UUCP) | `cas-api.host`+`csrmBasePath`; `config/UnifiedPolicyConfig` › L41-64 |
+| 4 | `ubct/` | Outbound | REST (RestTemplate; ICAAM OAuth2) | **Equifax** business API (legacy UBCT + ICAAM "UBCT2.0") | `ubct.host`, `icaam.host`; `ubct/UBCTAPIService`, `ubct/ICAAMAPIService` |
+| 5 | `iebus/` + `saartsegment` | Both | **Kafka** (Confluent/Azure; SASL_SSL + OAUTHBEARER via Entra) | IEBUS event bus — **publish** `…creditcheckupdates`; **consume** `…segmentTest` (SAART) | `ie.bootstrap.servers`, `iebus.topic.*`; `iebus/servicebus/RetrieveKafkaConnection` › L65-145 |
+| 6 | `routing/CreditPolicyController` | **Inbound** | REST (hand-written over generated `creditPolicy` **models**) | upstream order-mgmt callers | `routing/CreditPolicyController` › L55 — note: the generated `CreditApi` server **interface is unused** (0 src refs); only the generated models are consumed |
+
+Auth dependency: **Microsoft Entra ID** underpins the resource-server JWT and the Kafka OAUTHBEARER token; the **ICAAM** client-credentials token is issued by **Equifax's own OAuth2** (`api.uat.equifax.com`), not Entra. Opaque-token introspection uses the AT&T eLogin IdP (`oidc.stage.elogin.att.com`). Datastore: **MongoDB Atlas** (SRV URI). `[deterministic]`
 
 ## 6 · Cross-cutting (HLD §9)
 
-_TODO P1 — security filter chain, GlobalExceptionHandler, audit, Caffeine cache, MDC logging, ShedLock, and the AOP aspects (what each intercepts)._
+**AOP is the load-bearing cross-cutting mechanism — 11 `@Aspect` classes [deterministic]**, all implementing one dominant concern: **transaction payload audit/monitoring + result-state persistence**, woven on *service/client* methods (never controllers). Each writes `CreditCheckParameter` request/response/error records into the `@RequestScope CreditCheckRequestScope` and flushes them to the monitoring store; several also persist `CreditCheckResult`/`MultiProductCreditCheckResult` and drive status transitions. Aspects: `CreditCheckProcessorAspect`, `MultiProductCreditCheckAspect`, `CancelCreditCheckAspect`, `CCRoutingServiceAspect` (v1), `SoapCallServiceAspect` (CSI), `MessageBrokerClientAspect` (Kafka), `UBCTAPIServiceAspect`, `UnifiedCreditCheckAPIAspect` + `IdentityVerificationServiceAspect` + `SubmitUnifiedCreditApplicationServiceAspect` (CAS), `UnifiedPolicyServiceAspect` (policy). Shared substrate `common/AspectHelperClass` › L28-179. `[deterministic]`
+
+**Security [deterministic]:** one `SecurityFilterChain` (`config/SecurityConfiguration` › L233-272); three token regimes resolved per-request (JWT Halo/Entra + opaque-token introspection); `CookieTokenFilter` promotes a `token` cookie to a bearer header. **AuthZ is URL-pattern `authenticated()` only — no roles/scopes/method security** (no `@PreAuthorize`/`@EnableMethodSecurity`). **Dead/buggy:** `CachingOpaqueTokenIntrospector` (Caffeine) defined but **unwired** → opaque introspection uncached per-request; `CustomAuthenticationEntryPoint` unwired; `isJwtShaped()` routes by `AUTH_PROVIDER` env, not token shape (doc-vs-behavior mismatch). Secrets are **plaintext defaults** in `application.yml`.
+
+**Error handling [deterministic]:** `exceptions/GlobalExceptionHandler` (`@RestControllerAdvice`, 14 handlers → uniform `ErrorResponse{description, errors[], creditProcessNumber}`); catch-all 500 special-cases the `/proxy` passthrough.
+
+**Observability [deterministic]:** Micrometer tracing on (sampling 1.0, W3C propagation); `logging/CustomMdcFilter` injects `traceId/spanId/sourceSystem/creditProcessNumber` into MDC and emits a `traceparent` response header; actuator `health,metrics`; the aspect layer is the business-event audit trail. **No Sentry, OTel exporter, or Grafana/Prometheus wiring in scoped code** (assume agent/infra-side); log backend is `log4j2.xml`.
+
+**Concurrency/scheduling [deterministic]:** 2 tuned `ThreadPoolTaskExecutor`s with MDC/trace-propagating decorators; `@Async`; multi-product runs legs in parallel via `CompletableFuture`. **ShedLock (MongoLockProvider)** guards 16 `@Scheduled` methods (12 are analytics-stats finalizers); the `ccRule` cache-evict job is the one `@Scheduled` *not* ShedLocked.
+
+**Caching [deterministic]:** `@EnableCaching` on, but **no `CacheManager` bean** → default in-memory `ConcurrentMapCacheManager` (unbounded, per-instance, no TTL) backs `@Cacheable("ccRule")` / `("keyValueConfig")`. Caffeine appears only in the unwired token introspector → **effectively dormant**. `CacheService.evictCache` uses a literal (non-SpEL) `@CacheEvict(value="#cacheName")` → **likely-bug** (evicts the wrong cache).
 
 ## 7 · Configuration & runtime
 
-_TODO P1 — 21 `@Configuration`, 6 `@ConfigurationProperties`, key `application.yml` paths, 4 `@Scheduled` jobs._
+**`@Configuration` (21) [deterministic]:** `SecurityConfiguration`, `ApplicationConfiguration` (CORS — permissive `*` methods/headers, origin-bounded), `RestTemplateConfig` (buffering + logging interceptor), `ApiClientConfig` (CAS/UCCS), `UnifiedPolicyConfig` (CRSMS), `ShedLockConfiguration` (Mongo lock provider), `TaskExecutorConfig` (2 pools + context-propagating decorator), `RetryConfig` (`@EnableRetry`), `TransformConfiguration` (ObjectMapper + JAXP Transformer), `SystemProxyConfiguration` (`@ConditionalOnProperty proxy.required`), `InterceptorConfig`, `OpenAPIConfiguration`, token filters/resolvers/introspectors, + the 6 `@ConfigurationProperties` carriers. **No explicit Mongo config** — Spring Boot autoconfigures `MongoTemplate` from the Atlas URI. **No `WebClient`** — all HTTP egress is RestTemplate; SOAP is raw SAAJ.
 
-## 8 · Candidate design decisions (HLD §10)
+**`@ConfigurationProperties` (6) [deterministic]:** `CSIProperties` (`csi`), `UbctProperties` (`ubct`), `EntraTokenProperties` (`…resourceserver.entra`), `ICAAMProperties` (`icaam`), `RestTemplateProperties` (`rest-template`), `TaskExecutorProperties` (`task-executor`).
 
-_TODO P1 seed → P2 complete — Mongo over relational; IEBus eventing wrapper; DSL rules engine; v1/v2 split; AOP cross-cutting._
+**Main-class enablers [deterministic]:** `@EnableScheduling @EnableCaching @EnableMongoAuditing @EnableKafka` (`CreditRoutingApplication` › L31-34) + `@EnableRetry`, `@EnableAsync`, `@EnableSchedulerLock`. **`@Scheduled` (16 methods / 4 classes):** `CreditCheckStatScheduler` (12 — daily→yearly stats finalize/intraday), `CreditCheckSchedulerService` (`csi/esocc`, retry failed), `UBCTPollingTaskScheduler` (UBCT poll), `CCRuleAdminService.evictCache` (30-min rule-cache evict).
+
+## 8 · Candidate design decisions (HLD §10 seed)
+
+1. **MongoDB document store, no transactions** — `@Document` model, zero `@Transactional`/`MongoTransactionManager`. Trade-off: schema flexibility + scale vs. **no atomicity** across the multi-write result+details+monitoring sequences (which run inside AOP advice). `[deterministic on the absence; trade-off inferred]`
+2. **Two duplicated rule evaluators** — `routing/services/CCRuleExecutionService` (live `CCTarget` routing; adds a `range` operator) vs `admin/rules/RuleExecutionService` (UBCT request-type derivation; adds `gte`/`lte`/`contains none of`/`contains all of` + type-awareness). Same `Rule<T>` model, **forked logic** with drifting operator sets. `[deterministic]` — tech-debt finding.
+3. **AOP-as-persistence** — aspects own result persistence + status transitions + the monitoring trail, keeping processors decision-focused. Deliberate, but heavy coupling + non-obvious control flow. `[deterministic]`
+4. **Strategy + factory routing dispatch** — `CCTarget{system,api}` from the DSL engine drives `CreditCheckServiceFactory`/`CreditCheckRefreshFactory` → concrete CSI/CAS/local backend. The central routing contract. `[deterministic]`
+5. **IEBus/Kafka eventing wrapper** — `MessageBrokerClient` wraps a raw `KafkaProducer` (not `KafkaTemplate`); publish only on specific refresh/UBCT paths, not the single-product happy path. `[deterministic]`
+6. **v1/v2 split** — v1 self-contained inline dispatch (`CCRoutingService`); v2 factory-based, adds multi-product + identity. `[deterministic]`
+
+## 9 · Ranked deepen list (P2 input)
+
+1. **DSL rules engine + the two-evaluator duplication** `[HIGH]` — the core novel subsystem *and* a real tech-debt/consistency risk (`routing/services/CCRuleExecutionService` vs `admin/rules/RuleExecutionService`). Trace both, the operator-set drift, and the cache-fronted load path.
+2. **Core credit-check runtime flow (v2 single + multi-product)** `[HIGH]` — the aspect-driven persistence + status state-machine + strategy/factory dispatch; the parallel multi-product legs; where events do/don't publish.
+3. **Domain & data model + atomicity/indexing risk** `[HIGH]` — finish §6 (collections, lifecycle, relationships) and assess the no-transaction multi-write exposure and the single-index `creditCheckResult` query risk.
+4. **External integration backends** `[MED-HIGH]` — CSI SOAP (9 ops), CAS UCCS/CSRM, Equifax UBCT/ICAAM; the generated clients and the SOAP fault/retry handling.
+5. **Security model** `[MED]` — the three token regimes, the authz gap, and the three dead/buggy components (`isJwtShaped`, unwired introspector cache, unwired entry point).
+6. **admin/ analytics + audit** `[LOW-MED]` — the 12-cron stats scheduler and the 10-collection audit subsystem; likely catalogue-depth suffices.

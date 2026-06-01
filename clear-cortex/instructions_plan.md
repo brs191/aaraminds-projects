@@ -122,17 +122,36 @@ Do NOT write the HLD yet and do NOT modify the repo. Stop at the P0 gate and tel
 **Stay on track:** **Breadth, not depth.** Mark `[not deep-read]` and move on — do not rabbit-hole a subsystem. Timebox acronym decoding. No LLD. No pipeline build.
 **Sample prompt — P1 kickoff (drive with the agent):**
 ```text
-Dispatch the aara-senior-microservices-architect agent (it routes to codebase-comprehension) for
-the P1 breadth map.
+Load the AaraMinds AI Engineering Architect persona + codebase-comprehension, and dispatch
+aara-senior-microservices-architect for the P1 breadth map.
 
-Inventory all 14 packages of apm0045942-credit-routing-service @ e17fe410 at COMPONENT altitude —
-start with routing/ and admin/rules. Decode cas, ubct, iebus; confirm csi = Credit Services
-Integration. Catalogue the 28 controllers / ~107 endpoints (v1 vs v2; cross-check Credit.yaml),
-the 32 @Document collections, and the integration + cross-cutting (AOP aspect) surfaces.
+WORKING COPY — pin ONE revision; every anchor comes from it:
+  <chosen clone path> @ <SHA>   (workspace = e17fe410 · Mac = 44b6b86… — pick one and reconcile)
+  Read generated members from target/generated-sources (MapStruct; OpenAPI clients
+  crsms/creditPolicy/UnifiedCreditCheck; CSI SOAP types) and tag them [generated].
 
-Write breadth-level clear-cortex/evaluation/{Code_Briefing.md, Inferred_Product_Spec.md, HLD.md}.
-Tag every fact deterministic vs inferred with an evidence anchor; mark [not deep-read] where
-shallow — breadth, not depth. Finish with a RANKED list of areas to deepen.
+SCOPE — component altitude, breadth not depth. Inventory ALL packages; start with routing/ and
+  admin/rules. Reconcile against the P0 baseline (~14 packages, 28 controllers, ~107 endpoints,
+  32 @Document) and FLAG divergence. Catalogue admin/ at name level (19 controllers); only
+  admin/rules goes deeper — the deep-vs-catalogue call is at the gate.
+
+DECODE cas, ubct, iebus. Verify (don't re-derive) the P0 decodings: csi = Credit Services
+  Integration (order/subscription-mgmt-mobility SOAP); CRSMS = Customer Risk System Manager
+  Service; CLEAR = Credit Logging and Evaluation Assistance Repository.
+
+CATALOGUE controllers + all endpoints (v1 vs v2 under /CreditCheck; cross-check Credit.yaml),
+  all @Document collections, integration + cross-cutting (AOP aspect) surfaces.
+
+WRITE — EXTEND, do not overwrite:
+  Code_Briefing.md → fill §2–§8; preserve §0–§1 and the SHA provenance note.
+  Inferred_Product_Spec.md → capabilities, actors, value flow (all inferred + confidence).
+  HLD.md → fill §§2–11 at component altitude; preserve §1 + the SHA note.
+
+DISCIPLINE — every non-trivial fact: evidence anchor (file › Type#member › L<s>–<e>),
+  tagged deterministic | inferred (+confidence). Mark [not deep-read] where shallow.
+
+FINISH with a RANKED deepen list (P2 input). Do NOT self-certify the gate — that's the
+  separate reviewer pass.
 ```
 **Sample prompt — P1 gate (verdict review):**
 ```text
