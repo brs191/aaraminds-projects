@@ -40,6 +40,8 @@ VS Code 1.99+ Language Model API supports configuring a custom Anthropic-compati
 
 ## Validation checks — run these on a developer machine
 
+**Fast path:** run the helper that automates checks 1 and 3 — `../spike/check_copilot_mode.ps1` (Windows: `powershell -ExecutionPolicy Bypass -File .\check_copilot_mode.ps1`) or `../spike/check_copilot_mode.sh` (Mac/Linux: `bash check_copilot_mode.sh`). Trigger one Copilot Chat message first so a request is in flight, then run within ~20s. Check 2 (Anthropic billing) stays a manual console check. The three steps below are the same checks done by hand.
+
 **Check 1 — VS Code settings.**
 
 1. Open VS Code.

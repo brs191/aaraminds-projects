@@ -8,13 +8,13 @@
 - A completed Scorecard (`Evaluation_Rubric.md` appendix).
 
 ## Tasks
-- [ ] Assemble and proof the three artifacts; resolve all `[not deep-read]` markers in scoped areas.
-- [ ] Produce the architecture diagram and the credit-check v2 runtime-flow diagram.
-- [ ] **Verify:** self-score with the Scorecard (≥ 70/100, accuracy ≥ 3/4, no zero dimension).
-- [ ] Spot-check ~15 evidence anchors resolve to real code at `e17fe410`.
-- [ ] Run the no-silent-omission check on §9; confirm zero fabricated components/flows/integrations.
-- [ ] Second-reviewer pass on Part B (Raja or a peer); reconcile differences > 1 point.
-- [ ] Seed §11 Observations + modernization notes from `appcat`.
+- [x] Assemble and proof the three artifacts; consolidate `HLD.md` → **v1.0** (folded the P2-Dx scaffolding into clean prose; no `[not deep-read]` markers remain in scoped areas).
+- [x] Produce the architecture diagram + the credit-check-v2 runtime-flow diagram — `design/architecture-component-view.svg`, `design/credit-check-v2-runtime-flow.svg` (bespoke SVG, brand palette).
+- [x] **Verify:** independent scorer (assistive) — **PASS, 100/100**, accuracy 4/4, no zero dimension. `evaluation/Scorecard.md`.
+- [x] Spot-check evidence anchors — **20/20 resolve** to real code at `e17fe410` (0 fail).
+- [x] No-silent-omission / fabrication hunt — **zero fabrications**; all 25 named §5 types exist; no material omission.
+- [ ] **Second-reviewer pass on Part B (Raja or a peer)** — still required; reconcile differences > 1 point; record both raw scores.
+- [x] §11 Observations + modernization — seeded; **note:** `.github/appmod/appcat` is present but **empty** (no AppCAT scan committed), so modernization priorities are derived from the comprehension instead.
 
 ## Gate
-Scorecard PASS (total ≥ 70, accuracy ≥ 3, no zero dimension; critical-error rule not triggered) · second reviewer concurs.
+Scorecard **PASS** (assistive) — total **100/100**, accuracy 4/4, no zero dimension, critical-error rule **not** triggered. **Formal sign-off still pending the second human reviewer** (rubric §6) + the SHA reconciliation. See `evaluation/Scorecard.md`.

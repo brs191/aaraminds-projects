@@ -1,6 +1,6 @@
 # Credit Routing Service — Architecture Comprehension
 
-**Owner:** Raja · **Stage:** plan complete, entering P0 (Foundations)
+**Owner:** Raja · **Stage:** P1 breadth complete — assistive gate PASS (85/100, 0 fabrications); 2nd human reviewer pending
 **Subject repo:** `apm0045942-credit-routing-service` @ commit `e17fe410` (branch `develop`)
 **Method:** Code Intelligence Factory (CIF), adapted — see `design/Method_Adaptation.md`
 
@@ -13,11 +13,15 @@ This is the working home for the architecture comprehension of the Credit Routin
 ```
 clear-cortex/
 ├── README.md            ← you are here: project index
+├── Exec_Summary.md      ⭐ exec one-pager — verdict + 4 decisions (start here for the bottom line)
 ├── instructions_plan.md execution blueprint — what to load & do each phase
+├── Raja_Instructions.md saved P1 + gate prompts (Raja's working copy)
 ├── product/             the "why" — stable reference
 │   └── Comprehension_Brief.md
-├── design/              the "what & how" — method adaptation (+ diagrams later)
-│   └── Method_Adaptation.md
+├── design/              the "what & how" — method + diagrams
+│   ├── Method_Adaptation.md
+│   ├── architecture-component-view.svg      architecture / component view
+│   └── credit-check-v2-runtime-flow.svg     credit-check v2 runtime flow
 ├── planning/            the "when and in what order"
 │   ├── Roadmap.md
 │   ├── Plan_Validation.md       Project-Planner audit of the plan (2026-05-30)
@@ -25,9 +29,13 @@ clear-cortex/
 ├── evaluation/          the "how we know it's good" + the artifacts themselves
 │   ├── HLD_Template.md          adapted from CIF
 │   ├── Evaluation_Rubric.md     adapted from CIF
-│   ├── Code_Briefing.md         deliverable (stub → P1/P2)
-│   ├── Inferred_Product_Spec.md deliverable (stub → P1)
-│   └── HLD.md                   the deliverable (stub → P1–P3)
+│   ├── Code_Briefing.md         the evidence layer — P1 breadth (§0–§9) + P2 deep-reads D1–D6 (§10–§15)
+│   ├── Inferred_Product_Spec.md deliverable — capabilities/actors/value-flow
+│   ├── HLD.md                   ⭐ the deliverable — final v1.0 (whole-service, 9 ranked risks)
+│   ├── Scorecard.md             P3 score — 100/100, 20/20 anchors, 0 fabrications (assistive)
+│   ├── P1_Gate_Review.md        P1 gate scorecard + verdict (assistive PASS)
+│   ├── P2_Gate_Review.md        P2 gate — D1–D6 verdicts (all PASS, 0 fabrications)
+│   └── Reviewer_Guide.md        brief + scorecard for the 2nd human reviewer
 └── tracking/            live execution state
     ├── Status.md        the dashboard — open this each session
     └── milestones/
@@ -45,6 +53,8 @@ clear-cortex/
 - **The plan** — `planning/Roadmap.md`: four phases (P0 → P3), each with a gate.
 - **Is the plan sound?** — `planning/Plan_Validation.md`: a Project-Planner audit with the open fixes.
 - **The quality bar** — `evaluation/Evaluation_Rubric.md` and `evaluation/HLD_Template.md`.
+- **The P1 gate result** — `evaluation/P1_Gate_Review.md` (scorecard, verdict, corrections applied).
+- **For the human reviewer** — `evaluation/Reviewer_Guide.md` (brief + scorecard to fill).
 - **What's done and what's next** — `tracking/Status.md`.
 - **How this links to the CIF product** — `planning/CIF_Bridge_Roadmap.md` (clear-cortex = the manual proof; `../code-intelligence-factory` = the automated platform).
 

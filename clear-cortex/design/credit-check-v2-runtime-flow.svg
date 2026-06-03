@@ -1,0 +1,115 @@
+<svg viewBox="0 0 1240 612" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', system-ui, -apple-system, Roboto, sans-serif">
+  <defs>
+    <marker id="rTeal" markerWidth="10" markerHeight="10" refX="7" refY="3.4" orient="auto"><path d="M0,0 L7,3.4 L0,6.8 Z" fill="#0E9384"/></marker>
+    <marker id="rNavy" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#0F2440"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1240" height="612" fill="#F7F9FB"/>
+
+  <text x="40" y="48" font-size="25" font-weight="700" fill="#0F2440">Credit-check v2 — runtime flow</text>
+  <text x="41" y="72" font-size="13" fill="#51606E">enrich → route (DSL) → validate → dispatch → backend → persist  ·  aspect-owned persistence  ·  @ e17fe410</text>
+
+  <!-- Single-product lane -->
+  <text x="40" y="112" font-size="13" font-weight="700" fill="#0F2440">Single-product (v2)</text>
+
+  <!-- 8 step boxes -->
+  <g>
+    <!-- helper: white box + top stripe + title + sub -->
+    <g>
+      <rect x="40" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="40" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="105" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Controller</text>
+      <text x="105" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">seed scope</text>
+    </g>
+    <g>
+      <rect x="178" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="178" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="243" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Draft persist</text>
+      <text x="243" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">processor aspect</text>
+    </g>
+    <g>
+      <rect x="316" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="316" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="381" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Enrich</text>
+      <text x="381" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">×3 enrichers</text>
+    </g>
+    <g>
+      <rect x="454" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#6B4FA0"/><rect x="454" y="122" width="130" height="5" rx="2" fill="#6B4FA0"/>
+      <text x="519" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Route · DSL</text>
+      <text x="519" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">→ CCTarget</text>
+    </g>
+    <g>
+      <rect x="592" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="592" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="657" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Validate</text>
+      <text x="657" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">route group</text>
+    </g>
+    <g>
+      <rect x="730" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="730" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="795" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Dispatch</text>
+      <text x="795" y="170" text-anchor="middle" font-size="10.5" fill="#51606E">factory → strategy</text>
+    </g>
+    <g>
+      <rect x="868" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#0E9384"/><rect x="868" y="122" width="130" height="5" rx="2" fill="#0E9384"/>
+      <text x="933" y="152" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Backend</text>
+      <text x="933" y="170" text-anchor="middle" font-size="10" fill="#51606E">CSI·CAS·Equifax·Local</text>
+    </g>
+    <g>
+      <rect x="1006" y="122" width="130" height="66" rx="7" fill="#FFFFFF" stroke="#C3CDD7"/><rect x="1006" y="122" width="130" height="5" rx="2" fill="#2D6CB5"/>
+      <text x="1071" y="148" text-anchor="middle" font-size="13" font-weight="600" fill="#0F2440">Persist</text>
+      <text x="1071" y="166" text-anchor="middle" font-size="10" fill="#51606E">result+details</text>
+      <text x="1071" y="179" text-anchor="middle" font-size="10" fill="#51606E">+monitoring</text>
+    </g>
+  </g>
+  <g stroke="#0E9384" stroke-width="2.6">
+    <line x1="170" y1="155" x2="176" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="308" y1="155" x2="314" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="446" y1="155" x2="452" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="584" y1="155" x2="590" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="722" y1="155" x2="728" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="860" y1="155" x2="866" y2="155" marker-end="url(#rTeal)"/>
+    <line x1="998" y1="155" x2="1004" y2="155" marker-end="url(#rTeal)"/>
+  </g>
+
+  <!-- route note + transaction risk ribbon -->
+  <text x="519" y="206" text-anchor="middle" font-size="10.5" fill="#6B4FA0">read fresh · first-match · no rule → 404 · none match → 500</text>
+  <rect x="178" y="220" width="958" height="30" rx="15" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="657" y="240" text-anchor="middle" font-size="12.5" font-weight="600" fill="#B23A2E">⚠ No transaction boundary — 3–10+ unguarded writes across the persist steps · no rollback · no outbox  (§11.1)</text>
+
+  <!-- Multi-product lane -->
+  <text x="40" y="300" font-size="13" font-weight="700" fill="#0F2440">Multi-product (v2)</text>
+  <rect x="40" y="312" width="158" height="56" rx="7" fill="#2D6CB5"/>
+  <text x="119" y="338" text-anchor="middle" font-size="12.5" font-weight="600" fill="#FFFFFF">Multi-product</text>
+  <text x="119" y="356" text-anchor="middle" font-size="12.5" font-weight="600" fill="#FFFFFF">POST</text>
+
+  <rect x="252" y="306" width="232" height="32" rx="7" fill="#EAF1F8" stroke="#2D6CB5"/>
+  <text x="368" y="327" text-anchor="middle" font-size="11.5" fill="#0F2440">Wireless leg → single-product flow</text>
+  <rect x="252" y="342" width="232" height="32" rx="7" fill="#EAF1F8" stroke="#2D6CB5"/>
+  <text x="368" y="363" text-anchor="middle" font-size="11.5" fill="#0F2440">Wireline leg → single-product flow</text>
+
+  <g stroke="#0E9384" stroke-width="2.4">
+    <line x1="198" y1="332" x2="250" y2="322" marker-end="url(#rTeal)"/>
+    <line x1="198" y1="348" x2="250" y2="358" marker-end="url(#rTeal)"/>
+    <line x1="486" y1="322" x2="556" y2="335" marker-end="url(#rTeal)"/>
+    <line x1="486" y1="358" x2="556" y2="343" marker-end="url(#rTeal)"/>
+  </g>
+  <text x="520" y="312" text-anchor="middle" font-size="10" fill="#0E9384">allOfFailFast</text>
+
+  <rect x="560" y="312" width="252" height="56" rx="7" fill="#FFFFFF" stroke="#0E9384"/>
+  <text x="686" y="336" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0F2440">Rank-reduce aggregate</text>
+  <text x="686" y="354" text-anchor="middle" font-size="10.5" fill="#51606E">most-restrictive leg wins</text>
+
+  <rect x="832" y="318" width="358" height="44" rx="10" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="1011" y="338" text-anchor="middle" font-size="11.5" font-weight="600" fill="#B23A2E">1 leg fails → whole txn FAILED</text>
+  <text x="1011" y="353" text-anchor="middle" font-size="11.5" font-weight="600" fill="#B23A2E">no partial-approved aggregate</text>
+
+  <!-- Eventing lane -->
+  <text x="40" y="452" font-size="13" font-weight="700" fill="#0F2440">Eventing → Kafka</text>
+  <rect x="40" y="464" width="320" height="46" rx="7" fill="#EEF1F4" stroke="#C3CDD7"/>
+  <text x="200" y="492" text-anchor="middle" font-size="12" fill="#51606E">Create (POST): publish-silent</text>
+  <rect x="376" y="464" width="404" height="46" rx="7" fill="#E9F2EC" stroke="#2E9E5B"/>
+  <text x="578" y="486" text-anchor="middle" font-size="12" font-weight="600" fill="#16704A">Refresh / UBCT / scheduled-retry: publish</text>
+  <text x="578" y="502" text-anchor="middle" font-size="11" fill="#16704A">→ …creditcheckupdates</text>
+  <rect x="796" y="464" width="394" height="46" rx="10" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="993" y="486" text-anchor="middle" font-size="11.5" font-weight="600" fill="#B23A2E">Refresh emits before the final save</text>
+  <text x="993" y="502" text-anchor="middle" font-size="11.5" font-weight="600" fill="#B23A2E">(no outbox) — published ≠ persisted</text>
+
+  <text x="40" y="566" font-size="12" fill="#51606E">7 routable strategies of 13 · PreApproval short-circuits before the rule engine · status is a free-form String in a 796-line aspect</text>
+  <text x="1200" y="566" text-anchor="end" font-size="12" font-weight="600" fill="#0F2440">AaraMinds · clear-cortex</text>
+</svg>

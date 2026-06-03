@@ -1,0 +1,116 @@
+<svg viewBox="0 0 1240 812" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', system-ui, -apple-system, Roboto, sans-serif">
+  <defs>
+    <marker id="aNavy" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#0F2440"/></marker>
+    <marker id="aTeal" markerWidth="10" markerHeight="10" refX="7" refY="3.4" orient="auto"><path d="M0,0 L7,3.4 L0,6.8 Z" fill="#0E9384"/></marker>
+    <marker id="aGray" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#7A8A99"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1240" height="812" fill="#F7F9FB"/>
+
+  <!-- Title -->
+  <text x="40" y="50" font-size="26" font-weight="700" fill="#0F2440">CLEAR — Credit Routing Service</text>
+  <text x="41" y="74" font-size="13" fill="#51606E">Architecture &amp; component view  ·  Spring Boot 3.3.9 / Java 17  ·  rules-driven router  ·  evidence anchored @ e17fe410</text>
+
+  <!-- Legend -->
+  <rect x="905" y="22" width="296" height="86" rx="8" fill="#FFFFFF" stroke="#D7DEE5"/>
+  <line x1="921" y1="46" x2="959" y2="46" stroke="#0F2440" stroke-width="2.5" marker-end="url(#aNavy)"/>
+  <text x="968" y="50" font-size="12" fill="#51606E">Request / dispatch</text>
+  <line x1="921" y1="68" x2="959" y2="68" stroke="#0E9384" stroke-width="3" marker-end="url(#aTeal)"/>
+  <text x="968" y="72" font-size="12" fill="#51606E">Primary credit-check flow</text>
+  <line x1="921" y1="90" x2="959" y2="90" stroke="#7A8A99" stroke-width="2" stroke-dasharray="3 3" marker-end="url(#aGray)"/>
+  <text x="968" y="94" font-size="12" fill="#51606E">Persist / control / audit</text>
+
+  <!-- Callers -->
+  <g font-size="14" fill="#0F2440">
+    <rect x="40"  y="120" width="255" height="54" rx="8" fill="#FFFFFF" stroke="#C3CDD7"/>
+    <text x="167" y="152" text-anchor="middle">CLEAR web — v2</text>
+    <rect x="312" y="120" width="255" height="54" rx="8" fill="#FFFFFF" stroke="#C3CDD7"/>
+    <text x="439" y="152" text-anchor="middle">Legacy v1 front-ends</text>
+    <rect x="584" y="120" width="255" height="54" rx="8" fill="#FFFFFF" stroke="#C3CDD7"/>
+    <text x="711" y="152" text-anchor="middle">Internal services</text>
+    <rect x="856" y="120" width="344" height="54" rx="8" fill="#FFFFFF" stroke="#C3CDD7"/>
+    <text x="1028" y="152" text-anchor="middle">Finance / credit admins</text>
+  </g>
+  <g stroke="#0F2440" stroke-width="1.6">
+    <line x1="167"  y1="174" x2="167"  y2="206" marker-end="url(#aNavy)"/>
+    <line x1="439"  y1="174" x2="439"  y2="206" marker-end="url(#aNavy)"/>
+    <line x1="711"  y1="174" x2="711"  y2="206" marker-end="url(#aNavy)"/>
+    <line x1="1028" y1="174" x2="1028" y2="206" marker-end="url(#aNavy)"/>
+  </g>
+
+  <!-- Security band -->
+  <rect x="40" y="210" width="1160" height="54" rx="8" fill="#EEF3F8" stroke="#0F2440" stroke-width="1.4"/>
+  <text x="60" y="243" font-size="14.5" font-weight="600" fill="#0F2440">OAuth2 resource server  ·  Entra JWT  +  same-tenant twin  +  eLogin opaque introspection</text>
+  <g><rect x="930" y="222" width="256" height="30" rx="15" fill="#FBE9E7" stroke="#C0392B"/>
+     <text x="1058" y="242" text-anchor="middle" font-size="12.5" font-weight="600" fill="#B23A2E">AuthZ = authenticated() only</text></g>
+  <line x1="380" y1="264" x2="380" y2="298" stroke="#0F2440" stroke-width="1.6" marker-end="url(#aNavy)"/>
+
+  <!-- Routing core -->
+  <rect x="40" y="300" width="700" height="276" rx="8" fill="#FFFFFF" stroke="#2D6CB5" stroke-width="1.6"/>
+  <rect x="40" y="300" width="700" height="30" rx="8" fill="#2D6CB5"/>
+  <rect x="40" y="316" width="700" height="14" fill="#2D6CB5"/>
+  <text x="56" y="321" font-size="14" font-weight="700" fill="#FFFFFF">Routing core  ·  routing/</text>
+
+  <g font-size="12.5" fill="#FFFFFF" text-anchor="middle">
+    <rect x="58"  y="352" width="116" height="42" rx="7" fill="#2D6CB5"/><text x="116" y="378">Controller</text>
+    <rect x="192" y="352" width="116" height="42" rx="7" fill="#2D6CB5"/><text x="250" y="378">Processor</text>
+    <rect x="326" y="352" width="132" height="42" rx="7" fill="#6B4FA0"/><text x="392" y="372">DSL rule</text><text x="392" y="386">engine</text>
+    <rect x="476" y="352" width="116" height="42" rx="7" fill="#2D6CB5"/><text x="534" y="378">Factory</text>
+    <rect x="610" y="352" width="112" height="42" rx="7" fill="#2D6CB5"/><text x="666" y="378">Strategy</text>
+  </g>
+  <g stroke="#0E9384" stroke-width="2.6">
+    <line x1="174" y1="373" x2="190" y2="373" marker-end="url(#aTeal)"/>
+    <line x1="308" y1="373" x2="324" y2="373" marker-end="url(#aTeal)"/>
+    <line x1="458" y1="373" x2="474" y2="373" marker-end="url(#aTeal)"/>
+    <line x1="592" y1="373" x2="608" y2="373" marker-end="url(#aTeal)"/>
+  </g>
+  <g font-size="12" fill="#51606E">
+    <text x="58" y="430">CreditCheckRequestScope — request-scoped blackboard threads identity · route · result</text>
+    <text x="58" y="452">AOP aspects own persistence · audit · status  (around the methods, not inside them)</text>
+    <text x="58" y="474">DSL read fresh per request · first-match · 7 routable of 13 · PreApproval short-circuits</text>
+  </g>
+  <rect x="58" y="492" width="384" height="28" rx="14" fill="#FCF1E2" stroke="#D9822B"/>
+  <text x="250" y="511" text-anchor="middle" font-size="12" font-weight="600" fill="#A86A1E">Two divergent rule evaluators · gt = &gt;= vs &gt;</text>
+  <rect x="452" y="492" width="276" height="28" rx="14" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="590" y="511" text-anchor="middle" font-size="12" font-weight="600" fill="#B23A2E">No transaction boundary (§11.1)</text>
+
+  <!-- Integration backends -->
+  <rect x="770" y="300" width="430" height="276" rx="8" fill="#FFFFFF" stroke="#2D6CB5" stroke-width="1.6"/>
+  <rect x="770" y="300" width="430" height="30" rx="8" fill="#0F2440"/>
+  <rect x="770" y="316" width="430" height="14" fill="#0F2440"/>
+  <text x="786" y="321" font-size="14" font-weight="700" fill="#FFFFFF">Integration backends</text>
+  <g font-size="12.5" fill="#0F2440">
+    <rect x="788" y="346" width="394" height="40" rx="7" fill="#EAF1F8" stroke="#2D6CB5"/><text x="804" y="371">CSI SOAP → Equifax · 9 ops (4 routes + 5 sub-calls)</text>
+    <rect x="788" y="394" width="394" height="40" rx="7" fill="#EAF1F8" stroke="#2D6CB5"/><text x="804" y="419">CAS REST → UCCS + CSRM · models + Basic-auth</text>
+    <rect x="788" y="442" width="394" height="40" rx="7" fill="#EAF1F8" stroke="#2D6CB5"/><text x="804" y="467">Equifax UBCT / ICAAM · async + poll · Equifax OAuth</text>
+    <rect x="788" y="490" width="394" height="40" rx="7" fill="#E9F2EC" stroke="#2E9E5B"/><text x="804" y="515">Kafka (IEBus) → creditcheckupdates · SAART in</text>
+  </g>
+  <rect x="788" y="540" width="394" height="26" rx="13" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="985" y="558" text-anchor="middle" font-size="12" font-weight="600" fill="#B23A2E">No circuit breaker · no pool · 60 s read timeout</text>
+  <line x1="724" y1="430" x2="786" y2="430" stroke="#0E9384" stroke-width="2.6" marker-end="url(#aTeal)"/>
+  <text x="755" y="422" text-anchor="middle" font-size="10.5" fill="#0E9384">dispatch</text>
+
+  <!-- Data tier -->
+  <rect x="40" y="606" width="1160" height="128" rx="8" fill="#FFFFFF" stroke="#2D6CB5" stroke-width="1.6"/>
+  <rect x="40" y="606" width="1160" height="30" rx="8" fill="#0F2440"/>
+  <rect x="40" y="622" width="1160" height="14" fill="#0F2440"/>
+  <text x="56" y="627" font-size="14" font-weight="700" fill="#FFFFFF">Data tier — MongoDB Atlas  ·  29 collections  ·  no transactions</text>
+  <g font-size="12" fill="#0F2440">
+    <rect x="58"  y="648" width="368" height="44" rx="7" fill="#F2F6FA" stroke="#C3CDD7"/>
+    <text x="74" y="666">Result spine: creditCheckResult ↔ details</text><text x="74" y="683">↔ multiProductCreditCheckResult (shared-PK)</text>
+    <rect x="440" y="648" width="350" height="44" rx="7" fill="#F2F6FA" stroke="#C3CDD7"/>
+    <text x="456" y="666">Reference data · config · RBAC</text><text x="456" y="683">(roles, userroleassignments — by name)</text>
+    <rect x="804" y="648" width="378" height="44" rx="7" fill="#F2F6FA" stroke="#C3CDD7"/>
+    <text x="820" y="666">10 *_audit snapshots —</text><text x="820" y="683">written out-of-band (CDC / trigger)</text>
+  </g>
+  <rect x="58" y="700" width="700" height="26" rx="13" fill="#FBE9E7" stroke="#C0392B"/>
+  <text x="408" y="718" text-anchor="middle" font-size="12" font-weight="600" fill="#B23A2E">No @Transactional · hot collections _id-only (auto-index-creation off) · no retention</text>
+  <g stroke="#7A8A99" stroke-width="1.8" stroke-dasharray="4 4">
+    <line x1="300" y1="576" x2="300" y2="604" marker-end="url(#aGray)"/>
+    <line x1="985" y1="576" x2="985" y2="604" marker-end="url(#aGray)"/>
+  </g>
+
+  <!-- Footer -->
+  <text x="40" y="768" font-size="12" fill="#51606E">Observability: Micrometer + MDC + actuator (no OTel / Grafana / Sentry wiring in code)  ·  ShedLock guards 14 / 15 schedulers</text>
+  <text x="1200" y="768" text-anchor="end" font-size="12" font-weight="600" fill="#0F2440">AaraMinds · clear-cortex</text>
+</svg>

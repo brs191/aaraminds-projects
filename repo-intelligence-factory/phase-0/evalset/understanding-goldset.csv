@@ -1,0 +1,9 @@
+id,question,type,gold_answer,source_ref,notes
+u1,Where is OAuth2 token validation enforced?,usage,REPLACE: resource-server security filter / SecurityConfig,repo@<sha>:<path>:<line>,example - replace with the real answer + source_ref
+u2,What invokes the SOAP credit-bureau client?,cross-file,REPLACE: list of caller methods,repo@<sha>:<path>:<line>,cross-service edge - tests Tier-C
+u3,Which component decides the routing path for a credit request?,dataflow,REPLACE: router/decision class,repo@<sha>:<path>:<line>,core domain logic
+u4,How does a credit request flow from controller to the downstream service?,dataflow,REPLACE: controller -> service -> client chain,repo@<sha>:<path>:<line>,multi-hop / procedural ("how")
+u5,Which beans are wired into the routing service via @Autowired?,cross-file,REPLACE: injected bean types,repo@<sha>:<path>:<line>,Spring DI - tests Tier-B/C wiring
+u6,Where is the MongoDB persistence for routing decisions defined?,usage,REPLACE: repository/document class,repo@<sha>:<path>:<line>,data layer
+u7,What does the LoggingAspect advise?,cross-file,REPLACE: pointcut-matched methods,repo@<sha>:<path>:<line>,AOP - static analysis misses this
+u8,Which endpoints does this service expose?,usage,REPLACE: controller mappings,repo@<sha>:<path>:<line>,API surface

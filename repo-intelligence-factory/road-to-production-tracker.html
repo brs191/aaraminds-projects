@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Repository Intelligence Factory — live road-to-production tracker with status, deliverables, and exit tests per phase.">
+<title>Repository Intelligence Factory — Road to Production (tracker)</title>
+<style>
+:root{
+  --page:#faf9f5;--card:#ffffff;--tp:#1f1e1d;--ts:#5f5e5a;--tt:#8a8980;--bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.20);
+  --gate-bg:#FAEEDA;--gate-fg:#854F0B;--done-bg:#E1F5EE;--done-fg:#0F6E56;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --page:#211f1e;--card:#2d2c2a;--tp:#f3f1ec;--ts:#b7b5ac;--tt:#8f8e86;--bd:rgba(255,255,255,.13);--bd2:rgba(255,255,255,.22);
+    --gate-bg:rgba(239,159,39,.22);--gate-fg:#F4C775;--done-bg:rgba(29,158,117,.20);--done-fg:#7FD8BC;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:40px 28px 56px}
+h1{font-size:24px;font-weight:500;margin:0;letter-spacing:-0.01em}
+.sub{font-size:15px;color:var(--ts);margin:6px 0 0}
+.note{font-size:13px;color:var(--tt);margin:6px 0 0}
+.legend{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.legend .t{font-size:12px;color:var(--tt);margin-right:2px}
+.tl{margin-top:26px}
+.row{display:flex;gap:14px;align-items:flex-start;position:relative;padding-bottom:16px}
+.row .ln{position:absolute;left:13px;top:6px;bottom:0;width:2px;background:var(--bd2)}
+.trk{width:28px;flex:none;display:flex;justify-content:center}
+.num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;position:relative;z-index:1}
+.card{flex:1;background:var(--card);border:0.5px solid var(--bd);border-radius:12px;padding:11px 14px;transition:border-color .12s}
+.card:hover{border-color:var(--bd2)}
+.ph{font-weight:500;font-size:14px;margin:0}
+.out{font-size:12.5px;color:var(--ts);margin:4px 0 0;line-height:1.5}
+.branch{font-size:11.5px;color:var(--tt);margin:5px 0 0}
+.deliv{margin-top:9px;padding-top:8px;border-top:0.5px dashed var(--bd)}
+.deliv-l{font-size:11px;font-weight:500;color:var(--tt);margin-right:6px}
+.deliv-i{font-size:12px;color:var(--ts);line-height:1.55}
+.dw{font-size:11.5px;color:var(--tt);margin-top:6px;line-height:1.5}
+.dw-l{font-weight:500;color:var(--ts);margin-right:5px}
+.meta{margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chip{font-size:11.5px;border:0.5px solid var(--bd2);color:var(--ts);padding:1px 8px;border-radius:6px}
+.gate{font-size:11.5px;background:var(--gate-bg);color:var(--gate-fg);padding:2px 9px;border-radius:6px;font-weight:500}
+.st{font-size:11px;padding:1px 8px;border-radius:6px;font-weight:500}
+.st-todo{border:0.5px solid var(--bd2);color:var(--tt)}
+.st-doing{background:var(--gate-bg);color:var(--gate-fg)}
+.st-done{background:var(--done-bg);color:var(--done-fg)}
+.foot{margin-top:18px;padding-top:14px;border-top:0.5px solid var(--bd);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font-size:11.5px;color:var(--tt)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle}
+@media (max-width:560px){.wrap{padding:28px 18px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Repository Intelligence Factory</h1>
+    <p class="sub">Road to production — live tracker</p>
+    <p class="note">Priority bands: Now / Next / Later. Effort is relative (S / M / L). Phase 0 is the gate. Each phase shows what it delivers and its exit test.</p>
+    <div class="legend"><span class="t">Status:</span><span class="st st-done">Done</span><span class="st st-doing">In progress</span><span class="st st-todo">Not started</span><span class="t">— update as you go</span></div>
+  </header>
+
+  <main class="tl">
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:var(--tp);color:var(--page)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6-5.7 6-10a6 6 0 1 0-12 0c0 4.3 6 10 6 10z"/><circle cx="12" cy="11" r="2"/></svg></div></div>
+      <div class="card" style="border-color:var(--bd2)">
+        <p class="ph">You are here — baseline locked</p>
+        <p class="out">Every decision locked, docs frozen. One input pending: the target repo for Phase 0.</p>
+        <div class="deliv"><span class="deliv-l">Delivered</span><span class="deliv-i">review · target architecture · roadmap · spike plan · visual board</span></div>
+        <div class="meta"><span class="st st-done">Done</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#0F6E56;color:#E1F5EE">0</div></div>
+      <div class="card">
+        <p class="ph">Phase 0 · Validate the bet</p>
+        <p class="out">Prove it's worth building and that AGE holds — on a real repo.</p>
+        <p class="branch">no-go → re-pick store or narrow scope</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">findings memo (go/no-go) · reusable eval set · AGE benchmark results</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>go/no-go decided · eval set + capability baseline exist</div>
+        <div class="meta"><span class="chip">S–M</span><span class="gate">Gate</span><span class="st st-doing">In progress</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#0F6E56;color:#E1F5EE">1</div></div>
+      <div class="card">
+        <p class="ph">Phase 1 · Ingestion + graph</p>
+        <p class="out">Repo → deterministic graph in AGE, with provenance.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">ingestion service · Tree-sitter + cAST parser · deterministic AGE graph + schema · provenance CI gate</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>repo ingested, Cypher-queryable, provenance gate green</div>
+        <div class="meta"><span class="chip">M</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#534AB7;color:#EEEDFE">2</div></div>
+      <div class="card">
+        <p class="ph">Phase 2 · SCIP + embeddings</p>
+        <p class="out">Precise cross-file edges + pgvector + exact search.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">scip-java precise edges + confidence tiers · embedding service + pgvector · Postgres FTS · Spring/DI extractor</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>per-tier call-graph recall measured; vectors + FTS live</div>
+        <div class="meta"><span class="chip">M–L</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#534AB7;color:#EEEDFE">3</div></div>
+      <div class="card">
+        <p class="ph">Phase 3 · Hybrid retrieval</p>
+        <p class="out">Vector + FTS + graph → ranked, honest impact analysis.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">Retriever (vector + FTS + graph → RRF + rerank) · ranked impact-analysis API · per-tier precision/recall report</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>beats vector-only baseline; impact P/R reported per tier</div>
+        <div class="meta"><span class="chip">M</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#5F5E5A;color:#F1EFE8">4</div></div>
+      <div class="card">
+        <p class="ph">Phase 4 · MCP + agents</p>
+        <p class="out">Go MCP tools + LangGraph agents — the interface.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">Go MCP server (search_code, find_callers, impact_analysis, explain_architecture) · LangGraph agent service</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>cited answers via MCP on a real repo; agent runs a multi-hop investigation</div>
+        <div class="meta"><span class="chip">M</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#5F5E5A;color:#F1EFE8">5</div></div>
+      <div class="card">
+        <p class="ph">Phase 5 · Freshness at scale</p>
+        <p class="out">Stays fresh per-commit; holds at monorepo scale.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">incremental commit pipeline · burst coalescing + reconciliation · scale tiers + quantization · multi-repo</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>per-commit update in seconds-to-minutes; reconciliation verified</div>
+        <div class="meta"><span class="chip">M–L</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="ln"></div>
+      <div class="trk"><div class="num" style="background:#5F5E5A;color:#F1EFE8">6</div></div>
+      <div class="card">
+        <p class="ph">Phase 6 · Production hardening</p>
+        <p class="out">Terraform/OIDC deploy, Key Vault, observability, audit.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">Terraform/OIDC deploy to Container Apps · Key Vault + private networking · OTel/Grafana dashboards + audit log · onboarding runbook</span></div>
+        <div class="dw"><span class="dw-l">Done when</span>onboard a new repo under target time; security review passed; dashboards live</div>
+        <div class="meta"><span class="chip">M</span><span class="st st-todo">Not started</span></div>
+      </div>
+    </div>
+
+    <div class="row" style="padding-bottom:0">
+      <div class="trk"><div class="num" style="background:#3B6D11;color:#EAF3DE"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 5h11l-2.5 3.5L16 12H5z"/></svg></div></div>
+      <div class="card" style="border:1.5px solid #3B6D11">
+        <p class="ph">In production — internal GA</p>
+        <p class="out">Point it at any brownfield repo → cited, confidence-tiered architecture and impact answers, fresh per-commit, fully on-stack.</p>
+        <div class="deliv"><span class="deliv-l">Delivers</span><span class="deliv-i">the running internal-GA platform, used on live delivery work</span></div>
+        <div class="dw"><span class="dw-l">Measured by</span>per-tier impact recall + onboarding-time SLA met</div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="foot">
+    <span><span class="dot" style="background:#0F6E56"></span> Now &nbsp;·&nbsp; <span class="dot" style="background:#534AB7"></span> Next &nbsp;·&nbsp; <span class="dot" style="background:#5F5E5A"></span> Later</span>
+    <span>Every phase: evaluation · provenance · confidence-tiering · on-stack</span>
+  </footer>
+</div>
+</body>
+</html>

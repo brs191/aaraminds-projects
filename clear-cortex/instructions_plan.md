@@ -168,7 +168,7 @@ Work the **ranked list from the P1 gate** in order. Per area, add the matching s
 |---|---|
 | 1. Core credit-check runtime flow (v2) | `microservices-async-messaging` (the IEBus/Kafka publish path) |
 | 2. DSL rules engine (`admin/rules`) | `test-engineering` (read the 209 Spock tests as a behavior oracle) |
-| 3. Domain & data model (32 Mongo collections) | `azure-data-tier-design` + `data-access-engineering` |
+| 3. Domain & data model (29 Mongo collections) | `azure-data-tier-design` + `data-access-engineering` |
 | 4. External integrations (CSI/SOAP, IEBus/Kafka, OIDC, `ubct`) | `microservices-async-messaging` + `azure-microservices-security` + `azure-microservices-observability` |
 | 5. v1↔v2 + multi-product; `admin/` surface | (per the P1 deep-vs-catalogue decision) |
 

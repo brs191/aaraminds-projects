@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Repository Intelligence Factory implementation roadmap as a Now / Next / Later board.">
+<title>Repository Intelligence Factory — Roadmap</title>
+<style>
+:root{
+  --page:#faf9f5;--card:#ffffff;--tp:#1f1e1d;--ts:#5f5e5a;--tt:#8a8980;--bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.22);
+  --now-bg:#E1F5EE;--now-fg:#085041;--now-fg2:#0F6E56;
+  --next-bg:#EEEDFE;--next-fg:#3C3489;--next-fg2:#534AB7;
+  --later-bg:#F1EFE8;--later-fg:#444441;--later-fg2:#5F5E5A;
+  --gate-bg:#FAEEDA;--gate-fg:#854F0B;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --page:#211f1e;--card:#2d2c2a;--tp:#f3f1ec;--ts:#b7b5ac;--tt:#8f8e86;--bd:rgba(255,255,255,.13);--bd2:rgba(255,255,255,.24);
+    --now-bg:rgba(29,158,117,.18);--now-fg:#7FD8BC;--now-fg2:#9FE1CB;
+    --next-bg:rgba(127,119,221,.22);--next-fg:#BDB7F0;--next-fg2:#CECBF6;
+    --later-bg:rgba(180,178,169,.16);--later-fg:#D3D1C7;--later-fg2:#B4B2A9;
+    --gate-bg:rgba(239,159,39,.22);--gate-fg:#F4C775;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:40px 28px 56px}
+h1{font-size:24px;font-weight:500;margin:0;letter-spacing:-0.01em}
+.sub{font-size:15px;color:var(--ts);margin:6px 0 0}
+.note{font-size:13px;color:var(--tt);margin:6px 0 0}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.col{display:flex;flex-direction:column;gap:12px}
+.colh{border-radius:10px;padding:10px 14px}
+.colh .t{display:flex;align-items:center;justify-content:space-between}
+.colh .n{font-weight:500;font-size:15px}
+.colh .c{font-size:13px}
+.colh .d{font-size:12.5px;margin-top:2px}
+.card{background:var(--card);border:0.5px solid var(--bd);border-radius:12px;padding:13px 15px;transition:border-color .12s}
+.card:hover{border-color:var(--bd2)}
+.card .ph{font-weight:500;font-size:14px;margin:0;line-height:1.35}
+.card .sc{font-size:13px;color:var(--ts);margin:7px 0 0}
+.card .rt{font-size:12px;color:var(--tt);margin:8px 0 0}
+.row{display:flex;gap:6px;align-items:center;margin-top:11px}
+.chip{font-size:11.5px;border:0.5px solid var(--bd2);color:var(--ts);padding:1px 8px;border-radius:7px}
+.gate{font-size:11.5px;background:var(--gate-bg);color:var(--gate-fg);padding:2px 9px;border-radius:7px;font-weight:500}
+.foot{margin-top:30px;padding-top:18px;border-top:0.5px solid var(--bd);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font-size:12.5px;color:var(--tt)}
+.foot b{font-weight:500;color:var(--ts)}
+@media (max-width:720px){.board{grid-template-columns:1fr}.wrap{padding:28px 20px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Repository Intelligence Factory</h1>
+    <p class="sub">Implementation roadmap — Now / Next / Later</p>
+    <p class="note">Buckets show priority and sequence, not dates. Effort is relative (S / M / L).</p>
+  </header>
+
+  <main class="board">
+    <section class="col" aria-label="Now">
+      <div class="colh" style="background:var(--now-bg)">
+        <div class="t"><span class="n" style="color:var(--now-fg)">Now</span><span class="c" style="color:var(--now-fg2)">2</span></div>
+        <div class="d" style="color:var(--now-fg2)">Validate + lay foundation</div>
+      </div>
+      <article class="card">
+        <p class="ph">Phase 0 · Validate the bet</p>
+        <p class="sc">spike · eval set · AGE benchmark</p>
+        <p class="rt">retires: "worth building?" + "does AGE hold?"</p>
+        <div class="row"><span class="chip">S–M</span><span class="gate">Gate</span></div>
+      </article>
+      <article class="card">
+        <p class="ph">Phase 1 · Ingestion + graph</p>
+        <p class="sc">ingest → deterministic AGE graph</p>
+        <p class="rt">retires: end-to-end on-stack pipeline</p>
+        <div class="row"><span class="chip">M</span></div>
+      </article>
+    </section>
+
+    <section class="col" aria-label="Next">
+      <div class="colh" style="background:var(--next-bg)">
+        <div class="t"><span class="n" style="color:var(--next-fg)">Next</span><span class="c" style="color:var(--next-fg2)">2</span></div>
+        <div class="d" style="color:var(--next-fg2)">Make it accurate + useful</div>
+      </div>
+      <article class="card">
+        <p class="ph">Phase 2 · SCIP + embeddings</p>
+        <p class="sc">precise edges · pgvector · FTS</p>
+        <p class="rt">retires: call-graph quality</p>
+        <div class="row"><span class="chip">M–L</span></div>
+      </article>
+      <article class="card">
+        <p class="ph">Phase 3 · Hybrid retrieval</p>
+        <p class="sc">vector + FTS + graph → rerank</p>
+        <p class="rt">retires: retrieval + impact quality</p>
+        <div class="row"><span class="chip">M</span></div>
+      </article>
+    </section>
+
+    <section class="col" aria-label="Later">
+      <div class="colh" style="background:var(--later-bg)">
+        <div class="t"><span class="n" style="color:var(--later-fg)">Later</span><span class="c" style="color:var(--later-fg2)">3</span></div>
+        <div class="d" style="color:var(--later-fg2)">Interface, freshness, GA</div>
+      </div>
+      <article class="card">
+        <p class="ph">Phase 4 · MCP + agents</p>
+        <p class="sc">Go MCP tools · LangGraph</p>
+        <p class="rt">retires: usable interface + agents</p>
+        <div class="row"><span class="chip">M</span></div>
+      </article>
+      <article class="card">
+        <p class="ph">Phase 5 · Freshness at scale</p>
+        <p class="sc">per-commit incremental updates</p>
+        <p class="rt">retires: freshness + scale</p>
+        <div class="row"><span class="chip">M–L</span></div>
+      </article>
+      <article class="card">
+        <p class="ph">Phase 6 · Production hardening</p>
+        <p class="sc">Container Apps · internal GA</p>
+        <p class="rt">retires: operability + SOC 2 fit</p>
+        <div class="row"><span class="chip">M</span></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Runs through every phase: <b>evaluation · provenance · confidence-tiering · on-stack</b></span>
+    <span>Source: IMPLEMENTATION_ROADMAP.md · 2026-06-02</span>
+  </footer>
+</div>
+</body>
+</html>

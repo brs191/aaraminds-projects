@@ -1,0 +1,6 @@
+id,change_commit,changed_entity,true_impacted_set,evidence,tier,notes
+i1,<sha>,REPLACE: RoutingRulesEvaluator.evaluate(),REPLACE: entities changed in follow-up commits,follow-up commits <shas> / CI failure,static,"mine from the 2,705-commit history"
+i2,<sha>,REPLACE: CreditBureauSoapClient (WSDL/contract change),REPLACE: downstream callers + mappers,follow-up commits <shas>,cross-service,SOAP boundary - hardest to catch
+i3,<sha>,REPLACE: @Aspect LoggingAspect,REPLACE: advised methods,follow-up commits <shas>,inferred-aop,AOP edge - static call graph will miss
+i4,<sha>,REPLACE: a @Service injected widely,REPLACE: injecting components,follow-up commits <shas>,inferred-di,Spring DI fan-out
+i5,<sha>,REPLACE: a shared DTO/model class,REPLACE: producers + consumers,follow-up commits <shas>,static,hub node - watch false-positive explosion

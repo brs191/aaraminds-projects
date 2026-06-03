@@ -15,14 +15,16 @@ Single Maven module, **Spring Boot 3.3.9 / Java 17**, app `CreditRoutingApplicat
 |---|---|
 | Main Java files | 768 |
 | Tests | 209 Spock (Groovy) + 14 JUnit — a large behavior oracle |
-| REST controllers / endpoints | 28 controllers · ~107 `@*Mapping` · v1 + v2 surfaces |
+| REST controllers / endpoints | 27 controllers · 89 routable endpoints · v1 + v2 surfaces |
 | `@Service` / `@Repository` / `@Component` | 83 / 12 / 26 |
 | `@Configuration` / `@ConfigurationProperties` | 21 / 6 |
-| Persistence | **MongoDB** — 32 `@Document` collections, 29 `MongoRepository` (no relational DB) |
+| Persistence | **MongoDB** — 30 `@Document` (29 collections), 29 `MongoRepository` (no relational DB) |
 | Generated code | 21 MapStruct `@Mapper`, SOAP WSDL stubs (3 WSDLs), OpenAPI models |
 | Eventing | Kafka, wrapped by `iebus/servicebus` — 1 `@KafkaListener`, 0 `KafkaTemplate` |
 | Scheduling | 4 `@Scheduled` + ShedLock (multi-instance) |
 | Security | OAuth2 / OIDC, JWT (Spring Security) |
+
+> *Counts above were P0 grep estimates and have since been refined by P1; the P1-verified figures (27 controllers · 89 routable endpoints · 29 collections · 11 aspects · 21 `@Configuration`) are canonical in `../evaluation/Code_Briefing.md` and `HLD.md`.*
 
 **Subsystem map — the 14 packages under `com.att.creditcheck`:**
 

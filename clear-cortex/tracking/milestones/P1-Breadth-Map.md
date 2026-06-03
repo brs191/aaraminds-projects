@@ -11,7 +11,7 @@
 - [x] Package-by-package roles; started with `routing/` (core) and `admin/rules` (DSL engine). (14 top-level packages.)
 - [x] **Decoded `cas`, `ubct`, `iebus`**; confirmed `csi` = Credit Services Integration. (Plus CLEAR, CRSMS, UCCS, UBCT/ICAAM.)
 - [x] REST surface: 27 controllers / **89 routable endpoints** (107 with v2 dual-mount aliases), v1 vs v2 — cross-checked `Credit.yaml` (covers only 6 of 89; drift flagged).
-- [x] Mongo: **28 collections** (29 `@Document`) + 29 repositories; inferred relationships noted; 3-index risk flagged.
+- [x] Mongo: **29 collections** (30 `@Document`) + 29 repositories; inferred relationships noted; 3-index risk flagged.
 - [x] Integrations: CSI/SOAP, CAS (UCCS+CSRM), Equifax UBCT/ICAAM, IEBus/Kafka.
 - [x] Cross-cutting (§9): security, error handling, audit, cache, ShedLock, MDC, **11 aspects** — checklist filled.
 - [x] Seeded §10 decision records (Mongo/no-tx; two DSL evaluators; AOP-as-persistence; strategy/factory; IEBus wrapper; v1/v2).
