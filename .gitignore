@@ -31,3 +31,7 @@ node_modules/
 .idea/
 .vscode/
 _t1
+
+# --- Code repos ---
+coderepos/
+repo-intelligence-factory/clear/

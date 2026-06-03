@@ -1,0 +1,47 @@
+{
+  "subscription": "sub-prod-03",
+  "_scenario": "An Azure Firewall does inbound DNAT from its public IP to a backend VM that has NO public IP of its own. A naive 'no public IP = not internet-reachable' read misses the exposure. A second backend behind the same firewall has no DNAT rule and is genuinely not reachable (trap).",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "hub-vnet", "addressSpace": ["10.0.0.0/16"], "subnets": [{"name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/26"}], "peerings": [{"remoteVnet": "app-vnet", "state": "Connected", "allowForwardedTraffic": true}]},
+      {"name": "app-vnet", "addressSpace": ["10.8.0.0/16"], "subnets": [
+        {"name": "backend", "addressPrefix": "10.8.1.0/24", "networkSecurityGroup": "nsg-backend", "routeTable": "rt-app"},
+        {"name": "backend2", "addressPrefix": "10.8.2.0/24", "networkSecurityGroup": "nsg-backend2", "routeTable": "rt-app"}
+      ], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected"}]}
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-backend", "securityRules": [{"name": "allow-https-from-fw", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.0.0.0/26", "destinationPortRange": "443"}], "associatedSubnets": ["app-vnet/backend"]},
+      {"name": "nsg-backend2", "securityRules": [{"name": "allow-https-from-fw", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.0.0.0/26", "destinationPortRange": "443"}], "associatedSubnets": ["app-vnet/backend2"]}
+    ],
+    "routeTables": [
+      {"name": "rt-app", "routes": [{"name": "default-to-fw", "addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["app-vnet/backend", "app-vnet/backend2"]}
+    ],
+    "publicIPAddresses": [
+      {"name": "pip-afw", "ipAddress": "20.70.0.10", "ipConfiguration": "afw-hub/ipconfig"}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-backend1", "subnet": "app-vnet/backend", "publicIp": null, "privateIp": "10.8.1.4"},
+      {"name": "nic-backend2", "subnet": "app-vnet/backend2", "publicIp": null, "privateIp": "10.8.2.4"}
+    ]
+  },
+  "azureFirewall": {
+    "name": "afw-hub", "subnet": "hub-vnet/AzureFirewallSubnet", "privateIp": "10.0.0.4", "publicIp": "20.70.0.10",
+    "natRules": [
+      {"name": "dnat-https-to-backend1", "protocol": "Tcp", "sourceAddresses": ["*"], "destinationAddress": "20.70.0.10", "destinationPort": 443, "translatedAddress": "10.8.1.4", "translatedPort": 443}
+    ],
+    "networkRules": [
+      {"name": "allow-backend-egress", "protocol": "Any", "sourceAddresses": ["10.8.0.0/16"], "destinationAddresses": ["*"], "destinationPorts": ["*"]}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-backend1": [{"name": "allow-https-from-fw", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.0.0.0/26", "destinationPortRange": "443", "source": "subnet:backend"}, {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}],
+      "nic-backend2": [{"name": "allow-https-from-fw", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.0.0.0/26", "destinationPortRange": "443", "source": "subnet:backend2"}, {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}]
+    },
+    "effectiveRoutes": {
+      "nic-backend1": [{"addressPrefix": "10.8.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}],
+      "nic-backend2": [{"addressPrefix": "10.8.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

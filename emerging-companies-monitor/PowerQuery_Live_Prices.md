@@ -7,14 +7,14 @@ Refresh with **Data -> Refresh All** (or on a timer) - no script, no closing the
 > **Requires Microsoft Excel (Windows / Microsoft 365).** Quotes lag ~15 min. NSE-Emerge
 > SME names may come back blank (Yahoo doesn't carry them); those keep their fallback.
 
-82 of 83 names carry a ticker. A wrong/uncovered ticker returns blank -
-edit its `Ticker` in the M table and refresh. Use with **...Watchlist_v6.xlsx**.
+81 of 82 names carry a ticker. A wrong/uncovered ticker returns blank -
+edit its `Ticker` in the M table and refresh. Use with **...Watchlist_v9.xlsx**.
 
 ---
 
 ## Setup (one time, ~3 min)
 
-1. Open the v6 workbook in **Excel**.
+1. Open the v9 workbook in **Excel**.
 2. **Data -> Get Data -> From Other Sources -> Blank Query**.
 3. **Home -> Advanced Editor**, select-all, delete, paste the M below, **Done**.
 4. Rename the query (left panel) to **LivePrices**.
@@ -52,7 +52,6 @@ let
         type table [Name = text, Ticker = text, Entry = number],
         {
             {"Techno Electric & Engineering Ltd","TECHNOE.NS",1125},
-            {"Oswal Pumps Ltd","OSWALPUMPS.NS",362},
             {"PNGS Reva Diamond Jewellery Limited","PNGSREVA.NS",379},
             {"HBL Engineering","HBLENGINE.NS",666},
             {"Centum Electronics Ltd","CENTUM.NS",2685},
