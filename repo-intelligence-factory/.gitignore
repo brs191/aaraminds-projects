@@ -1,0 +1,11 @@
+# Phase-1 run artifacts (created on the dev machine)
+_work/
+**/target/
+__pycache__/
+*.pyc
+# local transfer bundles
+*.tar.gz
+*.zip
+# macOS / editor cruft
+.DS_Store
+*.swp
