@@ -18,6 +18,8 @@ dev = ["pytest>=8.0.0"]
 
 [project.scripts]
 run-daily-brief = "scrum_orchestrator.main:cli"
+resume-approval = "scrum_orchestrator.main:resume_cli"
+list-pending = "scrum_orchestrator.main:pending_cli"
 
 [build-system]
 requires = ["setuptools>=68"]

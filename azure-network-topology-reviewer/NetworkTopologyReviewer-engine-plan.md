@@ -22,7 +22,7 @@ Go MCP server, per the workspace standard and the `mcp-go-server-building` skill
 azure-nettopo-engine/
   cmd/server/            # MCP server entrypoint (stdio/http)
   internal/
-    graph/               # cloud-neutral model: Node, Edge, kinds, the typed graph
+    graph/               # topology model: Node, Edge, kinds, the typed graph — Azure-shaped in v1, cloud-neutral later (see Risks)
     analyze/             # the deterministic core — gates, reachability, severity (pure funcs)
     cost/                # fixed (Retail Prices API) + variable (flow-log traffic) forecast
     generate/            # spec -> vetted module -> Terraform render + self-validate
@@ -112,4 +112,4 @@ Four capabilities, in priority order — all of them graph work on this same eng
 - **ARG / Network Watcher coverage at scale** — the effective-rule/route APIs are per-NIC; batch and cache (resolve once per NIC per run).
 - **Pre-deployment topology** has only declared config — run the same engine, flagged "declared, not effective".
 - **Defender for Cloud overlap** — consume its attack-path/exposure signal; the engine's differentiator is the structured verdict, the latent tier, and the org standards, not re-deriving Defender.
-- **Cloud-neutral discipline** — keep Azure types out of `internal/graph` and `internal/analyze` so the AWS adapter is a second adapter, not a rewrite.
+- **Cloud-neutral discipline — a debt, not yet a property.** v0's `internal/graph` and `internal/analyze` are currently Azure-shaped (AVNM, Azure Firewall, `effectiveSecurityRules`, `AllowVnetInBound` by name). A genuinely neutral core — Azure types behind the adapter only — must be introduced *before* the AWS adapter, or that adapter becomes a rewrite. Today the property is aspirational; the code does not yet hold it.

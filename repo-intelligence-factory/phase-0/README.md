@@ -97,9 +97,11 @@ For a faithful result, replace the synthetic graph with the real deterministic g
 
 | Gate | Pass | Fail → action |
 |------|------|---------------|
-| **AGE** | impact queries within your interactive budget (e.g. `p95 < 1–2 s` [calibrate]) at depth ≤ 3 | over budget on a real-shaped graph → Cosmos Gremlin (strict managed) or FalkorDB on Container Apps |
-| **Capability** | ≥ `X%` [set from baseline] of the gold set correct *with citations*; blast-radius useful on ≥ `Y` historical changes | weak → adopt potpie as-is, or narrow the wedge |
+| **AGE** | `p95 < 1500 ms` (and `p50 < 500 ms`) for impact queries at bounded depth ≤ 3 on the real-shaped graph | over budget on a real-shaped graph → Cosmos Gremlin (strict managed) or FalkorDB on Container Apps |
+| **Capability** | ≥ **50%** of the understanding gold set correct *with citations* overall — per-type floors: usage ≥ 65% · dataflow ≥ 45% · cross-file ≥ 40% · cross-service/AOP ≥ 25%; blast-radius useful on ≥ **60%** of the impact rows | weak → adopt potpie as-is, or narrow the wedge |
 | **Build-vs-buy** | explicit verdict: adopt potpie vs build, and the size of the gap | — |
+
+**Impact scoring (locked 2026-06-03):** report recall + precision *per tier*, never blended — Tier-A static recall ≥ 0.80 / precision ≥ 0.70 · Tier-B DI recall ≥ 0.50 · Tier-C cross-service & AOP recall ≥ 0.30 (low ceiling acknowledged). Thresholds above are locked pre-run; do not move post-hoc.
 
 ## Exit — the findings memo (one page)
 

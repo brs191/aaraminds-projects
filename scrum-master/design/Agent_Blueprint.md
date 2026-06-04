@@ -91,8 +91,7 @@ sequenceDiagram
     else Rejected / change requested
         H-->>Ag: Command(resume={approved:false})
         Ag->>DB: record_approval(rejected)
-        Ag->>DB: record_action(skipped)
-        Note over Ag: no write to Jira/Teams — DOC upheld
+        Note over Ag: no post, no action_audit row — DOC upheld<br/>(asserted in test_gate.py / test_doc_invariant.py)
     end
 ```
 

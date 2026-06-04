@@ -161,6 +161,10 @@ def analyze(fx):
                                     "sensitive subnet reachable VNet-wide via default AllowVnetInBound "
                                     "(no DenyVnetInBound above priority 65000)", True))
 
+    # Canonical, deterministic ordering — must match the Go engine's sort
+    # (internal/analyze/analyze.go: by resource, then type) so the reference and
+    # the port emit findings in the same order and stay true twins.
+    findings.sort(key=lambda f: (f["resource"], f["type"]))
     return findings
 
 

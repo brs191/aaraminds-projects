@@ -66,8 +66,11 @@ cd apps/teams-adapter && go run .
 make test        # Go (both services) + Python (pure brief/report unit tests)
 ```
 
-The Python tests are pure (no network/DB) and cover blocker detection, stale detection,
-the time-based summary, and the Report.md table-of-contents.
+The Python tests are pure (no network/DB): `test_brief.py` covers blocker/stale detection,
+the time-based summary, and the Report.md TOC; `test_gate.py` and `test_doc_invariant.py`
+prove the DOC — *no write without a recorded approval* — at the gate and across a real
+`interrupt()`/resume (approve→one action row, reject/empty→none, delivery-failure→`failed`,
+idempotent single recommendation).
 
 ## Layout
 
@@ -90,7 +93,7 @@ scrum-master/code/
 |------|-------|------------------|
 | Jira data (fixtures) | `apps/jira-mcp/internal/tools/jira_tools.go` | Replace fixture reads with Jira REST v3 / Agile calls; add OAuth 3LO (parked — see `../planning/Open_Questions.md`) |
 | Teams delivery | `apps/teams-adapter/internal/teams/teams.go` | Set `TEAMS_WEBHOOK_URL` to a Power Automate **Workflows** webhook (O365 connectors retire 2026-05); adapter already emits an Adaptive Card |
-| Approval = auto/CLI | `apps/orchestrator/scrum_orchestrator/main.py` | Resume the graph from a Teams Action.Submit callback |
+| Approval = CLI resume | `apps/orchestrator/scrum_orchestrator/main.py` | Durable cross-process resume exists (`resume-approval`/`list-pending`); remaining work is to fire it from a Teams Action.Submit callback instead of the CLI |
 | Infra | `infra/terraform/` | Fill PostgreSQL + Key Vault + Container Apps resources |
 
 ## Decisions (locked)

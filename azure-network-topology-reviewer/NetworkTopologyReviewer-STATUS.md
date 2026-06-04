@@ -4,7 +4,7 @@
 
 ## Verdict
 
-**Design, specification, and the test corpus are complete; the product implementation has not started.** We have everything needed to *begin building* the engine — the plan, the specs (the three skills), the golden-test corpus (the eval fixtures), and the named assets — but the deterministic engine, MCP server, Azure adapters, RAG, and UI integration are 0% built. Nothing is broken or lost. The APIM inconsistency is now resolved; a handful of pack-sync steps remain.
+**Design, specification, and the test corpus are complete, and the deterministic analysis core is now built and verified — the surrounding product (live data, transport, higher tools) has not started.** The hard, previously-unproven part — the reachability/severity engine — exists twice: a stdlib Python reference (`engine/reference/analyze.py`) and a Go port (`engine/go/`) in the planned package layout. Both pass the fixture golden suite (5/5); the Go port compiles, `go vet`s clean, and was verified in place on Go 1.25 (2026-06-03). Still 0% built: the Azure adapter (live Resource Graph + Network Watcher), the MCP transport, the cost/simulation/generation tools, attack-paths/drift, RAG, and UI integration. Nothing is broken or lost. The APIM inconsistency is resolved; a handful of pack-sync steps remain.
 
 ## Inventory (what exists, and where)
 
@@ -21,7 +21,8 @@
 | Skill 2 — cost spec | Drafted, one eval; the inter-VNet peering-cost gap is open |
 | Skill 3 — IaC spec | Drafted, **never evaluated** |
 | Eval harness | **Complete** (fixtures, keys, viewers, benchmark, pinned-model harness) |
-| **Product engine (the capability)** | **Planned only — 0% built** |
+| **Product engine — analysis core** | **Built + verified** (Python reference + Go port; 5/5 golden tests; Go compiles & `go vet`s clean) |
+| **Product engine — adapter, transport, higher tools** | **Not started** (Azure adapter, MCP transport, simulate/forecast/generate, attack-paths, drift) |
 
 ## Gaps & loose ends (found in the audit)
 
@@ -29,7 +30,7 @@
 2. **APIM inconsistency — RESOLVED (2026-06-03).** The use-case, architecture, and build-plan docs showed APIM as the AI gateway, redundant under AskAT&T. Dropped from all three: the MCP ingress is now Container Apps built-in auth (Entra), and AskAT&T governs model access. No APIM anywhere in the design.
 3. **Skill 2 unfinished.** The inter-VNet peering cost (the baseline caught it, the skill missed it) and the matching answer-key gap are on the iteration-2 list — not done.
 4. **Skill 3 unvalidated.** No eval run at all; it is a `v0.1.0` draft.
-5. **The engine is not started.** Per the conclusion of the eval arc, the capability lives in the deterministic Go MCP engine. That is a plan (`engine-plan.md`), not code.
+5. **The analysis core is built; the rest of the engine is not.** Per the eval arc, the capability lives in the deterministic engine — and that core now exists as code (`engine/reference/analyze.py` + `engine/go/`), proven on the fixture corpus. Still a plan, not code: the Azure adapter, the MCP transport, and the simulate/forecast/generate tools.
 
 ## To complete the project — sequenced
 
@@ -49,10 +50,11 @@
 - Skill 2: iteration-2 fix (the peering cost) + a cost eval round.
 - Skill 3: an eval round (it has had none).
 
-**D. Build the product (the bulk of the remaining work — per `engine-plan.md`):**
+**D. Build the product (the remaining work — per `engine-plan.md`):**
 
-- P0 graph model + Azure adapter; P1 analyzer core + `get_topology`/`analyze_risks` + golden tests from the fixtures; P2 `simulate_change`/`forecast_cost`; P3 `generate_topology`. Forced sequence; analyzer is the keystone.
+- **Done:** the P1 analyzer core + golden tests from the fixtures (the keystone) — `engine/reference/analyze.py` + `engine/go/internal/analyze`, 5/5 passing.
+- **Next:** P0 Azure adapter (Resource Graph + Network Watcher → `graph.Fixture`) and the MCP transport (`analyze_risks`/`get_topology` over `mcp-go`); then P2 `simulate_change`/`forecast_cost`; then P3 `generate_topology`. Forced sequence unchanged — the analyzer the rest calls is now built.
 
 ## Bottom line
 
-We have a complete design, a complete specification (the three skills), and a complete golden-test corpus (the eval fixtures) — i.e., **everything needed to build the engine**. "Complete the project" now means two things: close the small loose ends (pack sync + the APIM decision), and then **build the engine**, which hasn't begun. The eval arc already told us that's where the capability is.
+We have a complete design, a complete specification (the three skills), a complete golden-test corpus (the eval fixtures), and now **the verified analysis core itself** — the deterministic reachability/severity engine the eval arc pointed at, passing 5/5 on the fixtures in both the Python reference and the Go port. "Complete the project" now means: close the small loose ends (pack sync), then build *around* the proven core — the Azure adapter and the MCP transport first, then the cost/simulation/generation tools. The keystone is no longer a plan; it's code.

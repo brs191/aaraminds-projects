@@ -1,4 +1,7 @@
-// Package graph is the cloud-neutral topology model and the Azure fixture parser.
+// Package graph is the topology model and the Azure fixture parser. The model is
+// Azure-shaped in v1 (NSG, AVNM, Azure Firewall, effective rules/routes); making it
+// genuinely cloud-neutral — so the AWS adapter is a second adapter rather than a
+// rewrite — is deferred until that adapter lands (see engine-plan.md "Risks").
 // It mirrors the reference implementation (reference/analyze.py).
 package graph
 

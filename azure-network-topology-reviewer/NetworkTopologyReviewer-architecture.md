@@ -17,7 +17,7 @@ flowchart TB
     end
 
     subgraph GOV["Governance edge"]
-        APIM["Ingress auth — Entra (Container Apps)"]
+        INGRESS["Ingress auth — Entra (Container Apps)"]
         MI["Managed Identity + RBAC (read-only)"]
     end
 
@@ -61,10 +61,10 @@ flowchart TB
     OBS["Azure Monitor + App Insights (cross-cutting)"]
 
     %% consumer to interface
-    UI --> APIM
-    CICD --> APIM
-    COST --> APIM
-    APIM --> IFACE
+    UI --> INGRESS
+    CICD --> INGRESS
+    COST --> INGRESS
+    INGRESS --> IFACE
     MI -. guards .-> IFACE
 
     %% interface to core

@@ -9,7 +9,7 @@ fixtures (5/5 golden tests pass); this is the production-stack (Go) implementati
 ```
 go/
   go.mod                            module github.com/aaraminds/azure-nettopo-engine
-  internal/graph/model.go           cloud-neutral model + topology parser (the Azure adapter feeds this)
+  internal/graph/model.go           topology model + parser — Azure-shaped in v1; cloud-neutral is a later goal (the Azure adapter feeds this)
   internal/analyze/analyze.go       the deterministic core — gates, exposure, DNAT, AVNM source-scope, CIDR, segmentation
   internal/analyze/analyze_test.go  golden tests over the same fixtures
   cmd/analyze/main.go               CLI: analyze <fixture.json> -> findings JSON

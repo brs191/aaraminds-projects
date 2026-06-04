@@ -1,10 +1,16 @@
 # Status — Scrum Master Agent
 
-**Updated:** 2026-05-31 · **Open this each session.**
+**Updated:** 2026-06-03 · **Open this each session.**
 
 ## Active phase
 
 **P0 — Foundations** (in progress — key decisions locked). PRD + ADR-0001 accepted; design hardened via a persona/skill/agent pass (see `../Persona_Skill_Agent_Usage.md`): added `design/Agent_Blueprint.md` + `evaluation/Test_Strategy.md`, corrected the Teams + JQL facts, applied 5 code fixes.
+
+**2026-06-03 — DOC hardening (closed two critical gaps from the analysis pass):**
+- **DOC now tested, not assumed.** Extracted the approval-gate write logic into a pure, I/O-injected choke point (`code/.../scrum_orchestrator/gate.py`) with injectable ports (`ports.py`). Added `test_gate.py` (5 cases, run green here) + `test_doc_invariant.py` (real `interrupt()`/resume via MemorySaver). Asserts: rejected/empty→no write, approved→one action row, delivery-failure→`failed`, idempotent single recommendation. Was the project's biggest hole — the safety invariant had zero automated coverage.
+- **Durable resume is real.** Split the lifecycle into `run-daily-brief` (pause + exit) / `list-pending` (the approval queue) / `resume-approval --approve|--reject` (finish from the checkpoint, in a *fresh process*). This exercises the cross-process pause/resume that justified LangGraph (ADR-0001), instead of same-process auto-approve.
+- Fixed a doc/code drift: Blueprint §11 no longer shows a `record_action(skipped)` row on rejection (code writes none — now asserted).
+- Still open: live-Postgres E2E (tests use in-memory checkpointer), Teams `Action.Submit`→resume wiring, real Jira/OAuth. Adaptive Card still renders `#` headings literally (P1).
 
 ## Gate states
 

@@ -83,11 +83,12 @@ This is the reusable asset that makes every later phase testable. Two parts:
 
 ## Pass / fail thresholds — set these BEFORE running (no moving goalposts)
 
-Numbers below are placeholders to **calibrate to your UX need and the repo's size** — fix them before the spike, don't tune them after.
+**Locked 2026-06-03**, calibrated to the credit-routing-service scale (~2.5k graph nodes) and an interactive MCP/IDE budget. Do not tune them after the run.
 
-- **AGE — go:** representative impact queries return within your interactive budget (set a target, e.g. `p95 < 1–2 s` [VERIFY/calibrate]) at bounded depth ≤ 3 on the target-repo-sized graph.
+- **AGE — go:** impact queries return `p95 < 1500 ms` (and `p50 < 500 ms`) at bounded depth ≤ 3 on the real-shaped (target-repo) graph.
 - **AGE — no-go:** depth-≤3 impact queries blow the budget or fall over → trigger the fallback: **Cosmos Gremlin** (strict no-self-managed) or **FalkorDB on Container Apps** (lighter, keeps Cypher).
-- **Capability — go:** the spike answers ≥ `X%` [set from baseline] of the gold set correctly *with citations*, and blast-radius is useful on ≥ `Y` of the historical changes. Calibrate honestly — rigorous SOTA on repo-understanding (SWE-QA) is ~48%, so a number anywhere near that on hard cross-file/impact questions is a real result, not a failure.
+- **Capability — go:** the spike answers ≥ **50%** of the understanding gold set correctly *with citations* overall — per-type floors usage ≥ 65% / dataflow ≥ 45% / cross-file ≥ 40% / cross-service & AOP ≥ 25% — and blast-radius is useful on ≥ **60%** of the impact rows. (SWE-QA SOTA is ~48%, so 50% overall sits deliberately at the measured ceiling, not above it.)
+- **Impact — reporting:** recall + precision *per tier*, never blended — Tier-A static recall ≥ 0.80 / precision ≥ 0.70 · Tier-B DI recall ≥ 0.50 · Tier-C cross-service & AOP recall ≥ 0.30 (low ceiling acknowledged; these are the silent-false-negative risks).
 - **Build-vs-buy read:** an explicit verdict on whether potpie-as-is covers enough to adopt, vs how much custom build the gap implies.
 
 ## Decisions Phase 0 locks
