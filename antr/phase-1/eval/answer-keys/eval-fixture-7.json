@@ -1,0 +1,9 @@
+{
+  "fixture": "eval-fixture-7.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-avnm" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-vm-avnm", "must_not_have": "reachable High — AVNM Deny at priority 100 closes internet source on port 22" }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "fixture": "fixture-2-segmentation-peering.json",
+  "expected_findings": [
+    { "type": "missing tier segmentation", "severity": "High", "resource": "nic-db1" }
+  ],
+  "trap_assertions": [
+    { "resource": "any", "must_not_have": "internet-reachable finding — no public IPs in fixture" }
+  ]
+}

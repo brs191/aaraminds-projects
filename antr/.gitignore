@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Go
+/engine/go/bin/
+*.test
+*.out
+
+# OS / editor
+.DS_Store

@@ -1,0 +1,17 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Two peered VNets with overlapping address space (10.50.0.0/16 on both) -> Analyze() emits a Medium 'CIDR overlap' finding. Exercises the Medium bucket and the CIDR-overlap edge + VNet rollup in the renderer.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "vnet-east", "subscriptionId": "sub-prod-01", "addressSpace": ["10.50.0.0/16"],
+       "subnets": [{"name": "app", "addressPrefix": "10.50.1.0/24"}],
+       "peerings": [{"remoteVnet": "vnet-west", "state": "Connected", "allowForwardedTraffic": true}]},
+      {"name": "vnet-west", "subscriptionId": "sub-prod-02", "addressSpace": ["10.50.0.0/16"],
+       "subnets": [{"name": "app", "addressPrefix": "10.50.1.0/24"}],
+       "peerings": [{"remoteVnet": "vnet-east", "state": "Connected", "allowForwardedTraffic": true}]}
+    ],
+    "networkInterfaces": []
+  },
+  "networkWatcher": {"effectiveSecurityRules": {}, "effectiveRoutes": {}},
+  "avnm": {"securityAdminRules": []}
+}

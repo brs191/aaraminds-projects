@@ -1,0 +1,11 @@
+{
+  "fixture": "fixture-3-cidr-avnm.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-edge1" },
+    { "type": "CIDR overlap", "severity": "Medium", "resource": "ov-a-vnet~ov-b-vnet" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-mgmt1" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-mgmt1", "must_not_have": "reachable High — AVNM Deny closes the Internet source" }
+  ]
+}

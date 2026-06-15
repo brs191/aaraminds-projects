@@ -1,0 +1,61 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "External Load Balancer inbound NAT — internet reachability without a direct public IP. An ELB has public frontend 20.100.10.1 with two inbound NAT rules: port 22 → nic-vm-dmz1:22 and port 3389 → nic-vm-dmz2:3389. Neither NIC has a direct public IP (Gate 4 would miss them). An ILB (internal, private frontend) exists but must NOT generate any finding. Expected findings: 2x 'internet reachable via load balancer NAT' (High) for nic-vm-dmz1 and nic-vm-dmz2.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "dmz-vnet", "addressSpace": ["10.50.0.0/16"], "subnets": [
+        {"name": "dmz", "addressPrefix": "10.50.1.0/24"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-elb", "ipAddress": "20.100.10.1", "ipConfiguration": "elb-dmz/frontendIPConfig"}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-vm-dmz1", "subnet": "dmz-vnet/dmz", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.50.1.4", "tags": {}},
+      {"name": "nic-vm-dmz2", "subnet": "dmz-vnet/dmz", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.50.1.5", "tags": {}},
+      {"name": "nic-vm-backend", "subnet": "dmz-vnet/dmz", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.50.1.10", "tags": {}}
+    ],
+    "loadBalancers": [
+      {
+        "name": "elb-dmz",
+        "sku": "Standard",
+        "frontendIp": "20.100.10.1",
+        "isInternal": false,
+        "inboundNatRules": [
+          {"name": "nat-ssh-vm1",  "protocol": "Tcp", "frontendPort": 22,   "backendPort": 22,   "backendNic": "nic-vm-dmz1"},
+          {"name": "nat-rdp-vm2",  "protocol": "Tcp", "frontendPort": 3389, "backendPort": 3389, "backendNic": "nic-vm-dmz2"}
+        ],
+        "backendPools": [
+          {"name": "be-pool-dmz", "nicRefs": ["nic-vm-dmz1", "nic-vm-dmz2"]}
+        ]
+      },
+      {
+        "name": "ilb-backend",
+        "sku": "Standard",
+        "frontendIp": "10.50.1.100",
+        "isInternal": true,
+        "inboundNatRules": [
+          {"name": "nat-ilb-backend", "protocol": "Tcp", "frontendPort": 8080, "backendPort": 8080, "backendNic": "nic-vm-backend"}
+        ],
+        "backendPools": [
+          {"name": "be-pool-backend", "nicRefs": ["nic-vm-backend"]}
+        ]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-dmz1":   [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}],
+      "nic-vm-dmz2":   [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}],
+      "nic-vm-backend":[{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}]
+    },
+    "effectiveRoutes": {
+      "nic-vm-dmz1":    [{"addressPrefix": "10.50.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-dmz2":    [{"addressPrefix": "10.50.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-backend": [{"addressPrefix": "10.50.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

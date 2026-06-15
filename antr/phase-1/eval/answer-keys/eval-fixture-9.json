@@ -1,0 +1,13 @@
+{
+  "fixture": "eval-fixture-9.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (reachable)", "severity": "Critical", "resource": "nic-critical" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-high" },
+    { "type": "AKS non-private cluster", "severity": "Medium", "resource": "aks-public" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-info" }
+  ],
+  "trap_assertions": [
+    { "resource": "aks-public", "must_not_have": "High finding — AKS non-private severity is Medium" },
+    { "resource": "nic-info", "must_not_have": "reachable finding — no public IP and route goes to VirtualAppliance" }
+  ]
+}

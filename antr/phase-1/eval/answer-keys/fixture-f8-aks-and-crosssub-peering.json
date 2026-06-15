@@ -1,0 +1,10 @@
+{
+  "fixture": "fixture-f8-aks-and-crosssub-peering.json",
+  "expected_findings": [
+    { "type": "AKS non-private cluster", "severity": "Medium", "resource": "aks-public" },
+    { "type": "cross-subscription peering without firewall", "severity": "Medium", "resource": "spoke-a-vnet~remote-vnet" }
+  ],
+  "trap_assertions": [
+    { "resource": "aks-private", "must_not_have": "AKS finding — IsPrivateCluster=true" }
+  ]
+}

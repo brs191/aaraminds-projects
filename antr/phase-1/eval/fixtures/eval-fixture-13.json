@@ -1,0 +1,45 @@
+{
+  "_scenario": "Private DNS zone correctly linked to VNet. PE for blob storage in spoke-vnet. Private DNS zone privatelink.blob.core.windows.net IS linked to spoke-vnet. Expected: zero private DNS findings. NOT expected: no DNS finding (zone is correctly linked).",
+  "subscription": "sub-eval-13",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "spoke-vnet",
+        "addressSpace": ["10.4.0.0/16"],
+        "subnets": [
+          {"name": "app-subnet", "addressPrefix": "10.4.0.0/24"},
+          {"name": "pe-subnet", "addressPrefix": "10.4.1.0/24"}
+        ],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [],
+    "privateEndpoints": [
+      {
+        "name": "pe-storage-ok",
+        "subnet": "spoke-vnet/pe-subnet",
+        "privateIp": "10.4.1.4",
+        "groupId": "blob",
+        "privateLinkServiceId": "/subscriptions/sub-eval-13/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/steval13",
+        "connectionState": "Approved"
+      }
+    ],
+    "privateDnsZones": [
+      {
+        "name": "privatelink.blob.core.windows.net",
+        "linkedVnets": ["spoke-vnet"],
+        "aRecords": [{"name": "steval13", "ip": "10.4.1.4"}]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

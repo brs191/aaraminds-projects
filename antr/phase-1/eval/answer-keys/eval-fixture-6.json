@@ -1,0 +1,11 @@
+{
+  "fixture": "eval-fixture-6.json",
+  "expected_findings": [
+    { "type": "orphaned public endpoint", "severity": "Low", "resource": "pip-orphan-a" },
+    { "type": "orphaned public endpoint", "severity": "Low", "resource": "pip-orphan-b" },
+    { "type": "orphaned public endpoint", "severity": "Low", "resource": "pip-orphan-c" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-vm-a", "must_not_have": "any reachability finding — NIC has no public IP and no internet-source NSG rules" }
+  ]
+}

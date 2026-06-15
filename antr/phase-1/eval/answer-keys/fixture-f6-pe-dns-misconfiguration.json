@@ -1,0 +1,14 @@
+{
+  "fixture": "fixture-f6-pe-dns-misconfiguration.json",
+  "expected_findings": [
+    { "type": "private DNS zone not linked to VNet", "severity": "High", "resource": "pe-storage-a" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-pe-storage-a" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-pe-storage-c" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-spoke-a" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-spoke-b" }
+  ],
+  "trap_assertions": [
+    { "resource": "pe-storage-c", "must_not_have": "DNS finding — zone is correctly linked to the VNet containing pe-storage-c" },
+    { "resource": "any", "must_not_have": "DNS finding mentioning spoke-b-vnet" }
+  ]
+}

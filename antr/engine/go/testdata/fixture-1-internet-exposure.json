@@ -1,0 +1,38 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Hub-and-spoke. Two spokes carry an identical permissive NSG rule; only one is actually reachable from the internet. Plus one orphaned public IP.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "hub-vnet", "addressSpace": ["10.0.0.0/16"], "subnets": [{"name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/26"}], "peerings": [{"remoteVnet": "spoke-a-vnet", "state": "Connected", "allowForwardedTraffic": true, "allowGatewayTransit": true}, {"remoteVnet": "spoke-b-vnet", "state": "Connected", "allowForwardedTraffic": true, "allowGatewayTransit": true}]},
+      {"name": "spoke-a-vnet", "addressSpace": ["10.1.0.0/16"], "subnets": [{"name": "web", "addressPrefix": "10.1.1.0/24", "networkSecurityGroup": "nsg-web-a", "routeTable": "rt-spoke-a"}], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected", "useRemoteGateways": true}]},
+      {"name": "spoke-b-vnet", "addressSpace": ["10.2.0.0/16"], "subnets": [{"name": "web", "addressPrefix": "10.2.1.0/24", "networkSecurityGroup": "nsg-web-b", "routeTable": "rt-spoke-b"}], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected", "useRemoteGateways": true}]}
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-web-a", "securityRules": [{"name": "allow-ssh", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22"}], "associatedSubnets": ["spoke-a-vnet/web"]},
+      {"name": "nsg-web-b", "securityRules": [{"name": "allow-ssh", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22"}], "associatedSubnets": ["spoke-b-vnet/web"]}
+    ],
+    "routeTables": [
+      {"name": "rt-spoke-a", "routes": [], "disableBgpRoutePropagation": false, "associatedSubnets": ["spoke-a-vnet/web"]},
+      {"name": "rt-spoke-b", "routes": [{"name": "default-to-fw", "addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["spoke-b-vnet/web"]}
+    ],
+    "publicIPAddresses": [
+      {"name": "pip-vm-web-a", "ipAddress": "20.51.10.10", "ipConfiguration": "nic-vm-web-a/ipconfig1"},
+      {"name": "pip-orphan-01", "ipAddress": "20.51.10.99", "ipConfiguration": null}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-vm-web-a", "subnet": "spoke-a-vnet/web", "networkSecurityGroup": null, "publicIp": "pip-vm-web-a", "privateIp": "10.1.1.4"},
+      {"name": "nic-vm-web-b", "subnet": "spoke-b-vnet/web", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.2.1.4"}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-web-a": [{"name": "allow-ssh", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22", "source": "subnet:web"}, {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}],
+      "nic-vm-web-b": [{"name": "allow-ssh", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22", "source": "subnet:web"}, {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}]
+    },
+    "effectiveRoutes": {
+      "nic-vm-web-a": [{"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-web-b": [{"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

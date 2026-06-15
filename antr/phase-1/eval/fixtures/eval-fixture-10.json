@@ -1,0 +1,101 @@
+{
+  "_scenario": "Azure Firewall DNAT to two NICs. nic-backend-sensitive has tags sensitive=true; nic-backend-normal has no sensitive tag. Neither NIC has a public IP — reachability is via DNAT only. NOTE: the engine DNAT code always emits severity=High regardless of sensitive tag (sensitive tag only affects the direct NSG path). Expected: 2x over-permissive NSG (reachable) High findings (one per NIC via DNAT). NOT expected: no Critical finding (DNAT path does not check tags).",
+  "subscription": "sub-eval-10",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "hub-vnet",
+        "addressSpace": ["10.0.0.0/16"],
+        "subnets": [{"name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/26"}],
+        "peerings": [{"remoteVnet": "backend-vnet", "state": "Connected", "allowForwardedTraffic": true}]
+      },
+      {
+        "name": "backend-vnet",
+        "addressSpace": ["10.2.0.0/16"],
+        "subnets": [{"name": "backend-subnet", "addressPrefix": "10.2.0.0/24"}],
+        "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected"}]
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-afw", "ipAddress": "20.80.0.1", "ipConfiguration": "afw-hub/ipconfig"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-backend-sensitive",
+        "subnet": "backend-vnet/backend-subnet",
+        "privateIp": "10.2.0.4",
+        "publicIp": null,
+        "tags": {"sensitive": "true"}
+      },
+      {
+        "name": "nic-backend-normal",
+        "subnet": "backend-vnet/backend-subnet",
+        "privateIp": "10.2.0.5",
+        "publicIp": null,
+        "tags": {}
+      }
+    ]
+  },
+  "azureFirewall": {
+    "name": "afw-hub",
+    "privateIp": "10.0.0.4",
+    "publicIp": "20.80.0.1",
+    "natRules": [
+      {
+        "name": "dnat-to-sensitive",
+        "protocol": "Tcp",
+        "sourceAddresses": ["*"],
+        "destinationAddress": "20.80.0.1",
+        "destinationPort": 443,
+        "translatedAddress": "10.2.0.4",
+        "translatedPort": 443
+      },
+      {
+        "name": "dnat-to-normal",
+        "protocol": "Tcp",
+        "sourceAddresses": ["*"],
+        "destinationAddress": "20.80.0.1",
+        "destinationPort": 8443,
+        "translatedAddress": "10.2.0.5",
+        "translatedPort": 443
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-backend-sensitive": [
+        {
+          "name": "DenyAllInBound",
+          "priority": 65500,
+          "direction": "Inbound",
+          "access": "Deny",
+          "source": "default"
+        }
+      ],
+      "nic-backend-normal": [
+        {
+          "name": "DenyAllInBound",
+          "priority": 65500,
+          "direction": "Inbound",
+          "access": "Deny",
+          "source": "default"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-backend-sensitive": [
+        {"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}
+      ],
+      "nic-backend-normal": [
+        {"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

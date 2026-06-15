@@ -1,0 +1,69 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Deterministic Private DNS Zone check driven by PrivateEndpoint.groupId. spoke-a-vnet has a PE for blob (Approved) but the zone privatelink.blob.core.windows.net is NOT linked to spoke-a-vnet → High finding on the PE. spoke-b-vnet has compute NICs only (no PE for blob) → no DNS finding even though the zone is not linked to spoke-b either. spoke-c-vnet has a PE for blob AND the zone IS linked → no finding. Expected findings: 1x 'private DNS zone not linked to VNet' (High) for pe-storage-a only.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "spoke-a-vnet", "addressSpace": ["10.1.0.0/16"], "subnets": [
+        {"name": "workload", "addressPrefix": "10.1.1.0/24"},
+        {"name": "privateendpoints", "addressPrefix": "10.1.2.0/24"}
+      ], "peerings": []},
+      {"name": "spoke-b-vnet", "addressSpace": ["10.2.0.0/16"], "subnets": [
+        {"name": "workload", "addressPrefix": "10.2.1.0/24"}
+      ], "peerings": []},
+      {"name": "spoke-c-vnet", "addressSpace": ["10.3.0.0/16"], "subnets": [
+        {"name": "privateendpoints", "addressPrefix": "10.3.2.0/24"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      {"name": "nic-vm-spoke-a", "subnet": "spoke-a-vnet/workload", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.1.1.4", "tags": {}},
+      {"name": "nic-pe-storage-a", "subnet": "spoke-a-vnet/privateendpoints", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.1.2.5", "tags": {}},
+      {"name": "nic-vm-spoke-b", "subnet": "spoke-b-vnet/workload", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.2.1.4", "tags": {}},
+      {"name": "nic-pe-storage-c", "subnet": "spoke-c-vnet/privateendpoints", "networkSecurityGroup": null, "publicIp": null, "privateIp": "10.3.2.5", "tags": {}}
+    ],
+    "privateEndpoints": [
+      {
+        "name": "pe-storage-a",
+        "subnet": "spoke-a-vnet/privateendpoints",
+        "privateIp": "10.1.2.5",
+        "groupId": "blob",
+        "privateLinkServiceId": "/subscriptions/sub-prod-01/resourceGroups/rg-storage/providers/Microsoft.Storage/storageAccounts/myaccount",
+        "connectionState": "Approved"
+      },
+      {
+        "name": "pe-storage-c",
+        "subnet": "spoke-c-vnet/privateendpoints",
+        "privateIp": "10.3.2.5",
+        "groupId": "blob",
+        "privateLinkServiceId": "/subscriptions/sub-prod-01/resourceGroups/rg-storage/providers/Microsoft.Storage/storageAccounts/myaccount",
+        "connectionState": "Approved"
+      }
+    ],
+    "privateDnsZones": [
+      {
+        "name": "privatelink.blob.core.windows.net",
+        "linkedVnets": ["spoke-c-vnet"],
+        "aRecords": [
+          {"name": "myaccount", "ip": "10.3.2.5"}
+        ]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-spoke-a": [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}],
+      "nic-pe-storage-a": [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}],
+      "nic-vm-spoke-b": [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}],
+      "nic-pe-storage-c": [{"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationPortRange": "*"}]
+    },
+    "effectiveRoutes": {
+      "nic-vm-spoke-a": [{"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-pe-storage-a": [{"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-spoke-b": [{"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-pe-storage-c": [{"addressPrefix": "10.3.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

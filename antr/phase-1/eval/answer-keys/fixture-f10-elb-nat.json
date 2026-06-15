@@ -1,0 +1,13 @@
+{
+  "fixture": "fixture-f10-elb-nat.json",
+  "expected_findings": [
+    { "type": "internet reachable via load balancer NAT", "severity": "High", "resource": "nic-vm-dmz1" },
+    { "type": "internet reachable via load balancer NAT", "severity": "High", "resource": "nic-vm-dmz2" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-backend" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-dmz1" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-dmz2" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-vm-backend", "must_not_have": "LB NAT finding — nic-vm-backend is in ILB backend pool, no internet exposure" }
+  ]
+}

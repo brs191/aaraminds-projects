@@ -1,0 +1,4978 @@
+{
+ "subscription": "sub-conn-00",
+ "_scenario": "Synthetic enterprise estate: 3 hubs, 30 spokes, 8 subscriptions.",
+ "resourceGraph": {
+  "virtualNetworks": [
+   {
+    "name": "hub-00",
+    "subscriptionId": "sub-conn-00",
+    "addressSpace": [
+     "10.0.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "AzureFirewallSubnet",
+      "addressPrefix": "10.0.0.0/26"
+     },
+     {
+      "name": "GatewaySubnet",
+      "addressPrefix": "10.0.1.0/27"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "spoke-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-03",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-06",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-09",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-12",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-15",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-18",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-21",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-24",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-27",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "hub-01",
+    "subscriptionId": "sub-conn-01",
+    "addressSpace": [
+     "10.1.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "AzureFirewallSubnet",
+      "addressPrefix": "10.1.0.0/26"
+     },
+     {
+      "name": "GatewaySubnet",
+      "addressPrefix": "10.1.1.0/27"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "spoke-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-04",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-07",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-10",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-13",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-16",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-19",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-22",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-25",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-28",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "hub-02",
+    "subscriptionId": "sub-conn-02",
+    "addressSpace": [
+     "10.2.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "AzureFirewallSubnet",
+      "addressPrefix": "10.2.0.0/26"
+     },
+     {
+      "name": "GatewaySubnet",
+      "addressPrefix": "10.2.1.0/27"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "spoke-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-05",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-08",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-11",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-14",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-17",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-20",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-23",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-26",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-29",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-00",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.16.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.16.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-00-web",
+      "routeTable": "rt-spoke-00-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.16.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-00-app",
+      "routeTable": "rt-spoke-00-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-03",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-01",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.17.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.17.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-01-web",
+      "routeTable": "rt-spoke-01-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.17.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-01-app",
+      "routeTable": "rt-spoke-01-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-02",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.18.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.18.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-02-web",
+      "routeTable": "rt-spoke-02-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.18.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-02-app",
+      "routeTable": "rt-spoke-02-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-04",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-03",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.19.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.19.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-03-web",
+      "routeTable": "rt-spoke-03-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.19.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-03-app",
+      "routeTable": "rt-spoke-03-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-06",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-04",
+    "subscriptionId": "sub-wl-03",
+    "addressSpace": [
+     "10.20.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.20.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-04-web",
+      "routeTable": "rt-spoke-04-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.20.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-04-app",
+      "routeTable": "rt-spoke-04-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-18",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-20",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-05",
+    "subscriptionId": "sub-wl-03",
+    "addressSpace": [
+     "10.21.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.21.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-05-web",
+      "routeTable": "rt-spoke-05-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.21.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-05-app",
+      "routeTable": "rt-spoke-05-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-15",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-21",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-06",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.22.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.22.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-06-web",
+      "routeTable": "rt-spoke-06-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.22.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-06-app",
+      "routeTable": "rt-spoke-06-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-03",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-07",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.23.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.23.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-07-web",
+      "routeTable": "rt-spoke-07-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.23.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-07-app",
+      "routeTable": "rt-spoke-07-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-08",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.24.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.24.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-08-web",
+      "routeTable": "rt-spoke-08-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.24.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-08-app",
+      "routeTable": "rt-spoke-08-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-09",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.25.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.25.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-09-web",
+      "routeTable": "rt-spoke-09-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.25.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-09-app",
+      "routeTable": "rt-spoke-09-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-10",
+    "subscriptionId": "sub-wl-01",
+    "addressSpace": [
+     "10.26.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.26.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-10-web",
+      "routeTable": "rt-spoke-10-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.26.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-10-app",
+      "routeTable": "rt-spoke-10-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-17",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-11",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.27.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.27.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-11-web",
+      "routeTable": "rt-spoke-11-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.27.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-11-app",
+      "routeTable": "rt-spoke-11-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-28",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-12",
+    "subscriptionId": "sub-wl-01",
+    "addressSpace": [
+     "10.28.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.28.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-12-web",
+      "routeTable": "rt-spoke-12-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.28.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-12-app",
+      "routeTable": "rt-spoke-12-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-13",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.29.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.29.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-13-web",
+      "routeTable": "rt-spoke-13-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.29.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-13-app",
+      "routeTable": "rt-spoke-13-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-14",
+    "subscriptionId": "sub-wl-01",
+    "addressSpace": [
+     "10.30.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.30.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-14-web",
+      "routeTable": "rt-spoke-14-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.30.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-14-app",
+      "routeTable": "rt-spoke-14-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-15",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.31.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.31.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-15-web",
+      "routeTable": "rt-spoke-15-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.31.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-15-app",
+      "routeTable": "rt-spoke-15-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-05",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-16",
+    "subscriptionId": "sub-wl-01",
+    "addressSpace": [
+     "10.32.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.32.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-16-web",
+      "routeTable": "rt-spoke-16-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.32.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-16-app",
+      "routeTable": "rt-spoke-16-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-17",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.33.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.33.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-17-web",
+      "routeTable": "rt-spoke-17-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.33.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-17-app",
+      "routeTable": "rt-spoke-17-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-10",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-18",
+    "subscriptionId": "sub-wl-03",
+    "addressSpace": [
+     "10.34.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.34.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-18-web",
+      "routeTable": "rt-spoke-18-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.34.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-18-app",
+      "routeTable": "rt-spoke-18-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-04",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-19",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.35.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.35.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-19-web",
+      "routeTable": "rt-spoke-19-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.35.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-19-app",
+      "routeTable": "rt-spoke-19-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-20",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.36.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.36.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-20-web",
+      "routeTable": "rt-spoke-20-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.36.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-20-app",
+      "routeTable": "rt-spoke-20-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-04",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-21",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.37.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.37.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-21-web",
+      "routeTable": "rt-spoke-21-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.37.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-21-app",
+      "routeTable": "rt-spoke-21-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-05",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-22",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.38.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.38.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-22-web",
+      "routeTable": "rt-spoke-22-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.38.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-22-app",
+      "routeTable": "rt-spoke-22-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-23",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.39.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.39.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-23-web",
+      "routeTable": "rt-spoke-23-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.39.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-23-app",
+      "routeTable": "rt-spoke-23-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-24",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.40.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.40.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-24-web",
+      "routeTable": "rt-spoke-24-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.40.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-24-app",
+      "routeTable": "rt-spoke-24-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-25",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.41.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.41.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-25-web",
+      "routeTable": "rt-spoke-25-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.41.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-25-app",
+      "routeTable": "rt-spoke-25-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-26",
+    "subscriptionId": "sub-wl-02",
+    "addressSpace": [
+     "10.42.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.42.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-26-web",
+      "routeTable": "rt-spoke-26-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.42.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-26-app",
+      "routeTable": "rt-spoke-26-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-27",
+    "subscriptionId": "sub-wl-00",
+    "addressSpace": [
+     "10.43.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.43.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-27-web",
+      "routeTable": "rt-spoke-27-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.43.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-27-app",
+      "routeTable": "rt-spoke-27-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-00",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-28",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.44.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.44.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-28-web",
+      "routeTable": "rt-spoke-28-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.44.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-28-app",
+      "routeTable": "rt-spoke-28-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-01",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     },
+     {
+      "remoteVnet": "spoke-11",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   },
+   {
+    "name": "spoke-29",
+    "subscriptionId": "sub-wl-04",
+    "addressSpace": [
+     "10.45.0.0/16"
+    ],
+    "subnets": [
+     {
+      "name": "web",
+      "addressPrefix": "10.45.1.0/24",
+      "networkSecurityGroup": "nsg-spoke-29-web",
+      "routeTable": "rt-spoke-29-web"
+     },
+     {
+      "name": "app",
+      "addressPrefix": "10.45.2.0/24",
+      "networkSecurityGroup": "nsg-spoke-29-app",
+      "routeTable": "rt-spoke-29-app"
+     }
+    ],
+    "peerings": [
+     {
+      "remoteVnet": "hub-02",
+      "state": "Connected",
+      "allowForwardedTraffic": true
+     }
+    ]
+   }
+  ],
+  "networkSecurityGroups": [
+   {
+    "name": "nsg-spoke-00-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-00/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-01-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-01/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-02-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-02/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-03-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-03/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-04-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-04/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-05-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-05/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-06-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-06/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-07-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-07/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-08-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-08/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-09-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-09/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-10-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-10/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-11-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-11/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-12-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-12/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-13-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-13/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-14-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-14/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-15-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-15/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-16-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-16/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-17-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-17/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-18-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-18/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-19-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-19/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-20-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-20/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-21-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-21/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-22-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-22/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-23-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-23/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-24-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-24/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-25-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-25/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-26-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-26/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-27-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-27/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-28-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-28/web"
+    ]
+   },
+   {
+    "name": "nsg-spoke-29-web",
+    "securityRules": [
+     {
+      "name": "allow-https",
+      "priority": 200,
+      "direction": "Inbound",
+      "access": "Allow",
+      "protocol": "Tcp",
+      "sourceAddressPrefix": "0.0.0.0/0",
+      "destinationPortRange": "443"
+     },
+     {
+      "name": "AllowVnetInBound",
+      "priority": 65000,
+      "direction": "Inbound",
+      "access": "Allow",
+      "sourceAddressPrefix": "VirtualNetwork",
+      "destinationPortRange": "*"
+     },
+     {
+      "name": "DenyAllInBound",
+      "priority": 65500,
+      "direction": "Inbound",
+      "access": "Deny"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-29/web"
+    ]
+   }
+  ],
+  "routeTables": [
+   {
+    "name": "rt-spoke-00-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-00/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-00-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-00/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-01-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-01/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-01-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-01/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-02-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-02/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-02-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-02/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-03-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-03/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-03-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-03/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-04-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-04/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-04-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-04/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-05-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-05/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-05-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-05/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-06-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-06/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-06-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-06/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-07-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-07/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-07-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-07/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-08-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-08/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-08-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-08/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-09-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-09/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-09-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-09/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-10-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-10/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-10-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-10/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-11-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-11/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-11-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-11/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-12-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-12/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-12-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-12/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-13-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-13/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-13-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-13/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-14-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-14/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-14-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-14/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-15-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-15/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-15-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-15/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-16-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-16/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-16-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-16/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-17-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-17/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-17-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-17/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-18-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-18/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-18-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-18/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-19-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-19/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-19-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-19/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-20-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-20/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-20-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-20/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-21-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-21/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-21-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-21/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-22-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-22/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-22-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-22/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-23-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-23/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-23-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-23/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-24-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-24/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-24-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-24/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-25-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-25/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-25-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-25/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-26-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-26/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-26-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-26/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-27-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-27/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-27-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-27/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-28-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-28/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-28-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-28/app"
+    ]
+   },
+   {
+    "name": "rt-spoke-29-web",
+    "routes": [],
+    "associatedSubnets": [
+     "spoke-29/web"
+    ]
+   },
+   {
+    "name": "rt-spoke-29-app",
+    "routes": [
+     {
+      "addressPrefix": "0.0.0.0/0",
+      "nextHopType": "VirtualAppliance"
+     }
+    ],
+    "associatedSubnets": [
+     "spoke-29/app"
+    ]
+   }
+  ],
+  "publicIPAddresses": [
+   {
+    "name": "pip-spoke-00-web",
+    "ipAddress": "20.60.0.10",
+    "ipConfiguration": "nic-spoke-00-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-02-web",
+    "ipAddress": "20.60.2.10",
+    "ipConfiguration": "nic-spoke-02-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-04-web",
+    "ipAddress": "20.60.4.10",
+    "ipConfiguration": "nic-spoke-04-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-09-web",
+    "ipAddress": "20.60.9.10",
+    "ipConfiguration": "nic-spoke-09-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-12-web",
+    "ipAddress": "20.60.12.10",
+    "ipConfiguration": "nic-spoke-12-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-20-web",
+    "ipAddress": "20.60.20.10",
+    "ipConfiguration": "nic-spoke-20-web/ipconfig1"
+   },
+   {
+    "name": "pip-spoke-23-web",
+    "ipAddress": "20.60.23.10",
+    "ipConfiguration": "nic-spoke-23-web/ipconfig1"
+   },
+   {
+    "name": "pip-orphan-01",
+    "ipAddress": "20.99.99.99",
+    "ipConfiguration": null
+   }
+  ],
+  "networkInterfaces": [
+   {
+    "name": "nic-spoke-00-web",
+    "subnet": "spoke-00/web",
+    "publicIp": "pip-spoke-00-web",
+    "privateIp": "10.16.1.4",
+    "tags": {
+     "sensitive": "true"
+    }
+   },
+   {
+    "name": "nic-spoke-00-app",
+    "subnet": "spoke-00/app",
+    "publicIp": null,
+    "privateIp": "10.16.2.4"
+   },
+   {
+    "name": "nic-spoke-01-web",
+    "subnet": "spoke-01/web",
+    "publicIp": null,
+    "privateIp": "10.17.1.4"
+   },
+   {
+    "name": "nic-spoke-01-app",
+    "subnet": "spoke-01/app",
+    "publicIp": null,
+    "privateIp": "10.17.2.4"
+   },
+   {
+    "name": "nic-spoke-02-web",
+    "subnet": "spoke-02/web",
+    "publicIp": "pip-spoke-02-web",
+    "privateIp": "10.18.1.4",
+    "tags": {
+     "sensitive": "true"
+    }
+   },
+   {
+    "name": "nic-spoke-02-app",
+    "subnet": "spoke-02/app",
+    "publicIp": null,
+    "privateIp": "10.18.2.4"
+   },
+   {
+    "name": "nic-spoke-03-web",
+    "subnet": "spoke-03/web",
+    "publicIp": null,
+    "privateIp": "10.19.1.4"
+   },
+   {
+    "name": "nic-spoke-03-app",
+    "subnet": "spoke-03/app",
+    "publicIp": null,
+    "privateIp": "10.19.2.4"
+   },
+   {
+    "name": "nic-spoke-04-web",
+    "subnet": "spoke-04/web",
+    "publicIp": "pip-spoke-04-web",
+    "privateIp": "10.20.1.4"
+   },
+   {
+    "name": "nic-spoke-04-app",
+    "subnet": "spoke-04/app",
+    "publicIp": null,
+    "privateIp": "10.20.2.4"
+   },
+   {
+    "name": "nic-spoke-05-web",
+    "subnet": "spoke-05/web",
+    "publicIp": null,
+    "privateIp": "10.21.1.4"
+   },
+   {
+    "name": "nic-spoke-05-app",
+    "subnet": "spoke-05/app",
+    "publicIp": null,
+    "privateIp": "10.21.2.4"
+   },
+   {
+    "name": "nic-spoke-06-web",
+    "subnet": "spoke-06/web",
+    "publicIp": null,
+    "privateIp": "10.22.1.4"
+   },
+   {
+    "name": "nic-spoke-06-app",
+    "subnet": "spoke-06/app",
+    "publicIp": null,
+    "privateIp": "10.22.2.4"
+   },
+   {
+    "name": "nic-spoke-07-web",
+    "subnet": "spoke-07/web",
+    "publicIp": null,
+    "privateIp": "10.23.1.4"
+   },
+   {
+    "name": "nic-spoke-07-app",
+    "subnet": "spoke-07/app",
+    "publicIp": null,
+    "privateIp": "10.23.2.4"
+   },
+   {
+    "name": "nic-spoke-08-web",
+    "subnet": "spoke-08/web",
+    "publicIp": null,
+    "privateIp": "10.24.1.4"
+   },
+   {
+    "name": "nic-spoke-08-app",
+    "subnet": "spoke-08/app",
+    "publicIp": null,
+    "privateIp": "10.24.2.4"
+   },
+   {
+    "name": "nic-spoke-09-web",
+    "subnet": "spoke-09/web",
+    "publicIp": "pip-spoke-09-web",
+    "privateIp": "10.25.1.4",
+    "tags": {
+     "sensitive": "true"
+    }
+   },
+   {
+    "name": "nic-spoke-09-app",
+    "subnet": "spoke-09/app",
+    "publicIp": null,
+    "privateIp": "10.25.2.4"
+   },
+   {
+    "name": "nic-spoke-10-web",
+    "subnet": "spoke-10/web",
+    "publicIp": null,
+    "privateIp": "10.26.1.4"
+   },
+   {
+    "name": "nic-spoke-10-app",
+    "subnet": "spoke-10/app",
+    "publicIp": null,
+    "privateIp": "10.26.2.4"
+   },
+   {
+    "name": "nic-spoke-11-web",
+    "subnet": "spoke-11/web",
+    "publicIp": null,
+    "privateIp": "10.27.1.4"
+   },
+   {
+    "name": "nic-spoke-11-app",
+    "subnet": "spoke-11/app",
+    "publicIp": null,
+    "privateIp": "10.27.2.4"
+   },
+   {
+    "name": "nic-spoke-12-web",
+    "subnet": "spoke-12/web",
+    "publicIp": "pip-spoke-12-web",
+    "privateIp": "10.28.1.4"
+   },
+   {
+    "name": "nic-spoke-12-app",
+    "subnet": "spoke-12/app",
+    "publicIp": null,
+    "privateIp": "10.28.2.4"
+   },
+   {
+    "name": "nic-spoke-13-web",
+    "subnet": "spoke-13/web",
+    "publicIp": null,
+    "privateIp": "10.29.1.4"
+   },
+   {
+    "name": "nic-spoke-13-app",
+    "subnet": "spoke-13/app",
+    "publicIp": null,
+    "privateIp": "10.29.2.4"
+   },
+   {
+    "name": "nic-spoke-14-web",
+    "subnet": "spoke-14/web",
+    "publicIp": null,
+    "privateIp": "10.30.1.4"
+   },
+   {
+    "name": "nic-spoke-14-app",
+    "subnet": "spoke-14/app",
+    "publicIp": null,
+    "privateIp": "10.30.2.4"
+   },
+   {
+    "name": "nic-spoke-15-web",
+    "subnet": "spoke-15/web",
+    "publicIp": null,
+    "privateIp": "10.31.1.4"
+   },
+   {
+    "name": "nic-spoke-15-app",
+    "subnet": "spoke-15/app",
+    "publicIp": null,
+    "privateIp": "10.31.2.4"
+   },
+   {
+    "name": "nic-spoke-16-web",
+    "subnet": "spoke-16/web",
+    "publicIp": null,
+    "privateIp": "10.32.1.4"
+   },
+   {
+    "name": "nic-spoke-16-app",
+    "subnet": "spoke-16/app",
+    "publicIp": null,
+    "privateIp": "10.32.2.4"
+   },
+   {
+    "name": "nic-spoke-17-web",
+    "subnet": "spoke-17/web",
+    "publicIp": null,
+    "privateIp": "10.33.1.4"
+   },
+   {
+    "name": "nic-spoke-17-app",
+    "subnet": "spoke-17/app",
+    "publicIp": null,
+    "privateIp": "10.33.2.4"
+   },
+   {
+    "name": "nic-spoke-18-web",
+    "subnet": "spoke-18/web",
+    "publicIp": null,
+    "privateIp": "10.34.1.4"
+   },
+   {
+    "name": "nic-spoke-18-app",
+    "subnet": "spoke-18/app",
+    "publicIp": null,
+    "privateIp": "10.34.2.4"
+   },
+   {
+    "name": "nic-spoke-19-web",
+    "subnet": "spoke-19/web",
+    "publicIp": null,
+    "privateIp": "10.35.1.4"
+   },
+   {
+    "name": "nic-spoke-19-app",
+    "subnet": "spoke-19/app",
+    "publicIp": null,
+    "privateIp": "10.35.2.4"
+   },
+   {
+    "name": "nic-spoke-20-web",
+    "subnet": "spoke-20/web",
+    "publicIp": "pip-spoke-20-web",
+    "privateIp": "10.36.1.4",
+    "tags": {
+     "sensitive": "true"
+    }
+   },
+   {
+    "name": "nic-spoke-20-app",
+    "subnet": "spoke-20/app",
+    "publicIp": null,
+    "privateIp": "10.36.2.4"
+   },
+   {
+    "name": "nic-spoke-21-web",
+    "subnet": "spoke-21/web",
+    "publicIp": null,
+    "privateIp": "10.37.1.4"
+   },
+   {
+    "name": "nic-spoke-21-app",
+    "subnet": "spoke-21/app",
+    "publicIp": null,
+    "privateIp": "10.37.2.4"
+   },
+   {
+    "name": "nic-spoke-22-web",
+    "subnet": "spoke-22/web",
+    "publicIp": null,
+    "privateIp": "10.38.1.4"
+   },
+   {
+    "name": "nic-spoke-22-app",
+    "subnet": "spoke-22/app",
+    "publicIp": null,
+    "privateIp": "10.38.2.4"
+   },
+   {
+    "name": "nic-spoke-23-web",
+    "subnet": "spoke-23/web",
+    "publicIp": "pip-spoke-23-web",
+    "privateIp": "10.39.1.4"
+   },
+   {
+    "name": "nic-spoke-23-app",
+    "subnet": "spoke-23/app",
+    "publicIp": null,
+    "privateIp": "10.39.2.4"
+   },
+   {
+    "name": "nic-spoke-24-web",
+    "subnet": "spoke-24/web",
+    "publicIp": null,
+    "privateIp": "10.40.1.4"
+   },
+   {
+    "name": "nic-spoke-24-app",
+    "subnet": "spoke-24/app",
+    "publicIp": null,
+    "privateIp": "10.40.2.4"
+   },
+   {
+    "name": "nic-spoke-25-web",
+    "subnet": "spoke-25/web",
+    "publicIp": null,
+    "privateIp": "10.41.1.4"
+   },
+   {
+    "name": "nic-spoke-25-app",
+    "subnet": "spoke-25/app",
+    "publicIp": null,
+    "privateIp": "10.41.2.4"
+   },
+   {
+    "name": "nic-spoke-26-web",
+    "subnet": "spoke-26/web",
+    "publicIp": null,
+    "privateIp": "10.42.1.4"
+   },
+   {
+    "name": "nic-spoke-26-app",
+    "subnet": "spoke-26/app",
+    "publicIp": null,
+    "privateIp": "10.42.2.4"
+   },
+   {
+    "name": "nic-spoke-27-web",
+    "subnet": "spoke-27/web",
+    "publicIp": null,
+    "privateIp": "10.43.1.4"
+   },
+   {
+    "name": "nic-spoke-27-app",
+    "subnet": "spoke-27/app",
+    "publicIp": null,
+    "privateIp": "10.43.2.4"
+   },
+   {
+    "name": "nic-spoke-28-web",
+    "subnet": "spoke-28/web",
+    "publicIp": null,
+    "privateIp": "10.44.1.4"
+   },
+   {
+    "name": "nic-spoke-28-app",
+    "subnet": "spoke-28/app",
+    "publicIp": null,
+    "privateIp": "10.44.2.4"
+   },
+   {
+    "name": "nic-spoke-29-web",
+    "subnet": "spoke-29/web",
+    "publicIp": null,
+    "privateIp": "10.45.1.4"
+   },
+   {
+    "name": "nic-spoke-29-app",
+    "subnet": "spoke-29/app",
+    "publicIp": null,
+    "privateIp": "10.45.2.4"
+   }
+  ],
+  "virtualNetworkGateways": [
+   {
+    "name": "vpngw-hub-00",
+    "gatewayType": "Vpn",
+    "vnet": "hub-00"
+   },
+   {
+    "name": "ergw-hub-00",
+    "gatewayType": "ExpressRoute",
+    "vnet": "hub-00"
+   },
+   {
+    "name": "vpngw-hub-01",
+    "gatewayType": "Vpn",
+    "vnet": "hub-01"
+   },
+   {
+    "name": "vpngw-hub-02",
+    "gatewayType": "Vpn",
+    "vnet": "hub-02"
+   }
+  ],
+  "expressRouteCircuits": [
+   {
+    "name": "er-circuit-att",
+    "peeringLocation": "Silicon Valley"
+   }
+  ],
+  "natGateways": [
+   {
+    "name": "natgw-shared",
+    "subnet": "spoke-00/app"
+   }
+  ]
+ },
+ "networkWatcher": {
+  "effectiveSecurityRules": {
+   "nic-spoke-00-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-00-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-01-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-01-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-02-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-02-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-03-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-03-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-04-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-04-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-05-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-05-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-06-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-06-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-07-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-07-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-08-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-08-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-09-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-09-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-10-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-10-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-11-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-11-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-12-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-12-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-13-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-13-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-14-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-14-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-15-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-15-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-16-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-16-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-17-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-17-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-18-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-18-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-19-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-19-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-20-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-20-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-21-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-21-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-22-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-22-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-23-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-23-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-24-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-24-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-25-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-25-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-26-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-26-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-27-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-27-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-28-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-28-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-29-web": [
+    {
+     "name": "allow-https",
+     "priority": 200,
+     "direction": "Inbound",
+     "access": "Allow",
+     "protocol": "Tcp",
+     "sourceAddressPrefix": "0.0.0.0/0",
+     "destinationPortRange": "443"
+    },
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ],
+   "nic-spoke-29-app": [
+    {
+     "name": "AllowVnetInBound",
+     "priority": 65000,
+     "direction": "Inbound",
+     "access": "Allow",
+     "sourceAddressPrefix": "VirtualNetwork",
+     "destinationPortRange": "*"
+    },
+    {
+     "name": "DenyAllInBound",
+     "priority": 65500,
+     "direction": "Inbound",
+     "access": "Deny"
+    }
+   ]
+  },
+  "effectiveRoutes": {
+   "nic-spoke-00-web": [
+    {
+     "addressPrefix": "10.16.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-00-app": [
+    {
+     "addressPrefix": "10.16.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-01-web": [
+    {
+     "addressPrefix": "10.17.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-01-app": [
+    {
+     "addressPrefix": "10.17.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-02-web": [
+    {
+     "addressPrefix": "10.18.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-02-app": [
+    {
+     "addressPrefix": "10.18.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-03-web": [
+    {
+     "addressPrefix": "10.19.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-03-app": [
+    {
+     "addressPrefix": "10.19.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-04-web": [
+    {
+     "addressPrefix": "10.20.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-04-app": [
+    {
+     "addressPrefix": "10.20.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-05-web": [
+    {
+     "addressPrefix": "10.21.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-05-app": [
+    {
+     "addressPrefix": "10.21.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-06-web": [
+    {
+     "addressPrefix": "10.22.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-06-app": [
+    {
+     "addressPrefix": "10.22.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-07-web": [
+    {
+     "addressPrefix": "10.23.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-07-app": [
+    {
+     "addressPrefix": "10.23.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-08-web": [
+    {
+     "addressPrefix": "10.24.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-08-app": [
+    {
+     "addressPrefix": "10.24.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-09-web": [
+    {
+     "addressPrefix": "10.25.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-09-app": [
+    {
+     "addressPrefix": "10.25.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-10-web": [
+    {
+     "addressPrefix": "10.26.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-10-app": [
+    {
+     "addressPrefix": "10.26.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-11-web": [
+    {
+     "addressPrefix": "10.27.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-11-app": [
+    {
+     "addressPrefix": "10.27.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-12-web": [
+    {
+     "addressPrefix": "10.28.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-12-app": [
+    {
+     "addressPrefix": "10.28.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-13-web": [
+    {
+     "addressPrefix": "10.29.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-13-app": [
+    {
+     "addressPrefix": "10.29.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-14-web": [
+    {
+     "addressPrefix": "10.30.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-14-app": [
+    {
+     "addressPrefix": "10.30.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-15-web": [
+    {
+     "addressPrefix": "10.31.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-15-app": [
+    {
+     "addressPrefix": "10.31.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-16-web": [
+    {
+     "addressPrefix": "10.32.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-16-app": [
+    {
+     "addressPrefix": "10.32.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-17-web": [
+    {
+     "addressPrefix": "10.33.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-17-app": [
+    {
+     "addressPrefix": "10.33.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-18-web": [
+    {
+     "addressPrefix": "10.34.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-18-app": [
+    {
+     "addressPrefix": "10.34.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-19-web": [
+    {
+     "addressPrefix": "10.35.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-19-app": [
+    {
+     "addressPrefix": "10.35.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-20-web": [
+    {
+     "addressPrefix": "10.36.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-20-app": [
+    {
+     "addressPrefix": "10.36.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-21-web": [
+    {
+     "addressPrefix": "10.37.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-21-app": [
+    {
+     "addressPrefix": "10.37.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-22-web": [
+    {
+     "addressPrefix": "10.38.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-22-app": [
+    {
+     "addressPrefix": "10.38.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-23-web": [
+    {
+     "addressPrefix": "10.39.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "Internet"
+    }
+   ],
+   "nic-spoke-23-app": [
+    {
+     "addressPrefix": "10.39.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-24-web": [
+    {
+     "addressPrefix": "10.40.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-24-app": [
+    {
+     "addressPrefix": "10.40.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-25-web": [
+    {
+     "addressPrefix": "10.41.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-25-app": [
+    {
+     "addressPrefix": "10.41.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-26-web": [
+    {
+     "addressPrefix": "10.42.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-26-app": [
+    {
+     "addressPrefix": "10.42.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-27-web": [
+    {
+     "addressPrefix": "10.43.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-27-app": [
+    {
+     "addressPrefix": "10.43.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-28-web": [
+    {
+     "addressPrefix": "10.44.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-28-app": [
+    {
+     "addressPrefix": "10.44.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-29-web": [
+    {
+     "addressPrefix": "10.45.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ],
+   "nic-spoke-29-app": [
+    {
+     "addressPrefix": "10.45.0.0/16",
+     "nextHopType": "VnetLocal"
+    },
+    {
+     "addressPrefix": "0.0.0.0/0",
+     "nextHopType": "VirtualAppliance"
+    }
+   ]
+  }
+ },
+ "avnm": {
+  "securityAdminRules": []
+ },
+ "azureFirewall": {
+  "name": "afw-hub-0",
+  "publicIp": "20.0.0.1",
+  "vnet": "hub-00",
+  "natRules": []
+ },
+ "crossSubscriptionPeerings": [
+  {
+   "localVnet": "spoke-00",
+   "remoteVnet": "shared-00",
+   "remoteSubscriptionId": "sub-shared-99",
+   "state": "Connected",
+   "allowForwardedTraffic": true,
+   "hasHubFirewall": false
+  },
+  {
+   "localVnet": "spoke-02",
+   "remoteVnet": "shared-02",
+   "remoteSubscriptionId": "sub-shared-99",
+   "state": "Connected",
+   "allowForwardedTraffic": true,
+   "hasHubFirewall": false
+  },
+  {
+   "localVnet": "spoke-06",
+   "remoteVnet": "shared-06",
+   "remoteSubscriptionId": "sub-shared-99",
+   "state": "Connected",
+   "allowForwardedTraffic": true,
+   "hasHubFirewall": false
+  },
+  {
+   "localVnet": "spoke-07",
+   "remoteVnet": "shared-07",
+   "remoteSubscriptionId": "sub-shared-99",
+   "state": "Connected",
+   "allowForwardedTraffic": true,
+   "hasHubFirewall": false
+  }
+ ]
+}

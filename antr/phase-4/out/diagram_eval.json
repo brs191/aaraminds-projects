@@ -1,0 +1,976 @@
+{
+  "overall_status": "PASS",
+  "fixtures_total": 26,
+  "fixtures_passed": 26,
+  "severity_coverage": {
+    "Critical": true,
+    "High": true,
+    "Medium": true,
+    "Info": true,
+    "Clean": true
+  },
+  "coverage_gate": true,
+  "rc_rollup": {
+    "RC1_RC2_edges": {
+      "PASS": 10,
+      "FAIL": 0,
+      "SKIP": 16
+    },
+    "RC3_boundary": {
+      "PASS": 13,
+      "FAIL": 0,
+      "SKIP": 13
+    },
+    "RC4_colour_from_analyze": {
+      "PASS": 26,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "structure": {
+      "PASS": 26,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "RC5_layout": {
+      "PASS": 26,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "RC2_external_stub": {
+      "PASS": 3,
+      "FAIL": 0,
+      "SKIP": 0
+    }
+  },
+  "results": [
+    {
+      "fixture": "estate-cidr-overlap.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 1,
+          "peer_edges": 1,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Medium"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "estate-multisub.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 3,
+          "peer_edges": 3,
+          "dangling": []
+        },
+        "RC2_external_stub": {
+          "status": "PASS",
+          "out_of_scope": [
+            "remote-shared-vnet"
+          ]
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 6,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 4,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 22,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Critical",
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "estate-synth-large.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 43,
+          "peer_edges": 43,
+          "dangling": []
+        },
+        "RC2_external_stub": {
+          "status": "PASS",
+          "out_of_scope": [
+            "shared-00",
+            "shared-02",
+            "shared-06",
+            "shared-07"
+          ]
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 8,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 31,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 173,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Critical",
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-10.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 1,
+          "peer_edges": 1,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 2,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 2,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 9,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-11.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 4,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-12.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 2,
+          "peer_edges": 2,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 2,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 14,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-13.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 4,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-14.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-15.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 3,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-6.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 3,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 7,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-7.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 1,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-8.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 1,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "eval-fixture-9.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 3,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 10,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Critical",
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-1-internet-exposure.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 2,
+          "peer_edges": 2,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 3,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 11,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-2-segmentation-peering.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 3,
+          "peer_edges": 3,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 1,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 18,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-3-cidr-avnm.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 1,
+          "peer_edges": 1,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 2,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 11,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High",
+        "Info",
+        "Medium"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f10-elb-nat.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 3,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 6,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f11-apim-exposure.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f12-bastion-bypass.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 4,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 9,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f13-vwan-unsecured.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 7,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f14-frontdoor-waf.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 1,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f6-pe-dns-misconfiguration.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 4,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 12,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f7-appgw-waf-disabled.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f8-aks-and-crosssub-peering.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 1,
+          "peer_edges": 1,
+          "dangling": []
+        },
+        "RC2_external_stub": {
+          "status": "PASS",
+          "out_of_scope": [
+            "remote-vnet"
+          ]
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 5,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-h1-dnat-multihop.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 1,
+          "peer_edges": 1,
+          "dangling": []
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 2,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 1,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 10,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-h2-blackhole-tags.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 1,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 3,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 9,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High",
+        "Info"
+      ],
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "_scenario": "Three orphaned public IPs (ipConfiguration=null) and one NIC with no public IP and no NSG rules. Expected: exactly 3 orphaned-endpoint Low findings, zero reachability findings.",
+  "subscription": "sub-eval-06",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "vnet-test",
+        "addressSpace": ["10.0.0.0/16"],
+        "subnets": [{"name": "default", "addressPrefix": "10.0.0.0/24"}],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-orphan-a", "ipAddress": "1.1.1.1", "ipConfiguration": null},
+      {"name": "pip-orphan-b", "ipAddress": "2.2.2.2", "ipConfiguration": null},
+      {"name": "pip-orphan-c", "ipAddress": "3.3.3.3", "ipConfiguration": null}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-vm-a",
+        "subnet": "vnet-test/default",
+        "privateIp": "10.0.0.4",
+        "publicIp": null,
+        "tags": {}
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-a": []
+    },
+    "effectiveRoutes": {
+      "nic-vm-a": [
+        {"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

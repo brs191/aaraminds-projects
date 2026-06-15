@@ -1,0 +1,61 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Azure Bastion bypass. Bastion is deployed in the hub-vnet. Three VMs: (1) nic-vm-exposed has a public IP with SSH (port 22) open from 0.0.0.0/0 in effective rules → High Bastion bypass finding. (2) nic-vm-rdp has a public IP with RDP (port 3389) open from 0.0.0.0/0 → High Bastion bypass finding. (3) nic-vm-safe has a public IP but SSH/RDP ports are NOT in effective rules (only HTTPS 443 is open) → no Bastion bypass finding. (4) nic-vm-nopip has no public IP → no finding. Expected: 2x High 'Bastion bypass' findings.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "hub-vnet", "addressSpace": ["10.0.0.0/16"], "subnets": [
+        {"name": "AzureBastionSubnet", "addressPrefix": "10.0.255.0/27"},
+        {"name": "workload", "addressPrefix": "10.0.1.0/24"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-bastion",    "ipAddress": "20.200.1.1", "ipConfiguration": "bastion-host/ipConfig"},
+      {"name": "pip-vm-exposed", "ipAddress": "20.200.2.1", "ipConfiguration": "nic-vm-exposed/ipconfig1"},
+      {"name": "pip-vm-rdp",    "ipAddress": "20.200.2.2", "ipConfiguration": "nic-vm-rdp/ipconfig1"},
+      {"name": "pip-vm-safe",   "ipAddress": "20.200.2.3", "ipConfiguration": "nic-vm-safe/ipconfig1"}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-vm-exposed", "subnet": "hub-vnet/workload", "networkSecurityGroup": null, "publicIp": "pip-vm-exposed", "privateIp": "10.0.1.4", "tags": {}},
+      {"name": "nic-vm-rdp",    "subnet": "hub-vnet/workload", "networkSecurityGroup": null, "publicIp": "pip-vm-rdp",    "privateIp": "10.0.1.5", "tags": {}},
+      {"name": "nic-vm-safe",   "subnet": "hub-vnet/workload", "networkSecurityGroup": null, "publicIp": "pip-vm-safe",   "privateIp": "10.0.1.6", "tags": {}},
+      {"name": "nic-vm-nopip",  "subnet": "hub-vnet/workload", "networkSecurityGroup": null, "publicIp": null,            "privateIp": "10.0.1.7", "tags": {}}
+    ],
+    "azureBastions": [
+      {
+        "name": "bastion-host",
+        "subnet": "hub-vnet/AzureBastionSubnet",
+        "publicIp": "20.200.1.1",
+        "sku": "Standard"
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-exposed": [
+        {"name": "allow-ssh",    "priority": 100,   "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22"},
+        {"name": "DenyAllInBound","priority": 65500, "direction": "Inbound", "access": "Deny",  "protocol": "*",   "sourceAddressPrefix": "*",         "destinationPortRange": "*"}
+      ],
+      "nic-vm-rdp": [
+        {"name": "allow-rdp",    "priority": 100,   "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "Internet",  "destinationPortRange": "3389"},
+        {"name": "DenyAllInBound","priority": 65500, "direction": "Inbound", "access": "Deny",  "protocol": "*",   "sourceAddressPrefix": "*",         "destinationPortRange": "*"}
+      ],
+      "nic-vm-safe": [
+        {"name": "allow-https",  "priority": 100,   "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443"},
+        {"name": "DenyAllInBound","priority": 65500, "direction": "Inbound", "access": "Deny",  "protocol": "*",   "sourceAddressPrefix": "*",         "destinationPortRange": "*"}
+      ],
+      "nic-vm-nopip": [
+        {"name": "allow-ssh",    "priority": 100,   "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22"},
+        {"name": "DenyAllInBound","priority": 65500, "direction": "Inbound", "access": "Deny",  "protocol": "*",   "sourceAddressPrefix": "*",         "destinationPortRange": "*"}
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-vm-exposed": [{"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-rdp":     [{"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-safe":    [{"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-vm-nopip":   [{"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

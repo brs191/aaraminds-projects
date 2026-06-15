@@ -1,0 +1,10 @@
+{
+  "fixture": "fixture-f13-vwan-unsecured.json",
+  "expected_findings": [
+    { "type": "vWAN hub unsecured — no firewall", "severity": "Medium", "resource": "hub-westus" },
+    { "type": "vWAN hub firewall bypasses private traffic", "severity": "Medium", "resource": "hub-eastus" }
+  ],
+  "trap_assertions": [
+    { "resource": "hub-centralus", "must_not_have": "any vWAN finding — hub is fully secured with RoutingPolicyPrivate=true" }
+  ]
+}

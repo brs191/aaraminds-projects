@@ -1,0 +1,90 @@
+{
+  "overall_status": "PASS",
+  "fixtures_total": 2,
+  "fixtures_passed": 2,
+  "rc_rollup": {
+    "RC1_RC2_edges": {
+      "PASS": 2,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "RC2_external_stub": {
+      "PASS": 2,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "RC3_boundary": {
+      "PASS": 2,
+      "FAIL": 0,
+      "SKIP": 0
+    },
+    "RC4_colour_from_analyze": {
+      "PASS": 2,
+      "FAIL": 0,
+      "SKIP": 0
+    }
+  },
+  "results": [
+    {
+      "fixture": "estate-multisub.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 3,
+          "peer_edges": 3,
+          "dangling": []
+        },
+        "RC2_external_stub": {
+          "status": "PASS",
+          "out_of_scope": [
+            "remote-shared-vnet"
+          ]
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 6,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "mismatches": [],
+          "invented_severities": []
+        }
+      },
+      "errors": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "estate-synth-large.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "PASS",
+          "unique_pairs": 43,
+          "peer_edges": 43,
+          "dangling": []
+        },
+        "RC2_external_stub": {
+          "status": "PASS",
+          "out_of_scope": [
+            "shared-00",
+            "shared-02",
+            "shared-06",
+            "shared-07"
+          ]
+        },
+        "RC3_boundary": {
+          "status": "PASS",
+          "expected": 8,
+          "missing": []
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "mismatches": [],
+          "invented_severities": []
+        }
+      },
+      "errors": [],
+      "status": "PASS"
+    }
+  ]
+}

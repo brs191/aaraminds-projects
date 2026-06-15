@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azure Network Topology Reviewer — Eval Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      line-height: 1.5;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header .subtitle { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    .badge {
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+    .badge-pass { background: #22c55e; color: white; }
+    .badge-fail { background: #ef4444; color: white; }
+    .badge-loading { background: #94a3b8; color: white; }
+
+    main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 20px;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
+    /* Gates */
+    .gates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      padding: 20px;
+    }
+    .gate-box {
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .gate-box.pass { background: #f0fdf4; border: 1px solid #86efac; }
+    .gate-box.fail { background: #fef2f2; border: 1px solid #fca5a5; }
+    .gate-label { font-size: 12px; color: #64748b; }
+    .gate-actual { font-size: 28px; font-weight: 700; }
+    .gate-box.pass .gate-actual { color: #16a34a; }
+    .gate-box.fail .gate-actual { color: #dc2626; }
+    .gate-threshold { font-size: 11px; color: #94a3b8; }
+
+    /* Summary stats */
+    .stats-row {
+      display: flex;
+      gap: 24px;
+      padding: 16px 20px;
+      flex-wrap: wrap;
+    }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat-value { font-size: 22px; font-weight: 700; color: #1e293b; }
+    .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* Fixture table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 10px 14px;
+      font-size: 11px;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #64748b;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tr.row-pass:hover > td { background: #f0fdf4; }
+    tr.row-fail:hover > td { background: #fef2f2; }
+    tr.row-pass td.status-cell { border-left: 3px solid #22c55e; }
+    tr.row-fail td.status-cell { border-left: 3px solid #ef4444; }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .status-pill.pass { background: #dcfce7; color: #166534; }
+    .status-pill.fail { background: #fee2e2; color: #991b1b; }
+
+    .metric { font-variant-numeric: tabular-nums; }
+    .metric-good { color: #16a34a; font-weight: 600; }
+    .metric-bad { color: #dc2626; font-weight: 600; }
+    .counts { color: #94a3b8; font-size: 12px; }
+
+    /* Severity badges */
+    .sev {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sev-Critical { background: #7c3aed; color: white; }
+    .sev-High     { background: #ef4444; color: white; }
+    .sev-Medium   { background: #f97316; color: white; }
+    .sev-Low      { background: #eab308; color: #1a1a2e; }
+    .sev-Informational { background: #e2e8f0; color: #475569; }
+
+    /* Expandable details */
+    .expand-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #3b82f6;
+      font-size: 13px;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .details-row { display: none; }
+    .details-row.open { display: table-row; }
+    .details-cell {
+      padding: 0 !important;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .details-inner {
+      padding: 12px 20px 16px 40px;
+      background: #fafafa;
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .detail-section h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .finding-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .finding-item {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .finding-resource { color: #1e293b; font-weight: 500; }
+    .finding-type { color: #475569; }
+
+    /* Loading/error state */
+    #loading { padding: 60px; text-align: center; color: #94a3b8; font-size: 16px; }
+    #error-msg { padding: 40px; text-align: center; }
+    #error-msg h2 { color: #dc2626; margin-bottom: 8px; }
+    #error-msg p { color: #64748b; }
+
+    /* Aggregates bar */
+    .agg-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .agg-cell {
+      padding: 14px 20px;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .agg-cell:last-child { border-right: none; }
+    .agg-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
+    .agg-counts { font-size: 13px; color: #334155; }
+    .agg-counts span { font-weight: 700; }
+
+    .date-line { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="flex:1">
+    <h1>Azure Network Topology Reviewer</h1>
+    <div class="subtitle">Phase 1 — Evaluation Harness Report</div>
+    <div class="date-line" id="header-date">Loading…</div>
+  </div>
+  <div class="badge badge-loading" id="overall-badge">…</div>
+</header>
+
+<main>
+  <div id="loading">Loading last_run.json…</div>
+  <div id="error-msg" style="display:none">
+    <h2>Could not load report</h2>
+    <p id="error-detail"></p>
+    <p style="margin-top:8px;font-size:12px">Run <code>python phase-1/eval/run_eval.py</code> first to generate last_run.json.</p>
+  </div>
+  <div id="report" style="display:none">
+
+    <!-- Gate results -->
+    <div class="card">
+      <div class="card-header">Gate Results</div>
+      <div class="gates-grid" id="gates-grid"></div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="card">
+      <div class="card-header">Run Summary</div>
+      <div class="stats-row" id="stats-row"></div>
+      <div class="agg-grid" id="agg-grid"></div>
+    </div>
+
+    <!-- Per-fixture table -->
+    <div class="card">
+      <div class="card-header">Fixture Results</div>
+      <div class="table-wrap">
+        <table id="fixture-table">
+          <thead>
+            <tr>
+              <th>Fixture</th>
+              <th>Status</th>
+              <th>Expected</th>
+              <th>Engine</th>
+              <th>TP</th>
+              <th>FP</th>
+              <th>FN</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="fixture-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- #report -->
+</main>
+
+<script>
+"use strict";
+
+function severityBadge(sev) {
+  return `<span class="sev sev-${sev}">${sev}</span>`;
+}
+
+function metricCell(val, good) {
+  const cls = good ? 'metric metric-good' : 'metric metric-bad';
+  return `<td class="${cls}">${(val * 100).toFixed(1)}%</td>`;
+}
+
+function renderFindingList(findings, icon) {
+  if (!findings || findings.length === 0) return '<em style="color:#94a3b8;font-size:12px">none</em>';
+  return `<ul class="finding-list">${findings.map(f =>
+    `<li class="finding-item">
+       <span>${icon}</span>
+       ${severityBadge(f.severity)}
+       <span class="finding-resource">${f.resource}</span>
+       <span class="finding-type">— ${f.type}</span>
+     </li>`
+  ).join('')}</ul>`;
+}
+
+function renderGates(gates) {
+  const grid = document.getElementById('gates-grid');
+  const defs = [
+    { key: 'precision_overall',   label: 'Overall Precision',    fmt: v => (v*100).toFixed(2)+'%' },
+    { key: 'recall_high_critical', label: 'High+Critical Recall', fmt: v => (v*100).toFixed(2)+'%' },
+    { key: 'recall_medium',        label: 'Medium Recall',         fmt: v => (v*100).toFixed(2)+'%' },
+  ];
+  grid.innerHTML = defs.map(d => {
+    const g = gates[d.key];
+    const cls = g.passed ? 'pass' : 'fail';
+    return `<div class="gate-box ${cls}">
+      <div class="gate-label">${d.label}</div>
+      <div class="gate-actual">${d.fmt(g.actual)}</div>
+      <div class="gate-threshold">Threshold: ≥ ${d.fmt(g.threshold)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(report) {
+  const s = report.summary;
+  const row = document.getElementById('stats-row');
+  row.innerHTML = [
+    { v: s.fixtures_total, l: 'Total Fixtures' },
+    { v: s.fixtures_passed, l: 'Passed' },
+    { v: s.fixtures_failed, l: 'Failed' },
+  ].map(x => `<div class="stat">
+    <div class="stat-value">${x.v}</div>
+    <div class="stat-label">${x.l}</div>
+  </div>`).join('');
+
+  const agg = report.aggregates;
+  const grid = document.getElementById('agg-grid');
+  grid.innerHTML = [
+    { label: 'Overall (TP/FP/FN)', d: agg.overall },
+    { label: 'High+Critical (TP/FP/FN)', d: agg.high_critical },
+    { label: 'Medium (TP/FP/FN)', d: agg.medium },
+  ].map(x => `<div class="agg-cell">
+    <div class="agg-label">${x.label}</div>
+    <div class="agg-counts">
+      <span style="color:#16a34a">${x.d.tp}</span> TP &nbsp;
+      <span style="color:#dc2626">${x.d.fp}</span> FP &nbsp;
+      <span style="color:#d97706">${x.d.fn}</span> FN
+    </div>
+  </div>`).join('');
+}
+
+function renderFixtures(fixtures) {
+  const tbody = document.getElementById('fixture-tbody');
+  let html = '';
+  fixtures.forEach((fr, idx) => {
+    const rowClass = fr.passed ? 'row-pass' : 'row-fail';
+    const pill = fr.passed
+      ? '<span class="status-pill pass">PASS</span>'
+      : '<span class="status-pill fail">FAIL</span>';
+    const prec = fr.score.precision;
+    const rec  = fr.score.recall;
+    const detailId = `detail-${idx}`;
+
+    html += `<tr class="${rowClass}" id="row-${idx}">
+      <td class="status-cell" style="font-family:monospace;font-size:12px">${fr.fixture}</td>
+      <td>${pill}</td>
+      <td class="counts">${fr.expected_findings.length}</td>
+      <td class="counts">${fr.engine_findings.length}</td>
+      <td class="counts" style="color:#16a34a;font-weight:600">${fr.score.tp}</td>
+      <td class="counts" style="color:#dc2626;font-weight:600">${fr.score.fp}</td>
+      <td class="counts" style="color:#d97706;font-weight:600">${fr.score.fn}</td>
+      ${metricCell(prec, prec >= 0.95)}
+      ${metricCell(rec,  rec  >= 0.90)}
+      ${metricCell(fr.score.f1, fr.score.f1 >= 0.90)}
+      <td><button class="expand-btn" onclick="toggleDetail(${idx})">▶ expand</button></td>
+    </tr>
+    <tr class="details-row" id="${detailId}">
+      <td class="details-cell" colspan="11">
+        <div class="details-inner">
+          <div class="detail-section">
+            <h4>Expected (${fr.expected_findings.length})</h4>
+            ${renderFindingList(fr.expected_findings, '🎯')}
+          </div>
+          <div class="detail-section">
+            <h4>Engine output (${fr.engine_findings.length})</h4>
+            ${renderFindingList(fr.engine_findings, '🔍')}
+          </div>
+          ${fr.fp_findings.length > 0 ? `<div class="detail-section">
+            <h4>False Positives (${fr.fp_findings.length})</h4>
+            ${renderFindingList(fr.fp_findings, '❌')}
+          </div>` : ''}
+          ${fr.fn_findings.length > 0 ? `<div class="detail-section">
+            <h4>Missed (FN) (${fr.fn_findings.length})</h4>
+            ${renderFindingList(fr.fn_findings, '⚠️')}
+          </div>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function toggleDetail(idx) {
+  const row = document.getElementById(`detail-${idx}`);
+  const btn = document.querySelector(`#row-${idx} .expand-btn`);
+  const open = row.classList.toggle('open');
+  btn.textContent = open ? '▼ collapse' : '▶ expand';
+}
+
+fetch('./last_run.json')
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} — ${r.statusText}`);
+    return r.json();
+  })
+  .then(report => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('report').style.display = 'block';
+
+    document.getElementById('header-date').textContent = `Run: ${report.date}`;
+
+    const badge = document.getElementById('overall-badge');
+    badge.textContent = report.overall_status;
+    badge.className = `badge badge-${report.overall_status === 'PASS' ? 'pass' : 'fail'}`;
+
+    renderGates(report.gates);
+    renderStats(report);
+    renderFixtures(report.fixtures);
+  })
+  .catch(err => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error-msg').style.display = 'block';
+    document.getElementById('error-detail').textContent = err.message;
+  });
+</script>
+</body>
+</html>

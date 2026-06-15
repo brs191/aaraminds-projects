@@ -1,0 +1,49 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Three-tier app VNet with a web->db rule that skips the app tier, plus a hub with an NVA where two spokes can reach each other transitively and a third cannot.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "app-vnet", "addressSpace": ["10.3.0.0/16"], "subnets": [
+        {"name": "web", "addressPrefix": "10.3.1.0/24", "networkSecurityGroup": "nsg-web", "routeTable": null},
+        {"name": "app", "addressPrefix": "10.3.2.0/24", "networkSecurityGroup": "nsg-app", "routeTable": null},
+        {"name": "db", "addressPrefix": "10.3.3.0/24", "networkSecurityGroup": "nsg-db", "routeTable": null}
+      ], "peerings": []},
+      {"name": "hub-vnet", "addressSpace": ["10.0.0.0/16"], "subnets": [{"name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/26"}], "peerings": [
+        {"remoteVnet": "spoke-x-vnet", "state": "Connected", "allowForwardedTraffic": true},
+        {"remoteVnet": "spoke-y-vnet", "state": "Connected", "allowForwardedTraffic": true},
+        {"remoteVnet": "spoke-z-vnet", "state": "Connected", "allowForwardedTraffic": false}
+      ]},
+      {"name": "spoke-x-vnet", "addressSpace": ["10.4.0.0/16"], "subnets": [{"name": "app", "addressPrefix": "10.4.1.0/24", "routeTable": "rt-x"}], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected", "allowForwardedTraffic": true}]},
+      {"name": "spoke-y-vnet", "addressSpace": ["10.5.0.0/16"], "subnets": [{"name": "app", "addressPrefix": "10.5.1.0/24", "routeTable": "rt-y"}], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected", "allowForwardedTraffic": true}]},
+      {"name": "spoke-z-vnet", "addressSpace": ["10.6.0.0/16"], "subnets": [{"name": "app", "addressPrefix": "10.6.1.0/24", "routeTable": null}], "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected", "allowForwardedTraffic": false}]}
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-web", "securityRules": [], "associatedSubnets": ["app-vnet/web"]},
+      {"name": "nsg-app", "securityRules": [], "associatedSubnets": ["app-vnet/app"]},
+      {"name": "nsg-db", "securityRules": [{"name": "allow-sql-from-web", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.3.1.0/24", "destinationPortRange": "1433"}], "associatedSubnets": ["app-vnet/db"]}
+    ],
+    "routeTables": [
+      {"name": "rt-x", "routes": [{"name": "to-spoke-y", "addressPrefix": "10.5.0.0/16", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["spoke-x-vnet/app"]},
+      {"name": "rt-y", "routes": [{"name": "to-spoke-x", "addressPrefix": "10.4.0.0/16", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["spoke-y-vnet/app"]}
+    ],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      {"name": "nic-web1", "subnet": "app-vnet/web", "privateIp": "10.3.1.4"},
+      {"name": "nic-db1", "subnet": "app-vnet/db", "privateIp": "10.3.3.4", "tags": {"tier": "data", "sensitive": "true"}},
+      {"name": "nic-x1", "subnet": "spoke-x-vnet/app", "privateIp": "10.4.1.4"},
+      {"name": "nic-y1", "subnet": "spoke-y-vnet/app", "privateIp": "10.5.1.4"},
+      {"name": "nic-z1", "subnet": "spoke-z-vnet/app", "privateIp": "10.6.1.4"}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-db1": [{"name": "allow-sql-from-web", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "10.3.1.0/24", "destinationPortRange": "1433", "source": "subnet:db"}, {"name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow"}]
+    },
+    "effectiveRoutes": {
+      "nic-x1": [{"addressPrefix": "10.5.0.0/16", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-y1": [{"addressPrefix": "10.4.0.0/16", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}],
+      "nic-z1": [{"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetPeering"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}
