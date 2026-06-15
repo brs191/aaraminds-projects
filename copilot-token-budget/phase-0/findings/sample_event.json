@@ -1,0 +1,70 @@
+{
+  "type": "session.shutdown",
+  "data": {
+    "shutdownType": "routine",
+    "totalPremiumRequests": 8,
+    "totalNanoAiu": 656539080000,
+    "tokenDetails": {
+      "input": {
+        "tokenCount": 6311
+      },
+      "cache_read": {
+        "tokenCount": 9986301
+      },
+      "cache_write": {
+        "tokenCount": 581422
+      },
+      "output": {
+        "tokenCount": 91349
+      }
+    },
+    "totalApiDurationMs": 1688712,
+    "sessionStartTime": 1781337020375,
+    "eventsFileSizeBytes": 2742077,
+    "codeChanges": {
+      "linesAdded": 1439,
+      "linesRemoved": 59,
+      "filesModified": [
+        "<redacted-project-path>/example.go"
+      ]
+    },
+    "modelMetrics": {
+      "claude-sonnet-4.6": {
+        "requests": {
+          "count": 103,
+          "cost": 8
+        },
+        "usage": {
+          "inputTokens": 10411051,
+          "outputTokens": 87018,
+          "cacheReadTokens": 9986301,
+          "cacheWriteTokens": 418442,
+          "reasoningTokens": 4867
+        },
+        "totalNanoAiu": 656539080000,
+        "tokenDetails": {
+          "input": {
+            "tokenCount": 6311
+          },
+          "cache_read": {
+            "tokenCount": 9986301
+          },
+          "cache_write": {
+            "tokenCount": 581422
+          },
+          "output": {
+            "tokenCount": 91349
+          }
+        }
+      }
+    },
+    "currentModel": "claude-sonnet-4.6",
+    "currentTokens": 34460,
+    "systemTokens": 12591,
+    "conversationTokens": 7853,
+    "toolDefinitionsTokens": 14012
+  },
+  "id": "<event-uuid>",
+  "timestamp": "2026-06-13T08:43:04.057Z",
+  "parentId": "<session-uuid>"
+}

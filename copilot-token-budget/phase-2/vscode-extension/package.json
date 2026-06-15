@@ -1,0 +1,122 @@
+{
+  "name": "copilot-token-budget",
+  "displayName": "Copilot Token Budget",
+  "description": "Local credit tracker for GitHub Copilot CLI — AT&T Enterprise edition.",
+  "publisher": "att-internal",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.att.com/aaraminds/copilot-token-budget.git"
+  },
+  "bugs": {
+    "url": "https://github.att.com/aaraminds/copilot-token-budget/issues"
+  },
+  "homepage": "https://github.att.com/aaraminds/copilot-token-budget#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["copilot", "token", "budget", "credits", "AT&T"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotBudget.showDashboard",
+        "title": "Copilot Budget: Show Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "copilotBudget.refresh",
+        "title": "Copilot Budget: Refresh Now",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "copilotBudget.openSettings",
+        "title": "Copilot Budget: Open Settings",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "copilotBudget.exportUsage",
+        "title": "Copilot Budget: Export Usage Report",
+        "icon": "$(export)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilotBudget",
+          "title": "Copilot Budget",
+          "icon": "$(credit-card)"
+        }
+      ]
+    },
+    "views": {
+      "copilotBudget": [
+        {
+          "id": "copilotBudget.view",
+          "name": "Budget Overview",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Copilot Token Budget",
+      "properties": {
+        "copilotBudget.monthlyAllowance": {
+          "type": "number",
+          "default": 7000,
+          "description": "Monthly credit allowance. AT&T Enterprise promo: 7,000 cr/month until 2026-09-01. Overrides allowanceCredits from the pricing config when set."
+        },
+        "copilotBudget.workspacePath": {
+          "type": "string",
+          "default": "",
+          "description": "Workspace root path for instruction file scanning. Defaults to the first VS Code workspace folder."
+        },
+        "copilotBudget.refreshIntervalSec": {
+          "type": "number",
+          "default": 30,
+          "description": "How often (in seconds) to refresh session data from disk."
+        },
+        "copilotBudget.teamsWebhookUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Microsoft Teams incoming webhook URL for budget alerts (Phase 3)."
+        },
+        "copilotBudget.alertThresholdWarn": {
+          "type": "number",
+          "default": 60,
+          "description": "Credit usage percentage that triggers a WARNING alert (default: 60%)."
+        },
+        "copilotBudget.alertThresholdCrit": {
+          "type": "number",
+          "default": 90,
+          "description": "Credit usage percentage that triggers a CRITICAL alert (default: 90%)."
+        },
+        "copilotBudget.alertBinaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the copilot-budget-alert binary (Phase 3). Leave empty to auto-detect."
+        },
+        "copilotBudget.pricingPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to a pricing.json that overrides the bundled per-model rates, context windows, and allowance. Partial files merge over the bundled defaults; a missing or malformed file falls back to defaults."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npx vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "typescript": "~5.4.0",
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^2.15.0"
+  }
+}

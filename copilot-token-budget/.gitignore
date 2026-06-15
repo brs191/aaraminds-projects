@@ -1,0 +1,26 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# TypeScript
+*.js.map
+
+# Go
+*.exe
+*.test
+vendor/
+
+# VS Code
+.vscode/settings.json
+*.vsix
+
+# macOS
+.DS_Store
+
+# Session state (never commit live data)
+*.jsonl
+*.lock
+
+# Build artifacts
+phase-1/session-manager/session-manager
+phase-2/vscode-extension/out/
