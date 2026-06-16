@@ -501,3 +501,69 @@ func TestGenerateTopology_GateFail(t *testing.T) {
 		t.Error("expected StubGitHubClient.CreatePull NOT to be called on gate fail")
 	}
 }
+
+// ── Phase-2 tools: simulate_change + forecast_cost ───────────────────────────
+
+func TestSimulateChange_ValidDeltaReturnsSecurityDelta(t *testing.T) {
+	handler := simulateChangeHandler(&mockFetcher{fixture: minimalFixture()})
+	req := makeReq(map[string]any{
+		"subscription_id": "12345678-1234-1234-1234-123456789012",
+		"delta":           `{"addSubnet":{"vnetName":"vnet-hub","name":"new-subnet","addressPrefix":"10.0.5.0/24"}}`,
+	})
+	result, err := handler(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("unexpected tool error: %v", result.Content)
+	}
+	text := result.Content[0].(mcpgo.TextContent).Text
+	if !strings.Contains(text, `"securityDelta"`) {
+		t.Errorf("expected securityDelta in response; got: %q", text[:min(200, len(text))])
+	}
+}
+
+func TestSimulateChange_EmptyDeltaIsError(t *testing.T) {
+	handler := simulateChangeHandler(&mockFetcher{fixture: minimalFixture()})
+	result, _ := handler(context.Background(), makeReq(map[string]any{
+		"subscription_id": "12345678-1234-1234-1234-123456789012",
+	}))
+	if !result.IsError {
+		t.Fatal("expected error: a delta with exactly one operation is required")
+	}
+}
+
+func TestSimulateChange_InvalidSubID(t *testing.T) {
+	handler := simulateChangeHandler(&mockFetcher{fixture: minimalFixture()})
+	result, _ := handler(context.Background(), makeReq(map[string]any{"subscription_id": "not-a-guid"}))
+	if !result.IsError {
+		t.Fatal("expected error result for invalid subscription id")
+	}
+}
+
+func TestSimulateChange_BadDeltaJSON(t *testing.T) {
+	handler := simulateChangeHandler(&mockFetcher{fixture: minimalFixture()})
+	result, _ := handler(context.Background(), makeReq(map[string]any{
+		"subscription_id": "12345678-1234-1234-1234-123456789012",
+		"delta":           "{not valid json",
+	}))
+	if !result.IsError {
+		t.Fatal("expected error result for malformed delta JSON")
+	}
+}
+
+func TestForecastCost_NoDeltaReturnsForecast(t *testing.T) {
+	handler := forecastCostHandler(&mockFetcher{fixture: minimalFixture()})
+	req := makeReq(map[string]any{"subscription_id": "12345678-1234-1234-1234-123456789012"})
+	result, err := handler(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		t.Fatalf("unexpected tool error: %v", result.Content)
+	}
+	text := result.Content[0].(mcpgo.TextContent).Text
+	if !strings.Contains(text, `"fixedDeltaUsd"`) || !strings.Contains(text, `"caveats"`) {
+		t.Errorf("expected cost forecast with caveats; got: %q", text[:min(300, len(text))])
+	}
+}

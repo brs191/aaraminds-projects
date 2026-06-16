@@ -196,6 +196,37 @@ func registerTools(
 			generateTopologyHandler(&stubSpecProvider{}, registry, ghClient, fetcher, auditor),
 			auditor),
 	)
+
+	// ── Tool 5: simulate_change ───────────────────────────────────────────────
+	simulateTool := mcpgo.NewTool("simulate_change",
+		mcpgo.WithDescription(
+			"Apply a proposed topology delta in-memory and return the security "+
+				"(reachability/severity) delta BEFORE deploying. The pre-deploy wedge. "+
+				"Read-only — no Azure writes; both topologies analysed by the same engine."),
+		mcpgo.WithString("subscription_id", mcpgo.Required(),
+			mcpgo.Description("Azure subscription GUID")),
+		mcpgo.WithString("delta",
+			mcpgo.Description("TopologyDelta as JSON (addNsgRule/addPublicIp/modifyRoute/addPeering/...). Omit to no-op.")),
+	)
+	s.AddTool(simulateTool,
+		withMiddleware(logger, "simulate_change", true, simulateChangeHandler(fetcher), auditor),
+	)
+
+	// ── Tool 6: forecast_cost ─────────────────────────────────────────────────
+	forecastTool := mcpgo.NewTool("forecast_cost",
+		mcpgo.WithDescription(
+			"Forecast fixed (SKU-exact) + variable (flow-log estimated) cost of the "+
+				"estate or a proposed delta. Read-only."),
+		mcpgo.WithString("subscription_id", mcpgo.Required(),
+			mcpgo.Description("Azure subscription GUID")),
+		mcpgo.WithString("delta",
+			mcpgo.Description("Optional TopologyDelta as JSON")),
+		mcpgo.WithString("region",
+			mcpgo.Description("Azure region for pricing (default eastus)")),
+	)
+	s.AddTool(forecastTool,
+		withMiddleware(logger, "forecast_cost", true, forecastCostHandler(fetcher), auditor),
+	)
 }
 
 // logLevel reads the LOG_LEVEL env-var and returns the corresponding slog.Level.

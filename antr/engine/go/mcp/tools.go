@@ -15,10 +15,12 @@ import (
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/aaraminds/azure-nettopo-engine/forecast"
 	"github.com/aaraminds/azure-nettopo-engine/generator"
 	"github.com/aaraminds/azure-nettopo-engine/internal/analyze"
 	"github.com/aaraminds/azure-nettopo-engine/internal/graph"
 	"github.com/aaraminds/azure-nettopo-engine/renderer"
+	"github.com/aaraminds/azure-nettopo-engine/simulator"
 )
 
 // TopologyFetcher abstracts adapter.FetchFixture for testability.
@@ -223,6 +225,86 @@ func formatReportHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
 			// Unreachable — validated above.
 			return fmtErr("unsupported format: %s", format), nil
 		}
+	}
+}
+
+// ── Tool 5: simulate_change ───────────────────────────────────────────────────
+
+// simulateChangeHandler applies a proposed topology delta in-memory and returns
+// the security (reachability/severity) delta — the pre-deploy wedge. Read-only:
+// the delta is never applied to Azure; both topologies are analysed by the same
+// deterministic engine.
+func simulateChangeHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		subID, err := req.RequireString("subscription_id")
+		if err != nil {
+			return fmtErr("subscription_id is required"), nil
+		}
+		if verr := validateSubscriptionID(subID); verr != nil {
+			return fmtErr("%s", verr), nil
+		}
+		var delta simulator.TopologyDelta
+		if raw := strings.TrimSpace(req.GetString("delta", "")); raw != "" {
+			if jerr := json.Unmarshal([]byte(raw), &delta); jerr != nil {
+				return fmtErr("delta is not valid JSON: %v", jerr), nil
+			}
+		}
+		fixture, err := fetcher.FetchFixture(ctx, subID)
+		if err != nil {
+			return fmtErr("fetch topology: %v", err), nil
+		}
+		before := analyze.Analyze(fixture)
+		sim, aerr := simulator.ApplyDelta(fixture, delta)
+		if aerr != nil {
+			return fmtErr("apply delta: %v", aerr), nil
+		}
+		after := analyze.Analyze(sim)
+		secDelta := simulator.DiffFindings(before, after)
+		b, merr := json.Marshal(struct {
+			Subscription  string                  `json:"subscription"`
+			SecurityDelta simulator.SecurityDelta `json:"securityDelta"`
+		}{subID, secDelta})
+		if merr != nil {
+			return fmtErr("marshal response: %v", merr), nil
+		}
+		return mcpgo.NewToolResultText(string(b)), nil
+	}
+}
+
+// ── Tool 6: forecast_cost ─────────────────────────────────────────────────────
+
+// forecastCostHandler forecasts fixed (SKU-exact) + variable (flow-log estimated)
+// cost of the estate or a proposed delta. Read-only. Variable cost uses an empty
+// FlowSummary (heuristic band) unless flow-log data is supplied by the caller.
+func forecastCostHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		subID, err := req.RequireString("subscription_id")
+		if err != nil {
+			return fmtErr("subscription_id is required"), nil
+		}
+		if verr := validateSubscriptionID(subID); verr != nil {
+			return fmtErr("%s", verr), nil
+		}
+		var delta simulator.TopologyDelta
+		if raw := strings.TrimSpace(req.GetString("delta", "")); raw != "" {
+			if jerr := json.Unmarshal([]byte(raw), &delta); jerr != nil {
+				return fmtErr("delta is not valid JSON: %v", jerr), nil
+			}
+		}
+		region := strings.TrimSpace(req.GetString("region", ""))
+		fixture, err := fetcher.FetchFixture(ctx, subID)
+		if err != nil {
+			return fmtErr("fetch topology: %v", err), nil
+		}
+		fc, ferr := forecast.ForecastCost(ctx, fixture, delta, forecast.NewPriceCache(), forecast.FlowSummary{}, region)
+		if ferr != nil {
+			return fmtErr("forecast cost: %v", ferr), nil
+		}
+		b, merr := json.Marshal(fc)
+		if merr != nil {
+			return fmtErr("marshal response: %v", merr), nil
+		}
+		return mcpgo.NewToolResultText(string(b)), nil
 	}
 }
 
