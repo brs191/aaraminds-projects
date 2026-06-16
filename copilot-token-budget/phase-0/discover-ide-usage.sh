@@ -13,8 +13,27 @@
 
 set -uo pipefail
 HOME_DIR="${HOME}"
-APPSUP="${HOME_DIR}/Library/Application Support"   # macOS
 section() { printf '\n========== %s ==========\n' "$1"; }
+
+# Cross-platform: build the list of VS Code "user-data roots" (each holds User/ and logs/).
+# macOS uses ~/Library/Application Support; Linux uses ~/.config; remote/WSL uses ~/.vscode-server.
+OSNAME="$(uname -s)"
+CODE_ROOTS=()
+case "$OSNAME" in
+  Darwin)
+    for v in "Code" "Code - Insiders" "VSCodium"; do
+      CODE_ROOTS+=("${HOME_DIR}/Library/Application Support/${v}")
+    done ;;
+  Linux)
+    for v in "Code" "Code - Insiders" "VSCodium"; do
+      CODE_ROOTS+=("${HOME_DIR}/.config/${v}")
+    done
+    # VS Code Remote/WSL server stores user data here (User/ + logs under data/):
+    [ -d "${HOME_DIR}/.vscode-server/data" ] && CODE_ROOTS+=("${HOME_DIR}/.vscode-server/data")
+    [ -d "${HOME_DIR}/.vscode-server-insiders/data" ] && CODE_ROOTS+=("${HOME_DIR}/.vscode-server-insiders/data") ;;
+  *)
+    CODE_ROOTS+=("${HOME_DIR}/.config/Code") ;;
+esac
 
 # redact: keep JSON keys + numbers; mask long strings and emails.
 redact() {
@@ -76,28 +95,29 @@ section "~/.copilot OTHER *.jsonl / *.log SAMPLES"
 find "${HOME_DIR}/.copilot" -type f \( -name '*.jsonl' -o -name '*.log' \) 2>/dev/null \
   | grep -v '/otel/' | grep -v '/session-state/' | while read -r f; do sample_jsonl "$f"; done
 
-section "VS CODE — Copilot extension storage"
-for base in "Code" "Code - Insiders"; do
-  GS="${APPSUP}/${base}/User/globalStorage"
+section "VS CODE — Copilot extension storage  (OS: ${OSNAME})"
+echo "Scanning user-data roots: ${CODE_ROOTS[*]/#${HOME_DIR}/~}"
+for root in "${CODE_ROOTS[@]}"; do
+  [ -d "$root" ] || continue
+  GS="${root}/User/globalStorage"
   if [ -d "$GS" ]; then
-    echo "--- ${base}/User/globalStorage entries matching copilot:"
+    echo "--- ${root#${HOME_DIR}/}/User/globalStorage entries matching copilot:"
     ls -la "$GS" 2>/dev/null | grep -i copilot | sed "s#${HOME_DIR}#~#"
     find "$GS" -ipath '*copilot*' -type f 2>/dev/null | sed "s#${HOME_DIR}#~#" | head -40
   fi
-  WS="${APPSUP}/${base}/User/workspaceStorage"
+  WS="${root}/User/workspaceStorage"
   if [ -d "$WS" ]; then
-    echo "--- ${base}/User/workspaceStorage copilot files (first 20):"
+    echo "--- ${root#${HOME_DIR}/}/User/workspaceStorage copilot files (first 20):"
     find "$WS" -ipath '*copilot*' -type f 2>/dev/null | sed "s#${HOME_DIR}#~#" | head -20
   fi
 done
 
 section "VS CODE — Copilot logs (diagnostic; check if any carry token/usage)"
-for base in "Code" "Code - Insiders"; do
-  LOGS="${APPSUP}/${base}/logs"
+for root in "${CODE_ROOTS[@]}"; do
+  LOGS="${root}/logs"
   [ -d "$LOGS" ] || continue
-  echo "--- ${base} newest copilot log files:"
+  echo "--- ${root#${HOME_DIR}/} newest copilot log files:"
   find "$LOGS" -type f -ipath '*copilot*' 2>/dev/null | xargs ls -lt 2>/dev/null | head -10 | sed "s#${HOME_DIR}#~#"
-  # peek the newest copilot log for usage/token mentions
   newest="$(find "$LOGS" -type f -ipath '*copilot*' 2>/dev/null | xargs ls -t 2>/dev/null | head -1)"
   if [ -n "${newest:-}" ]; then
     echo "--- token/usage/premium mentions in newest copilot log ($(basename "$newest")):"
@@ -106,8 +126,8 @@ for base in "Code" "Code - Insiders"; do
 done
 
 section "ANY OTHER likely usage DBs (state.vscdb / sqlite)"
-for base in "Code" "Code - Insiders"; do
-  find "${APPSUP}/${base}/User" -name 'state.vscdb' 2>/dev/null | sed "s#${HOME_DIR}#~#" | head
+for root in "${CODE_ROOTS[@]}"; do
+  find "${root}/User" -name 'state.vscdb' 2>/dev/null | sed "s#${HOME_DIR}#~#" | head
 done
 echo "(If a copilot usage table lives in state.vscdb, note it — it's SQLite.)"
 

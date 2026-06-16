@@ -1,0 +1,7 @@
+{
+  "fixture": "eval-fixture-13.json",
+  "expected_findings": [],
+  "trap_assertions": [
+    { "resource": "pe-storage-ok", "must_not_have": "private DNS finding — zone privatelink.blob.core.windows.net is correctly linked to spoke-vnet" }
+  ]
+}

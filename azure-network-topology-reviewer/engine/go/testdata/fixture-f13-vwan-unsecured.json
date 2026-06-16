@@ -1,0 +1,57 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Virtual WAN topology. One vWAN with three vHubs: (1) hub-westus is unsecured (no firewall) — all spoke traffic unfiltered → Medium finding. (2) hub-eastus is secured but RoutingPolicyPrivate=false — east-west traffic bypasses firewall → Medium finding. (3) hub-centralus is fully secured (HasSecuredFirewall=true, RoutingPolicyInternet=true, RoutingPolicyPrivate=true) → no finding. Expected: 2x Medium vWAN findings.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "spoke-vnet-a", "addressSpace": ["10.100.0.0/16"], "subnets": [{"name": "workload", "addressPrefix": "10.100.1.0/24"}], "peerings": []},
+      {"name": "spoke-vnet-b", "addressSpace": ["10.101.0.0/16"], "subnets": [{"name": "workload", "addressPrefix": "10.101.1.0/24"}], "peerings": []},
+      {"name": "spoke-vnet-c", "addressSpace": ["10.102.0.0/16"], "subnets": [{"name": "workload", "addressPrefix": "10.102.1.0/24"}], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [],
+    "virtualWans": [
+      {
+        "name": "vwan-global",
+        "sku": "Standard",
+        "vHubs": [
+          {
+            "name": "hub-westus",
+            "addressPrefix": "192.168.1.0/24",
+            "location": "westus",
+            "spokeConnections": ["spoke-vnet-a", "spoke-vnet-b"],
+            "hasSecuredFirewall": false,
+            "routingPolicyInternet": false,
+            "routingPolicyPrivate": false
+          },
+          {
+            "name": "hub-eastus",
+            "addressPrefix": "192.168.2.0/24",
+            "location": "eastus",
+            "spokeConnections": ["spoke-vnet-b"],
+            "hasSecuredFirewall": true,
+            "firewallPrivateIp": "192.168.2.4",
+            "routingPolicyInternet": true,
+            "routingPolicyPrivate": false
+          },
+          {
+            "name": "hub-centralus",
+            "addressPrefix": "192.168.3.0/24",
+            "location": "centralus",
+            "spokeConnections": ["spoke-vnet-c"],
+            "hasSecuredFirewall": true,
+            "firewallPrivateIp": "192.168.3.4",
+            "routingPolicyInternet": true,
+            "routingPolicyPrivate": true
+          }
+        ]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {"securityAdminRules": []}
+}

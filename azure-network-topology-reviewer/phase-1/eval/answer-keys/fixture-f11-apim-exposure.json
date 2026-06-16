@@ -1,0 +1,11 @@
+{
+  "fixture": "fixture-f11-apim-exposure.json",
+  "expected_findings": [
+    { "type": "APIM External mode without WAF", "severity": "Medium", "resource": "apim-external" },
+    { "type": "APIM without VNet isolation", "severity": "Medium", "resource": "apim-public" }
+  ],
+  "trap_assertions": [
+    { "resource": "apim-internal", "must_not_have": "any APIM finding — VNetMode=Internal is correctly locked down" },
+    { "resource": "apim-protected", "must_not_have": "any APIM finding — WAF is present upstream" }
+  ]
+}

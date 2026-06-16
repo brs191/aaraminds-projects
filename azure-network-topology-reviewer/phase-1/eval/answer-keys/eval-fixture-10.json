@@ -1,0 +1,10 @@
+{
+  "fixture": "eval-fixture-10.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-backend-sensitive" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-backend-normal" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-backend-sensitive", "must_not_have": "Critical finding — the DNAT code path in the engine does not apply sensitive-tag severity escalation (only the direct NSG path does)" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "fixture": "eval-fixture-15.json",
+  "expected_findings": [],
+  "trap_assertions": [
+    { "resource": "fd-prevention-mode", "must_not_have": "Front Door finding — WafEnabled=true and WafMode=Prevention is correctly secured" },
+    { "resource": "apim-internal", "must_not_have": "APIM finding — VNetMode=Internal is correctly locked down (no public endpoint)" }
+  ]
+}

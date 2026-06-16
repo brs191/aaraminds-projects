@@ -1,0 +1,70 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "APIM exposure scenarios. Three APIM instances: (1) apim-public has VNetMode=None — no VNet, publicly accessible gateway → Medium finding. (2) apim-external has VNetMode=External with public IP but no WAF upstream → Medium finding. (3) apim-internal has VNetMode=Internal, no public endpoint → no finding. (4) apim-protected has VNetMode=External but hasWafFrontEnd=true (APP GW upstream) → no finding. Expected: 2x Medium findings for apim-public and apim-external.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "apim-vnet", "addressSpace": ["10.20.0.0/16"], "subnets": [
+        {"name": "apim-external-subnet", "addressPrefix": "10.20.1.0/24"},
+        {"name": "apim-internal-subnet", "addressPrefix": "10.20.2.0/24"},
+        {"name": "apim-protected-subnet", "addressPrefix": "10.20.3.0/24"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-apim-external", "ipAddress": "20.50.10.1", "ipConfiguration": "apim-external/gatewayConfig"},
+      {"name": "pip-apim-protected", "ipAddress": "20.50.10.2", "ipConfiguration": "apim-protected/gatewayConfig"}
+    ],
+    "networkInterfaces": [],
+    "applicationGateways": [
+      {
+        "name": "appgw-apim-protected",
+        "subnet": "apim-vnet/apim-protected-subnet",
+        "publicIp": "20.50.10.3",
+        "wafEnabled": true,
+        "wafMode": "Prevention",
+        "backendPools": [{"name": "be-apim", "targets": ["10.20.3.4"]}]
+      }
+    ],
+    "apiManagements": [
+      {
+        "name": "apim-public",
+        "vnetMode": "None",
+        "gatewayUrl": "https://apim-public.azure-api.net",
+        "hasWafFrontEnd": false,
+        "skuName": "Standard"
+      },
+      {
+        "name": "apim-external",
+        "subnet": "apim-vnet/apim-external-subnet",
+        "publicIp": "20.50.10.1",
+        "vnetMode": "External",
+        "gatewayUrl": "https://apim-external.azure-api.net",
+        "hasWafFrontEnd": false,
+        "skuName": "Premium"
+      },
+      {
+        "name": "apim-internal",
+        "subnet": "apim-vnet/apim-internal-subnet",
+        "vnetMode": "Internal",
+        "gatewayUrl": "https://apim-internal.azure-api.net",
+        "hasWafFrontEnd": false,
+        "skuName": "Premium"
+      },
+      {
+        "name": "apim-protected",
+        "subnet": "apim-vnet/apim-protected-subnet",
+        "publicIp": "20.50.10.2",
+        "vnetMode": "External",
+        "gatewayUrl": "https://apim-protected.azure-api.net",
+        "hasWafFrontEnd": true,
+        "skuName": "Premium"
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {"securityAdminRules": []}
+}

@@ -35,6 +35,14 @@ def finding(ftype, severity, resource, evidence, reachable):
             "evidence": evidence, "reachable": reachable}
 
 
+def rid(obj) -> str:
+    """Stable identity for a resource: its ARM resource id when present, else its
+    bare name. Bare names are NOT unique across subscriptions/resource groups, so
+    multi-subscription estates must carry `id`. (V4-07 — keeps single-sub fixtures
+    that have no `id` byte-identical.)"""
+    return obj.get("id") or obj.get("name", "")
+
+
 def nic_vnet(nic) -> str:
     s = nic.get("subnet", "")
     return s.split("/")[0] if "/" in s else ""
@@ -70,13 +78,21 @@ def analyze(fx):
     fw = fx.get("azureFirewall")
     eff_rules = nw.get("effectiveSecurityRules", {})
     eff_routes = nw.get("effectiveRoutes", {})
-    nics = {n["name"]: n for n in rg.get("networkInterfaces", [])}
+    # Key NICs by stable identity (ARM id when present, else name). Keying by bare
+    # name dropped same-named NICs across subscriptions at the INPUT stage (V4-07).
+    nics = {rid(n): n for n in rg.get("networkInterfaces", [])}
     findings = []
 
+    def eff_for(nic, table):
+        # Network Watcher tables are keyed by NIC id in a real multi-sub estate;
+        # current single-sub fixtures key by name. Try id, fall back to name.
+        v = table.get(rid(nic))
+        return v if v is not None else table.get(nic.get("name", ""), [])
+
     # ---- per-NIC internet exposure (Gates: AVNM source-scope -> NSG -> route -> public IP) ----
-    for name, nic in nics.items():
-        rules = eff_rules.get(name, [])
-        routes = eff_routes.get(name, [])
+    for key, nic in nics.items():
+        rules = eff_for(nic, eff_rules)
+        routes = eff_for(nic, eff_routes)
         has_pip = bool(nic.get("publicIp"))
         default_hop = next((r.get("nextHopType") for r in routes if r.get("addressPrefix") == "0.0.0.0/0"), None)
         vnet = nic_vnet(nic)
@@ -107,7 +123,7 @@ def analyze(fx):
                     ev += " (AVNM AlwaysAllow overrides NSG)"
                 if broad_tag:
                     ev += " — AzureCloud tag = all Azure public IPs, cross-tenant"
-                findings.append(finding("over-permissive NSG (reachable)", sev, name, ev, True))
+                findings.append(finding("over-permissive NSG (reachable)", sev, rid(nic), ev, True))
             else:
                 why = []
                 if not has_pip:
@@ -118,15 +134,17 @@ def analyze(fx):
                     why.append(f"route 0.0.0.0/0->{default_hop}")
                 if admin == "Deny":
                     why.append("AVNM Deny closes the Internet source (east-west may remain open)")
-                findings.append(finding("over-permissive NSG (latent)", "Informational", name,
-                                        f"{src}:{port} inbound but " + "; ".join(why) or "not reachable", False))
+                # NOTE: parenthesize the `or` — `+` binds tighter, so the fallback
+                # "not reachable" was previously dead code (LOW-1).
+                findings.append(finding("over-permissive NSG (latent)", "Informational", rid(nic),
+                                        f"{src}:{port} inbound but " + ("; ".join(why) or "not reachable"), False))
 
         # inbound firewall DNAT publishes a no-public-IP backend
         if fw:
             for nat in fw.get("natRules", []):
                 if nat.get("translatedAddress") == nic.get("privateIp"):
                     findings.append(finding(
-                        "over-permissive NSG (reachable)", "High", name,
+                        "over-permissive NSG (reachable)", "High", rid(nic),
                         f"firewall DNAT {fw.get('publicIp')}:{nat.get('destinationPort')} -> "
                         f"{nic.get('privateIp')}:{nat.get('translatedPort')} (source {nat.get('sourceAddresses')}); "
                         f"no public IP on the NIC", True))
@@ -134,7 +152,7 @@ def analyze(fx):
     # ---- orphaned public endpoints ----
     for pip in rg.get("publicIPAddresses", []):
         if not pip.get("ipConfiguration"):
-            findings.append(finding("orphaned public endpoint", "Low", pip["name"],
+            findings.append(finding("orphaned public endpoint", "Low", rid(pip),
                                     f"public IP {pip.get('ipAddress')} with null ipConfiguration", False))
 
     # ---- CIDR / address-space overlap ----
@@ -149,22 +167,25 @@ def analyze(fx):
                                                 f"overlapping address space {pa} / {pb}", False))
 
     # ---- segmentation: sensitive subnet reachable VNet-wide via the default AllowVnetInBound ----
-    for name, nic in nics.items():
+    for key, nic in nics.items():
         if str(nic.get("tags", {}).get("sensitive", "")).lower() != "true":
             continue
-        rules = eff_rules.get(name, [])
+        rules = eff_for(nic, eff_rules)
         allow_vnet = any(r.get("name") == "AllowVnetInBound" or
                          (r.get("priority") == 65000 and r.get("access") == "Allow") for r in rules)
         deny_vnet = any("DenyVnetInBound" in (r.get("name", "")) for r in rules)
         if allow_vnet and not deny_vnet:
-            findings.append(finding("missing tier segmentation", "High", name,
+            findings.append(finding("missing tier segmentation", "High", rid(nic),
                                     "sensitive subnet reachable VNet-wide via default AllowVnetInBound "
                                     "(no DenyVnetInBound above priority 65000)", True))
 
     # Canonical, deterministic ordering — must match the Go engine's sort
     # (internal/analyze/analyze.go: by resource, then type) so the reference and
     # the port emit findings in the same order and stay true twins.
-    findings.sort(key=lambda f: (f["resource"], f["type"]))
+    # Total order incl. evidence — a NIC can emit two findings with the same
+    # (resource, type) (e.g. two latent rules); evidence breaks the tie so the
+    # order is fully determined and matches the Go engine's SliceStable comparator.
+    findings.sort(key=lambda f: (f["resource"], f["type"], f["evidence"]))
     return findings
 
 

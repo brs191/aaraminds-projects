@@ -1,0 +1,19 @@
+{
+  "fixture": "fixture-f12-bastion-bypass.json",
+  "expected_findings": [
+    { "type": "Bastion bypass — direct management port exposed", "severity": "High", "resource": "nic-vm-exposed" },
+    { "type": "Bastion bypass — direct management port exposed", "severity": "High", "resource": "nic-vm-rdp" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-vm-exposed" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-vm-rdp" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-vm-safe" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-exposed" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-nopip" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-nopip" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-rdp" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-safe" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-vm-safe", "must_not_have": "Bastion bypass finding — only port 443 open, not a management port" },
+    { "resource": "nic-vm-nopip", "must_not_have": "Bastion bypass finding — no public IP attached" }
+  ]
+}

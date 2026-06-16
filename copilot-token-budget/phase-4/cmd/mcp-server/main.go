@@ -10,7 +10,7 @@
 //
 // The version is injected at build time:
 //
-//	go build -ldflags "-X main.Version=v1.0.0" ./cmd/mcp-server
+//	go build -ldflags "-X main.version=v1.0.0" ./cmd/mcp-server
 //
 // IMPORTANT: stdout is the MCP protocol channel — never write to it directly.
 // All diagnostic output goes to stderr (gated by --debug).
@@ -28,12 +28,29 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Version is set at build time via -ldflags "-X main.Version=<tag>".
-var Version = "dev"
+// Build-time version metadata, injected via -ldflags "-X main.version=...".
+// GoReleaser's default ldflags target main.version / main.commit / main.date,
+// so the lowercase vars are canonical. Version (uppercase) is retained for the
+// existing call sites below and mirrors version.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// Version is the server-facing build identifier, derived from version so that
+// -X main.version=<tag> uniformly drives every binary in the monorepo.
+var Version = version
 
 func main() {
 	debug := flag.Bool("debug", false, "write diagnostic logs to stderr")
+	showVersion := flag.Bool("version", false, "print version information and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("copilot-budget-mcp %s (commit %s, built %s)\n", Version, commit, date)
+		return
+	}
 
 	// stdout is the MCP protocol channel — never log there.
 	if *debug {

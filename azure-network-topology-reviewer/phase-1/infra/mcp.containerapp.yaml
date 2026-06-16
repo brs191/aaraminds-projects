@@ -1,0 +1,124 @@
+# Azure Container Apps — Azure Network Topology Reviewer MCP Server
+#
+# This manifest deploys the MCP server as a Container App. The same endpoint
+# serves both transport consumers:
+#   - MCP Streamable HTTP (Copilot CLI, VS Code extension, Teams Copilot agent)
+#   - Optional REST passthrough for Teams bot webhook (format_report → POST /report)
+#
+# Deploy with:
+#   az containerapp create \
+#     --resource-group <rg> \
+#     --environment <cae-name> \
+#     --yaml mcp.containerapp.yaml
+#
+# Prerequisites:
+#   1. Container Apps Environment already provisioned
+#   2. Image pushed to JFrog Artifactory (registry address below is a placeholder)
+#   3. Managed Identity created and granted "Reader" + "Network Contributor"
+#      on the target subscription(s) so FetchFixture can call ARM APIs
+#
+# Image registry: JFrog Artifactory ONLY — never Azure Container Registry (ACR).
+# The image tag :latest is intentional for the dev/staging lifecycle; pin to a
+# digest in production via a GitOps promotion step.
+#
+# Note: MCP_HTTP_PORT=8080 activates the Streamable HTTP transport in server.go.
+# When this env-var is absent the binary defaults to stdio transport (for local
+# Copilot CLI use). Do NOT change this variable without also updating the
+# ingress targetPort below.
+
+apiVersion: 2024-02-02-preview
+kind: ContainerApp
+metadata:
+  name: azure-nettopo-mcp
+  labels:
+    app: azure-nettopo-mcp
+    component: mcp-server
+    phase: "1"
+properties:
+  environmentId: /subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.App/managedEnvironments/<cae-name>
+  configuration:
+    # ── Ingress (external HTTPS → port 8080) ─────────────────────────────────
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: http
+      allowInsecure: false
+      traffic:
+        - latestRevision: true
+          weight: 100
+    # ── Entra ID built-in authentication (authConfig) ────────────────────────
+    # Protects the MCP endpoint: only callers with a valid Entra ID token for
+    # this app's client ID can reach the tools. Copilot CLI and the Teams bot
+    # both acquire tokens via their own managed identities or user-delegated flows.
+    authConfig:
+      enabled: true
+      identityProviders:
+        azureActiveDirectory:
+          enabled: true
+          registration:
+            clientId: <entra-app-client-id>          # App Registration client ID
+            clientSecretSettingName: ENTRA_CLIENT_SECRET
+          validation:
+            allowedAudiences:
+              - api://azure-nettopo-mcp
+    # ── Secrets (sourced from Key Vault via Managed Identity) ─────────────────
+    # Only the Entra client secret needs to be here; all Azure ARM credentials
+    # are acquired at runtime via DefaultAzureCredential (Managed Identity).
+    secrets:
+      - name: entra-client-secret
+        keyVaultUrl: https://<keyvault-name>.vault.azure.net/secrets/entra-client-secret
+        identity: system
+  template:
+    # ── Container spec ────────────────────────────────────────────────────────
+    containers:
+      - name: mcp-server
+        # JFrog Artifactory registry — not ACR.
+        image: <jfrog-registry-fqdn>/azure-nettopo/azure-nettopo-mcp:latest
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          # Activates Streamable HTTP transport (see server.go transport selection).
+          - name: MCP_HTTP_PORT
+            value: "8080"
+          - name: LOG_LEVEL
+            value: info
+          # Managed Identity client ID — injected by Container Apps after MI assignment.
+          # Used by DefaultAzureCredential when AZURE_CLIENT_ID is set.
+          - name: AZURE_CLIENT_ID
+            value: <managed-identity-client-id>
+          # Required by the Azure SDK when running inside Container Apps with MI.
+          - name: AZURE_TENANT_ID
+            value: <tenant-id>
+        # ── Liveness / readiness probes ───────────────────────────────────────
+        # The MCP server responds to a minimal HTTP GET on / with 200 OK;
+        # any MCP client can also use the initialize handshake as a health check.
+        probes:
+          - type: liveness
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          - type: readiness
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+    # ── Scaling ───────────────────────────────────────────────────────────────
+    scale:
+      minReplicas: 1   # Always-on for Copilot CLI responsiveness
+      maxReplicas: 3   # Scale out under concurrent tool-call load
+      rules:
+        - name: http-scaling
+          http:
+            metadata:
+              concurrentRequests: "10"
+  # ── Managed Identity ─────────────────────────────────────────────────────────
+  # System-assigned MI is used by DefaultAzureCredential at runtime to call ARM.
+  # Grant this identity the following RBAC roles on target subscriptions:
+  #   - Reader                (for Resource Graph and ARM metadata)
+  #   - Network Contributor   (for Network Watcher effective-rules API)
+  identity:
+    type: SystemAssigned

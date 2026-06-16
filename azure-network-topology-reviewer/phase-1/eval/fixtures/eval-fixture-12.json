@@ -1,0 +1,159 @@
+{
+  "_scenario": "All-clean hub-spoke topology — no false positives expected. Hub has Azure Firewall, no public IPs on NICs. Spoke NICs route to Firewall (VirtualAppliance). No internet-source NSG rules. AKS private cluster. Private DNS zone correctly linked. No orphaned PIPs. Expected: ZERO findings.",
+  "subscription": "sub-eval-12",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "hub-vnet",
+        "addressSpace": ["10.100.0.0/16"],
+        "subnets": [
+          {"name": "AzureFirewallSubnet", "addressPrefix": "10.100.0.0/26"},
+          {"name": "GatewaySubnet", "addressPrefix": "10.100.1.0/27"}
+        ],
+        "peerings": [
+          {"remoteVnet": "spoke-a-vnet", "state": "Connected", "allowForwardedTraffic": true},
+          {"remoteVnet": "spoke-b-vnet", "state": "Connected", "allowForwardedTraffic": true}
+        ]
+      },
+      {
+        "name": "spoke-a-vnet",
+        "addressSpace": ["10.101.0.0/16"],
+        "subnets": [
+          {"name": "app-subnet", "addressPrefix": "10.101.0.0/24"},
+          {"name": "aks-subnet", "addressPrefix": "10.101.1.0/24"},
+          {"name": "pe-subnet", "addressPrefix": "10.101.2.0/24"}
+        ],
+        "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected"}]
+      },
+      {
+        "name": "spoke-b-vnet",
+        "addressSpace": ["10.102.0.0/16"],
+        "subnets": [{"name": "app-subnet", "addressPrefix": "10.102.0.0/24"}],
+        "peerings": [{"remoteVnet": "hub-vnet", "state": "Connected"}]
+      }
+    ],
+    "networkSecurityGroups": [
+      {
+        "name": "nsg-app",
+        "securityRules": [
+          {"name": "allow-vnet-https", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "443"}
+        ],
+        "associatedSubnets": ["spoke-a-vnet/app-subnet", "spoke-b-vnet/app-subnet"]
+      }
+    ],
+    "routeTables": [
+      {
+        "name": "rt-spoke",
+        "routes": [{"name": "default-to-fw", "addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.100.0.4"}],
+        "associatedSubnets": ["spoke-a-vnet/app-subnet", "spoke-b-vnet/app-subnet"]
+      }
+    ],
+    "publicIPAddresses": [
+      {"name": "pip-afw", "ipAddress": "20.200.0.1", "ipConfiguration": "afw-hub/ipconfig"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-vm-spoke-a",
+        "subnet": "spoke-a-vnet/app-subnet",
+        "privateIp": "10.101.0.4",
+        "publicIp": null,
+        "tags": {}
+      },
+      {
+        "name": "nic-vm-spoke-b",
+        "subnet": "spoke-b-vnet/app-subnet",
+        "privateIp": "10.102.0.4",
+        "publicIp": null,
+        "tags": {}
+      }
+    ],
+    "privateEndpoints": [
+      {
+        "name": "pe-blob-a",
+        "subnet": "spoke-a-vnet/pe-subnet",
+        "privateIp": "10.101.2.4",
+        "groupId": "blob",
+        "privateLinkServiceId": "/subscriptions/sub-eval-12/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/stclean",
+        "connectionState": "Approved"
+      }
+    ],
+    "privateDnsZones": [
+      {
+        "name": "privatelink.blob.core.windows.net",
+        "linkedVnets": ["spoke-a-vnet"],
+        "aRecords": [{"name": "stclean", "ip": "10.101.2.4"}]
+      }
+    ],
+    "aksClusters": [
+      {
+        "name": "aks-private",
+        "subnet": "spoke-a-vnet/aks-subnet",
+        "isPrivateCluster": true,
+        "apiServerIp": "10.101.1.4"
+      }
+    ]
+  },
+  "azureFirewall": {
+    "name": "afw-hub",
+    "privateIp": "10.100.0.4",
+    "publicIp": "20.200.0.1",
+    "natRules": []
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-spoke-a": [
+        {
+          "name": "allow-vnet-https",
+          "priority": 100,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "VirtualNetwork",
+          "destinationPortRange": "443",
+          "source": "nsg-app"
+        },
+        {
+          "name": "DenyAllInBound",
+          "priority": 65500,
+          "direction": "Inbound",
+          "access": "Deny",
+          "source": "default"
+        }
+      ],
+      "nic-vm-spoke-b": [
+        {
+          "name": "allow-vnet-https",
+          "priority": 100,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "VirtualNetwork",
+          "destinationPortRange": "443",
+          "source": "nsg-app"
+        },
+        {
+          "name": "DenyAllInBound",
+          "priority": 65500,
+          "direction": "Inbound",
+          "access": "Deny",
+          "source": "default"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-vm-spoke-a": [
+        {"addressPrefix": "10.101.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "10.100.0.0/16", "nextHopType": "VNetPeering"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.100.0.4"}
+      ],
+      "nic-vm-spoke-b": [
+        {"addressPrefix": "10.102.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "10.100.0.0/16", "nextHopType": "VNetPeering"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.100.0.4"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

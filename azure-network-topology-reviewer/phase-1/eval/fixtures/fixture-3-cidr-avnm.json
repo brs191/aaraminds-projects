@@ -1,0 +1,44 @@
+{
+  "subscription": "sub-prod-02",
+  "_scenario": "Two VNets with overlapping address space, plus a Network Manager whose security admin rules override the NSGs in both directions (a Deny that closes a scary-looking NSG allow, and an Always-Allow that opens an NSG deny).",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "ov-a-vnet", "addressSpace": ["10.10.0.0/16"], "subnets": [{"name": "default", "addressPrefix": "10.10.1.0/24"}], "peerings": [{"remoteVnet": "ov-b-vnet", "state": "Disconnected", "peeringSyncLevel": "RemoteNotInSync"}]},
+      {"name": "ov-b-vnet", "addressSpace": ["10.10.0.0/16"], "subnets": [{"name": "default", "addressPrefix": "10.10.1.0/24"}], "peerings": [{"remoteVnet": "ov-a-vnet", "state": "Disconnected"}]},
+      {"name": "svc-vnet", "addressSpace": ["10.20.0.0/16"], "subnets": [
+        {"name": "mgmt", "addressPrefix": "10.20.1.0/24", "networkSecurityGroup": "nsg-mgmt"},
+        {"name": "edge", "addressPrefix": "10.20.2.0/24", "networkSecurityGroup": "nsg-edge"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-mgmt", "securityRules": [{"name": "allow-rdp", "priority": 150, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "3389"}], "associatedSubnets": ["svc-vnet/mgmt"]},
+      {"name": "nsg-edge", "securityRules": [{"name": "deny-https", "priority": 120, "direction": "Inbound", "access": "Deny", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443"}], "associatedSubnets": ["svc-vnet/edge"]}
+    ],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-mgmt", "ipAddress": "20.60.1.5", "ipConfiguration": "nic-mgmt1/ipconfig1"},
+      {"name": "pip-edge", "ipAddress": "20.60.2.5", "ipConfiguration": "nic-edge1/ipconfig1"}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-mgmt1", "subnet": "svc-vnet/mgmt", "publicIp": "pip-mgmt", "privateIp": "10.20.1.4"},
+      {"name": "nic-edge1", "subnet": "svc-vnet/edge", "publicIp": "pip-edge", "privateIp": "10.20.2.4"}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-mgmt1": [{"name": "allow-rdp", "priority": 150, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "3389", "source": "subnet:mgmt"}],
+      "nic-edge1": [{"name": "deny-https", "priority": 120, "direction": "Inbound", "access": "Deny", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:edge"}]
+    },
+    "effectiveRoutes": {
+      "nic-mgmt1": [{"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-edge1": [{"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {
+    "networkManager": "nm-corp",
+    "securityAdminRules": [
+      {"name": "deny-rdp-from-internet", "priority": 10, "direction": "Inbound", "access": "Deny", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "3389", "appliesTo": ["svc-vnet"]},
+      {"name": "always-allow-443", "priority": 20, "direction": "Inbound", "access": "AlwaysAllow", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "443", "appliesTo": ["svc-vnet"]}
+    ]
+  }
+}

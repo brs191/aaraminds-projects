@@ -1,0 +1,7 @@
+{
+  "fixture": "eval-fixture-11.json",
+  "expected_findings": [],
+  "trap_assertions": [
+    { "resource": "nic-secure", "must_not_have": "any NSG finding — source is VirtualNetwork (not internet), so internet checks do not fire; deny wins by priority for the VNet-segmentation check" }
+  ]
+}

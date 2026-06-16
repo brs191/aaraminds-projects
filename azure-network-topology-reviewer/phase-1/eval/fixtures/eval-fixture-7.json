@@ -1,0 +1,64 @@
+{
+  "_scenario": "AVNM Deny overrides open NSG. NIC has public IP, NSG allows 0.0.0.0/0:22 inbound, route 0.0.0.0/0->Internet — but AVNM SecurityAdminRule Deny on port 22 from Internet closes the path. Expected: over-permissive NSG (latent) Informational (AVNM blocks reachability). NOT expected: no High finding.",
+  "subscription": "sub-eval-07",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "hub-vnet",
+        "addressSpace": ["10.0.0.0/16"],
+        "subnets": [{"name": "web-subnet", "addressPrefix": "10.0.0.0/24"}],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-vm-avnm", "ipAddress": "40.1.2.3", "ipConfiguration": "nic-vm-avnm"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-vm-avnm",
+        "subnet": "hub-vnet/web-subnet",
+        "privateIp": "10.0.0.4",
+        "publicIp": "pip-vm-avnm",
+        "tags": {}
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-avnm": [
+        {
+          "name": "allow-ssh-internet",
+          "priority": 1000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "0.0.0.0/0",
+          "destinationPortRange": "22",
+          "source": "nsg-vm"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-vm-avnm": [
+        {"addressPrefix": "10.0.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": [
+      {
+        "name": "deny-ssh-internet",
+        "priority": 100,
+        "direction": "Inbound",
+        "access": "Deny",
+        "protocol": "Tcp",
+        "sourceAddressPrefix": "0.0.0.0/0",
+        "destinationPortRange": "22",
+        "appliesTo": ["hub-vnet"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "fixture": "eval-fixture-8.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-nva-path" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-vm-nva-path", "must_not_have": "reachable High — route 0.0.0.0/0->VirtualAppliance means traffic does not go directly to Internet" }
+  ]
+}

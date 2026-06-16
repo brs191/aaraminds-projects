@@ -1,0 +1,60 @@
+{
+  "subscription": "sub-prod-01",
+  "resourceGraph": {
+    "virtualNetworks": [],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [],
+    "azureFrontDoors": [
+      {
+        "name": "fd-no-waf",
+        "sku": "Standard_AzureFrontDoor",
+        "wafEnabled": false,
+        "endpoints": [
+          {
+            "name": "ep-api",
+            "hostname": "api-contoso.z01.azurefd.net",
+            "wafPolicyId": "",
+            "enabled": true
+          }
+        ]
+      },
+      {
+        "name": "fd-detection-mode",
+        "sku": "Premium_AzureFrontDoor",
+        "wafEnabled": true,
+        "wafMode": "Detection",
+        "endpoints": [
+          {
+            "name": "ep-portal",
+            "hostname": "portal-contoso.z01.azurefd.net",
+            "wafPolicyId": "/subscriptions/sub-prod-01/resourceGroups/rg-waf/providers/Microsoft.Network/frontDoorWebApplicationFirewallPolicies/waf-detection",
+            "enabled": true
+          }
+        ]
+      },
+      {
+        "name": "fd-prevention-mode",
+        "sku": "Premium_AzureFrontDoor",
+        "wafEnabled": true,
+        "wafMode": "Prevention",
+        "endpoints": [
+          {
+            "name": "ep-secure",
+            "hostname": "secure-contoso.z01.azurefd.net",
+            "wafPolicyId": "/subscriptions/sub-prod-01/resourceGroups/rg-waf/providers/Microsoft.Network/frontDoorWebApplicationFirewallPolicies/waf-prevention",
+            "enabled": true
+          }
+        ]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

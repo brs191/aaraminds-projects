@@ -1,0 +1,178 @@
+# GoReleaser v2 configuration for the Copilot Token Budget monorepo.
+#
+# This is a multi-module Go repository: each phase has its own go.mod, so there
+# is NO single module at the repo root. GoReleaser handles this by giving every
+# binary its own `builds:` entry with `dir:` pointing at the module root — it
+# runs `go build` inside that directory against that module's go.mod.
+#
+# IMPORTANT: gomod.proxy is left at its default (off). Enabling it would force a
+# single-module proxy build and break the separate go.mod files.
+#
+# Five binaries across three modules, cross-compiled for five platforms
+# (darwin/amd64, darwin/arm64, linux/amd64, linux/arm64, windows/amd64) =
+# 25 artifacts. windows/arm64 is intentionally excluded.
+#
+# The GitHub release + JFrog upload are owned by a later CI job, so `release` is
+# disabled here — this config is the build half of Phase 5.
+version: 2
+
+project_name: copilot-token-budget
+
+# Snapshot builds (no git tag) get a deterministic, sortable version string.
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# A later CI job owns the GitHub release and the JFrog Artifactory upload.
+release:
+  disable: true
+
+builds:
+  # ---- module: phase-1/session-manager (3 binaries) ----
+  - id: copilot-analyze
+    dir: phase-1/session-manager
+    main: ./cmd/analyze
+    binary: copilot-analyze
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: copilot-dashboard
+    dir: phase-1/session-manager
+    main: ./cmd/dashboard
+    binary: copilot-dashboard
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: copilot-statusline
+    dir: phase-1/session-manager
+    main: ./cmd/statusline
+    binary: copilot-statusline
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  # ---- module: phase-3 (1 binary) ----
+  - id: copilot-alert
+    dir: phase-3
+    main: ./cmd/alert
+    binary: copilot-alert
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  # ---- module: phase-4 (1 binary) ----
+  - id: copilot-budget-mcp
+    dir: phase-4
+    main: ./cmd/mcp-server
+    binary: copilot-budget-mcp
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  # One archive per binary, selected by build id, so each archive has a
+  # consistent, predictable contents set. tar.gz everywhere except Windows (zip).
+  - id: copilot-analyze
+    ids: [copilot-analyze]
+    name_template: "copilot-analyze_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - USAGE.md
+
+  - id: copilot-dashboard
+    ids: [copilot-dashboard]
+    name_template: "copilot-dashboard_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - USAGE.md
+
+  - id: copilot-statusline
+    ids: [copilot-statusline]
+    name_template: "copilot-statusline_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - USAGE.md
+
+  - id: copilot-alert
+    ids: [copilot-alert]
+    name_template: "copilot-alert_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - USAGE.md
+
+  - id: copilot-budget-mcp
+    ids: [copilot-budget-mcp]
+    name_template: "copilot-budget-mcp_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - USAGE.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256

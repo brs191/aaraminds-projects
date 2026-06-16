@@ -1,0 +1,42 @@
+{
+  "_scenario": "NIC with EffectiveSecurityRules=[] (empty — Network Watcher returned no effective rules) plus public IP and internet route. With no effective allow rules the engine produces no NSG findings (no rules to match). The public IP is attached to the NIC (not orphaned). Expected: zero findings.",
+  "subscription": "sub-eval-14",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "test-vnet",
+        "addressSpace": ["10.6.0.0/16"],
+        "subnets": [{"name": "default", "addressPrefix": "10.6.0.0/24"}],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-empty-nsg", "ipAddress": "52.1.2.3", "ipConfiguration": "nic-empty-nsg"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-empty-nsg",
+        "subnet": "test-vnet/default",
+        "privateIp": "10.6.0.4",
+        "publicIp": "pip-empty-nsg",
+        "tags": {}
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-empty-nsg": []
+    },
+    "effectiveRoutes": {
+      "nic-empty-nsg": [
+        {"addressPrefix": "10.6.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

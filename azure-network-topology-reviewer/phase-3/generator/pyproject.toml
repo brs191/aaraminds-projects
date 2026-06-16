@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "att-nettopo-generator"
+version = "0.1.0"
+description = "AT&T Network Topology Reviewer — Phase 3 intent capture layer"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "mypy>=1.10",
+]
+
+# ---------------------------------------------------------------------------
+# Package discovery
+# ---------------------------------------------------------------------------
+# The package root IS the phase-3/generator/ directory (same directory as
+# this pyproject.toml).  We tell setuptools to scan the *parent* directory
+# so it discovers the "generator" package at the right path.
+
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["generator*"]
+exclude = ["generator.tests*"]
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# Suppress deprecation noise from test dependencies
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+# ---------------------------------------------------------------------------
+# mypy (strict)
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+# Pydantic v2 ships a mypy plugin; register it for accurate model inference.
+plugins = ["pydantic.mypy"]
+# Third-party stubs may be partial — allow missing stubs rather than blocking CI.
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "generator.tests.*"
+# Tests use Any liberally for mock return values; relax strict checks there.
+disallow_untyped_defs = false
+disallow_any_generics = false

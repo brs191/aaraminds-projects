@@ -1,0 +1,53 @@
+{
+  "_scenario": "Route 0.0.0.0/0->VirtualAppliance (NVA). NIC has public IP and NSG allows 0.0.0.0/0:443 inbound — but effective route for 0.0.0.0/0 points to a VirtualAppliance (NVA), not Internet. Expected: over-permissive NSG (latent) Informational. NOT expected: no High reachable finding.",
+  "subscription": "sub-eval-08",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "spoke-vnet",
+        "addressSpace": ["10.1.0.0/16"],
+        "subnets": [{"name": "app-subnet", "addressPrefix": "10.1.0.0/24"}],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-vm-nva", "ipAddress": "20.1.2.3", "ipConfiguration": "nic-vm-nva-path"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-vm-nva-path",
+        "subnet": "spoke-vnet/app-subnet",
+        "privateIp": "10.1.0.4",
+        "publicIp": "pip-vm-nva",
+        "tags": {}
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-vm-nva-path": [
+        {
+          "name": "allow-https",
+          "priority": 1000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "0.0.0.0/0",
+          "destinationPortRange": "443",
+          "source": "nsg-app"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-vm-nva-path": [
+        {"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.1"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "fixture": "eval-fixture-12.json",
+  "expected_findings": [],
+  "trap_assertions": [
+    { "resource": "any", "must_not_have": "any finding — well-configured hub-spoke: NICs have no public IPs, routes go to Firewall, AKS is private, DNS zones correctly linked, no orphaned PIPs" }
+  ]
+}

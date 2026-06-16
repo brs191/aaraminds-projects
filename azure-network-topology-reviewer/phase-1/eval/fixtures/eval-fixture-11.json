@@ -1,0 +1,61 @@
+{
+  "_scenario": "AllowVnetInBound (priority 65000) + explicit DenyVnetInBound (priority 4000, higher priority wins). Source is VirtualNetwork — not an internet source — so the NSG internet-reachability checks do NOT fire. No public IP, no sensitive tag. Expected: zero findings. The deny-wins-by-priority logic for VNet sources is implicitly validated by the absence of any missing-tier-segmentation finding when denyVnet=true.",
+  "subscription": "sub-eval-11",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "secure-vnet",
+        "addressSpace": ["10.3.0.0/16"],
+        "subnets": [{"name": "app-subnet", "addressPrefix": "10.3.0.0/24"}],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      {
+        "name": "nic-secure",
+        "subnet": "secure-vnet/app-subnet",
+        "privateIp": "10.3.0.4",
+        "publicIp": null,
+        "tags": {}
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-secure": [
+        {
+          "name": "DenyVnetInBound",
+          "priority": 4000,
+          "direction": "Inbound",
+          "access": "Deny",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "VirtualNetwork",
+          "destinationPortRange": "22",
+          "source": "nsg-secure"
+        },
+        {
+          "name": "AllowVnetInBound",
+          "priority": 65000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "*",
+          "sourceAddressPrefix": "VirtualNetwork",
+          "destinationPortRange": "*",
+          "source": "default"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-secure": [
+        {"addressPrefix": "10.3.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.3.0.1"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

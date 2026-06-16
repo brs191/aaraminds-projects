@@ -1,0 +1,112 @@
+{
+  "_scenario": "Mixed severity topology. nic-critical: sensitive=true tag, public IP, NSG allows Any:22 inbound, route->Internet -> Critical. nic-high: public IP, NSG allows Any:3389 inbound, route->Internet -> High. aks-public: non-private AKS cluster -> Medium (AKS non-private cluster). nic-info: NSG allows Any:22 but no public IP and route->VirtualAppliance -> Informational (latent).",
+  "subscription": "sub-eval-09",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "mixed-vnet",
+        "addressSpace": ["10.5.0.0/16"],
+        "subnets": [
+          {"name": "critical-subnet", "addressPrefix": "10.5.0.0/24"},
+          {"name": "high-subnet", "addressPrefix": "10.5.1.0/24"},
+          {"name": "info-subnet", "addressPrefix": "10.5.2.0/24"},
+          {"name": "aks-subnet", "addressPrefix": "10.5.3.0/24"}
+        ],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-critical", "ipAddress": "20.10.1.1", "ipConfiguration": "nic-critical"},
+      {"name": "pip-high", "ipAddress": "20.10.1.2", "ipConfiguration": "nic-high"}
+    ],
+    "networkInterfaces": [
+      {
+        "name": "nic-critical",
+        "subnet": "mixed-vnet/critical-subnet",
+        "privateIp": "10.5.0.4",
+        "publicIp": "pip-critical",
+        "tags": {"sensitive": "true"}
+      },
+      {
+        "name": "nic-high",
+        "subnet": "mixed-vnet/high-subnet",
+        "privateIp": "10.5.1.4",
+        "publicIp": "pip-high",
+        "tags": {}
+      },
+      {
+        "name": "nic-info",
+        "subnet": "mixed-vnet/info-subnet",
+        "privateIp": "10.5.2.4",
+        "publicIp": null,
+        "tags": {}
+      }
+    ],
+    "aksClusters": [
+      {
+        "name": "aks-public",
+        "subnet": "mixed-vnet/aks-subnet",
+        "isPrivateCluster": false
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-critical": [
+        {
+          "name": "allow-ssh-any",
+          "priority": 1000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "0.0.0.0/0",
+          "destinationPortRange": "22",
+          "source": "nsg-critical"
+        }
+      ],
+      "nic-high": [
+        {
+          "name": "allow-rdp-any",
+          "priority": 1000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "0.0.0.0/0",
+          "destinationPortRange": "3389",
+          "source": "nsg-high"
+        }
+      ],
+      "nic-info": [
+        {
+          "name": "allow-ssh-any",
+          "priority": 1000,
+          "direction": "Inbound",
+          "access": "Allow",
+          "protocol": "Tcp",
+          "sourceAddressPrefix": "0.0.0.0/0",
+          "destinationPortRange": "22",
+          "source": "nsg-info"
+        }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-critical": [
+        {"addressPrefix": "10.5.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}
+      ],
+      "nic-high": [
+        {"addressPrefix": "10.5.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}
+      ],
+      "nic-info": [
+        {"addressPrefix": "10.5.0.0/16", "nextHopType": "VnetLocal"},
+        {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.5.0.1"}
+      ]
+    }
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

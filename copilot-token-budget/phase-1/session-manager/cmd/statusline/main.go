@@ -11,6 +11,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 
@@ -19,7 +20,22 @@ import (
 	"github.com/aaraminds/copilot-session-manager/internal/session"
 )
 
+// Build-time version metadata, injected via -ldflags "-X main.version=...".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version information and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("copilot-statusline %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
+
 	// Pricing: fall back to bundled defaults on any error so the line still renders.
 	cfg, err := pricing.Load()
 	if err != nil {

@@ -1,0 +1,10 @@
+{
+  "fixture": "fixture-f7-appgw-waf-disabled.json",
+  "expected_findings": [
+    { "type": "app gateway WAF disabled", "severity": "Medium", "resource": "appgw-prod" },
+    { "type": "app gateway WAF in detection mode", "severity": "Informational", "resource": "appgw-staging" }
+  ],
+  "trap_assertions": [
+    { "resource": "appgw-internal", "must_not_have": "any WAF finding — internal gateway has no public IP" }
+  ]
+}

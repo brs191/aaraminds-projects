@@ -1,0 +1,316 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Azure Network Topology (HLD)" id="phase4-topo">
+    <mxGraphModel dx="1422" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="internet" value="🌐 Internet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="fw:afw-hub-0" value="🔥 Firewall&lt;br&gt;afw-hub-0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="280" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:vpngw-hub-00" value="🔗 VPN GW&lt;br&gt;vpngw-hub-00" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="540" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:ergw-hub-00" value="🔗 ER GW&lt;br&gt;ergw-hub-00" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="800" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:vpngw-hub-01" value="🔗 VPN GW&lt;br&gt;vpngw-hub-01" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:vpngw-hub-02" value="🔗 VPN GW&lt;br&gt;vpngw-hub-02" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="er:er-circuit-att" value="ExpressRoute&lt;br&gt;er-circuit-att" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1580" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="natgw:natgw-shared" value="🔗 NAT GW&lt;br&gt;natgw-shared" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1850" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pip:pip-orphan-01" value="🔵 Public IP&lt;br&gt;pip-orphan-01&lt;br&gt;20.99.99.99" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="40" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:hub-00" value="hub-00&lt;br&gt;[sub-conn-00]&lt;br&gt;10.0.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:hub-01" value="hub-01&lt;br&gt;[sub-conn-01]&lt;br&gt;10.1.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:hub-02" value="hub-02&lt;br&gt;[sub-conn-02]&lt;br&gt;10.2.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-04" value="spoke-04&lt;br&gt;[sub-wl-03]&lt;br&gt;10.20.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-03" value="spoke-03&lt;br&gt;[sub-wl-04]&lt;br&gt;10.19.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-05" value="spoke-05&lt;br&gt;[sub-wl-03]&lt;br&gt;10.21.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1940" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-00" value="spoke-00&lt;br&gt;[sub-wl-00]&lt;br&gt;10.16.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2320" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-02" value="spoke-02&lt;br&gt;[sub-wl-00]&lt;br&gt;10.18.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2700" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-06" value="spoke-06&lt;br&gt;[sub-wl-02]&lt;br&gt;10.22.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="3080" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-10" value="spoke-10&lt;br&gt;[sub-wl-01]&lt;br&gt;10.26.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="3460" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-11" value="spoke-11&lt;br&gt;[sub-wl-00]&lt;br&gt;10.27.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="3840" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-15" value="spoke-15&lt;br&gt;[sub-wl-04]&lt;br&gt;10.31.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="4220" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-17" value="spoke-17&lt;br&gt;[sub-wl-00]&lt;br&gt;10.33.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="4600" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-18" value="spoke-18&lt;br&gt;[sub-wl-03]&lt;br&gt;10.34.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="4980" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-20" value="spoke-20&lt;br&gt;[sub-wl-02]&lt;br&gt;10.36.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="5360" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-21" value="spoke-21&lt;br&gt;[sub-wl-00]&lt;br&gt;10.37.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="5740" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-28" value="spoke-28&lt;br&gt;[sub-wl-04]&lt;br&gt;10.44.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="6120" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-01" value="spoke-01&lt;br&gt;[sub-wl-00]&lt;br&gt;10.17.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="6500" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-07" value="spoke-07&lt;br&gt;[sub-wl-04]&lt;br&gt;10.23.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="6880" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-08" value="spoke-08&lt;br&gt;[sub-wl-00]&lt;br&gt;10.24.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="7260" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-09" value="spoke-09&lt;br&gt;[sub-wl-04]&lt;br&gt;10.25.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="7640" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-12" value="spoke-12&lt;br&gt;[sub-wl-01]&lt;br&gt;10.28.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="8020" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-13" value="spoke-13&lt;br&gt;[sub-wl-00]&lt;br&gt;10.29.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="8400" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-14" value="spoke-14&lt;br&gt;[sub-wl-01]&lt;br&gt;10.30.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="8780" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-16" value="spoke-16&lt;br&gt;[sub-wl-01]&lt;br&gt;10.32.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="9160" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-19" value="spoke-19&lt;br&gt;[sub-wl-02]&lt;br&gt;10.35.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="9540" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-22" value="spoke-22&lt;br&gt;[sub-wl-00]&lt;br&gt;10.38.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="9920" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-23" value="spoke-23&lt;br&gt;[sub-wl-02]&lt;br&gt;10.39.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10300" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-24" value="spoke-24&lt;br&gt;[sub-wl-04]&lt;br&gt;10.40.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10680" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-25" value="spoke-25&lt;br&gt;[sub-wl-02]&lt;br&gt;10.41.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="11060" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-26" value="spoke-26&lt;br&gt;[sub-wl-02]&lt;br&gt;10.42.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="11440" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-27" value="spoke-27&lt;br&gt;[sub-wl-00]&lt;br&gt;10.43.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="11820" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-29" value="spoke-29&lt;br&gt;[sub-wl-04]&lt;br&gt;10.45.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="12200" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:shared-00" value="↗ shared-00&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:shared-02" value="↗ shared-02&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="260" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:shared-06" value="↗ shared-06&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="480" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:shared-07" value="↗ shared-07&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend — severity&lt;/b&gt;&lt;br&gt;🔴 Critical&lt;br&gt;🟠 High&lt;br&gt;🟡 Medium&lt;br&gt;🔵 Info&lt;br&gt;🟢 Clean&lt;br&gt;&lt;br&gt;&lt;b&gt;Structural&lt;/b&gt;&lt;br&gt;⬜ grey = infrastructure (unscored)" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="12620" y="40" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:1" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:2" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-03">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:3" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-06">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:4" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-09">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:5" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:6" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:7" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:8" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:9" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:10" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-00" target="vnet:spoke-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:11" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:12" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:13" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-07">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:14" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:15" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:16" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:17" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:18" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:19" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:20" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-01" target="vnet:spoke-28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:21" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:22" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-05">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:23" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-08">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:24" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:25" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:26" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:27" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:28" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:29" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:30" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-02" target="vnet:spoke-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:31" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-00" target="vnet:spoke-03">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:32" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-02" target="vnet:spoke-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:33" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-03" target="vnet:spoke-06">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:34" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-04" target="vnet:spoke-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:35" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-04" target="vnet:spoke-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:36" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-05" target="vnet:spoke-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:37" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-05" target="vnet:spoke-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:38" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-10" target="vnet:spoke-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:39" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-11" target="vnet:spoke-28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:40" value="x-sub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;dashed=1;" edge="1" parent="1" source="vnet:spoke-00" target="ext:shared-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:41" value="x-sub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;dashed=1;" edge="1" parent="1" source="vnet:spoke-02" target="ext:shared-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:42" value="x-sub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;dashed=1;" edge="1" parent="1" source="vnet:spoke-06" target="ext:shared-06">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:43" value="x-sub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;dashed=1;" edge="1" parent="1" source="vnet:spoke-07" target="ext:shared-07">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:44" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:45" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:46" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:47" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-09">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:48" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:49" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:50" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="vnet:spoke-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:51" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:vpngw-hub-00" target="vnet:hub-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:52" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:ergw-hub-00" target="vnet:hub-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:53" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:vpngw-hub-01" target="vnet:hub-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:54" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:vpngw-hub-02" target="vnet:hub-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fwlink:55" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="fw:afw-hub-0" target="vnet:hub-00">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

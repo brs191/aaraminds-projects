@@ -29,10 +29,23 @@ import (
 	forecastpkg "github.com/aaraminds/copilot-session-manager/phase3/internal/forecast"
 )
 
+// Build-time version metadata, injected via -ldflags "-X main.version=...".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	dryRun := flag.Bool("dry-run", false, "print card JSON to stdout instead of posting")
 	allowance := flag.Int("allowance", 7000, "monthly credit allowance")
+	showVersion := flag.Bool("version", false, "print version information and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("copilot-alert %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
 
 	if flag.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "usage: alert [--dry-run] [--allowance N] <workspace-root>")

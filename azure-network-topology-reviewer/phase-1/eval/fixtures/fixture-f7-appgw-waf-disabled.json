@@ -1,0 +1,48 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Application Gateway with WAF disabled and a second APP GW with WAF in Detection mode. Expected findings: 1x 'app gateway WAF disabled' (Medium) for appgw-prod, 1x 'app gateway WAF in detection mode' (Informational) for appgw-staging. An internal-only APP GW (no publicIp) generates no finding.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "hub-vnet", "addressSpace": ["10.0.0.0/16"], "subnets": [
+        {"name": "AppGatewaySubnet", "addressPrefix": "10.0.1.0/24"},
+        {"name": "AppGatewaySubnetStaging", "addressPrefix": "10.0.2.0/24"},
+        {"name": "AppGatewaySubnetInternal", "addressPrefix": "10.0.3.0/24"}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [
+      {"name": "pip-appgw-prod", "ipAddress": "20.10.10.1", "ipConfiguration": "appgw-prod/frontend"},
+      {"name": "pip-appgw-staging", "ipAddress": "20.10.10.2", "ipConfiguration": "appgw-staging/frontend"}
+    ],
+    "networkInterfaces": [],
+    "applicationGateways": [
+      {
+        "name": "appgw-prod",
+        "subnet": "hub-vnet/AppGatewaySubnet",
+        "publicIp": "20.10.10.1",
+        "wafEnabled": false,
+        "backendPools": [{"name": "be-pool-api", "targets": ["10.0.10.4", "10.0.10.5"]}]
+      },
+      {
+        "name": "appgw-staging",
+        "subnet": "hub-vnet/AppGatewaySubnetStaging",
+        "publicIp": "20.10.10.2",
+        "wafEnabled": true,
+        "wafMode": "Detection",
+        "backendPools": [{"name": "be-pool-staging", "targets": ["10.0.11.4"]}]
+      },
+      {
+        "name": "appgw-internal",
+        "subnet": "hub-vnet/AppGatewaySubnetInternal",
+        "wafEnabled": false,
+        "backendPools": [{"name": "be-pool-internal", "targets": ["10.0.12.4"]}]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {"securityAdminRules": []}
+}

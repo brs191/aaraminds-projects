@@ -1,0 +1,54 @@
+{
+  "_scenario": "Front Door in Prevention mode (no finding) + APIM in Internal mode (no finding). Front Door with WafEnabled=true and WafMode=Prevention is correctly secured. APIM with VNetMode=Internal is correctly locked down. Expected: ZERO findings.",
+  "subscription": "sub-eval-15",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "apim-vnet",
+        "addressSpace": ["10.7.0.0/16"],
+        "subnets": [
+          {"name": "apim-subnet", "addressPrefix": "10.7.0.0/24"}
+        ],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [],
+    "apiManagements": [
+      {
+        "name": "apim-internal",
+        "subnet": "apim-vnet/apim-subnet",
+        "publicIp": "",
+        "vnetMode": "Internal",
+        "gatewayUrl": "https://apim-internal.azure-api.net",
+        "hasWafFrontEnd": false,
+        "skuName": "Premium"
+      }
+    ],
+    "azureFrontDoors": [
+      {
+        "name": "fd-prevention-mode",
+        "sku": "Premium_AzureFrontDoor",
+        "wafEnabled": true,
+        "wafMode": "Prevention",
+        "endpoints": [
+          {
+            "name": "ep-secure",
+            "hostname": "secure-app.z01.azurefd.net",
+            "wafPolicyId": "/subscriptions/sub-eval-15/resourceGroups/rg-waf/providers/Microsoft.Network/frontDoorWebApplicationFirewallPolicies/waf-prevention",
+            "enabled": true
+          }
+        ]
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {
+    "securityAdminRules": []
+  }
+}

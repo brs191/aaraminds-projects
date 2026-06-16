@@ -1,0 +1,1074 @@
+{
+  "date": "2026-06-12T17:57:55 UTC",
+  "overall_status": "PASS",
+  "gates": {
+    "precision_overall": {
+      "threshold": 0.95,
+      "actual": 1.0,
+      "passed": true
+    },
+    "recall_high_critical": {
+      "threshold": 0.9,
+      "actual": 1.0,
+      "passed": true
+    },
+    "recall_medium": {
+      "threshold": 0.8,
+      "actual": 1.0,
+      "passed": true
+    }
+  },
+  "summary": {
+    "fixtures_total": 23,
+    "fixtures_passed": 23,
+    "fixtures_failed": 0
+  },
+  "aggregates": {
+    "overall": {
+      "tp": 52,
+      "fp": 0,
+      "fn": 0
+    },
+    "high_critical": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 0
+    },
+    "medium": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "fixtures": [
+    {
+      "fixture": "eval-fixture-10.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend-normal",
+          "evidence": "firewall DNAT 20.80.0.1:8443 -> 10.2.0.5:443 (source [*]); no public IP on the NIC",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend-sensitive",
+          "evidence": "firewall DNAT 20.80.0.1:443 -> 10.2.0.4:443 (source [*]); no public IP on the NIC",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend-sensitive"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend-normal"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-11.json",
+      "passed": true,
+      "score": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [],
+      "expected_findings": [],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-12.json",
+      "passed": true,
+      "score": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [],
+      "expected_findings": [],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-13.json",
+      "passed": true,
+      "score": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [],
+      "expected_findings": [],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-14.json",
+      "passed": true,
+      "score": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [],
+      "expected_findings": [],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-15.json",
+      "passed": true,
+      "score": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [],
+      "expected_findings": [],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-6.json",
+      "passed": true,
+      "score": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-a",
+          "evidence": "public IP 1.1.1.1 with null ipConfiguration",
+          "reachable": false
+        },
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-b",
+          "evidence": "public IP 2.2.2.2 with null ipConfiguration",
+          "reachable": false
+        },
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-c",
+          "evidence": "public IP 3.3.3.3 with null ipConfiguration",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-a"
+        },
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-b"
+        },
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-c"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-7.json",
+      "passed": true,
+      "score": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-avnm",
+          "evidence": "0.0.0.0/0:22 inbound but AVNM Deny closes the Internet source (east-west may remain open)",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-avnm"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-8.json",
+      "passed": true,
+      "score": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nva-path",
+          "evidence": "0.0.0.0/0:443 inbound but route 0.0.0.0/0->VirtualAppliance",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nva-path"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "eval-fixture-9.json",
+      "passed": true,
+      "score": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "AKS non-private cluster",
+          "severity": "Medium",
+          "resource": "aks-public",
+          "evidence": "AKS cluster \"aks-public\" is not a private cluster \u2014 API server is reachable from the public internet; use a private cluster with a private endpoint for production workloads",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "Critical",
+          "resource": "nic-critical",
+          "evidence": "0.0.0.0/0:22 inbound + route 0.0.0.0/0->Internet + public IP pip-critical",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-high",
+          "evidence": "0.0.0.0/0:3389 inbound + route 0.0.0.0/0->Internet + public IP pip-high",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-info",
+          "evidence": "0.0.0.0/0:22 inbound but no public IP; route 0.0.0.0/0->VirtualAppliance",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "Critical",
+          "resource": "nic-critical"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-high"
+        },
+        {
+          "type": "AKS non-private cluster",
+          "severity": "Medium",
+          "resource": "aks-public"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-info"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-1-internet-exposure.json",
+      "passed": true,
+      "score": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-web-a",
+          "evidence": "0.0.0.0/0:22 inbound + route 0.0.0.0/0->Internet + public IP pip-vm-web-a",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-web-b",
+          "evidence": "0.0.0.0/0:22 inbound but no public IP; route 0.0.0.0/0->VirtualAppliance",
+          "reachable": false
+        },
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-01",
+          "evidence": "public IP 20.51.10.99 with null ipConfiguration",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "orphaned public endpoint",
+          "severity": "Low",
+          "resource": "pip-orphan-01"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-web-a"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-web-b"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-2-segmentation-peering.json",
+      "passed": true,
+      "score": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "missing tier segmentation",
+          "severity": "High",
+          "resource": "nic-db1",
+          "evidence": "sensitive subnet reachable VNet-wide via default AllowVnetInBound (no DenyVnetInBound above priority 65000)",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "missing tier segmentation",
+          "severity": "High",
+          "resource": "nic-db1"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-3-cidr-avnm.json",
+      "passed": true,
+      "score": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-edge1",
+          "evidence": "0.0.0.0/0:443 inbound + route 0.0.0.0/0->Internet + public IP pip-edge (AVNM AlwaysAllow overrides NSG)",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-mgmt1",
+          "evidence": "0.0.0.0/0:3389 inbound but AVNM Deny closes the Internet source (east-west may remain open)",
+          "reachable": false
+        },
+        {
+          "type": "CIDR overlap",
+          "severity": "Medium",
+          "resource": "ov-a-vnet~ov-b-vnet",
+          "evidence": "overlapping address space 10.10.0.0/16 / 10.10.0.0/16",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-edge1"
+        },
+        {
+          "type": "CIDR overlap",
+          "severity": "Medium",
+          "resource": "ov-a-vnet~ov-b-vnet"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-mgmt1"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f10-elb-nat.json",
+      "passed": true,
+      "score": {
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-backend",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "internet reachable via load balancer NAT",
+          "severity": "High",
+          "resource": "nic-vm-dmz1",
+          "evidence": "load balancer \"elb-dmz\" NAT rule \"nat-ssh-vm1\" forwards public IP 20.100.10.1:22 \u2192 NIC \"nic-vm-dmz1\":22 \u2014 NIC is internet-reachable without a direct public IP",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-dmz1",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "internet reachable via load balancer NAT",
+          "severity": "High",
+          "resource": "nic-vm-dmz2",
+          "evidence": "load balancer \"elb-dmz\" NAT rule \"nat-rdp-vm2\" forwards public IP 20.100.10.1:3389 \u2192 NIC \"nic-vm-dmz2\":3389 \u2014 NIC is internet-reachable without a direct public IP",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-dmz2",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "internet reachable via load balancer NAT",
+          "severity": "High",
+          "resource": "nic-vm-dmz1"
+        },
+        {
+          "type": "internet reachable via load balancer NAT",
+          "severity": "High",
+          "resource": "nic-vm-dmz2"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-backend"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-dmz1"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-dmz2"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f11-apim-exposure.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "APIM External mode without WAF",
+          "severity": "Medium",
+          "resource": "apim-external",
+          "evidence": "API Management \"apim-external\" is VNet-injected in External mode (public endpoint 20.50.10.1) with no WAF upstream \u2014 API traffic reaches the gateway without L7 inspection",
+          "reachable": true
+        },
+        {
+          "type": "APIM without VNet isolation",
+          "severity": "Medium",
+          "resource": "apim-public",
+          "evidence": "API Management \"apim-public\" is deployed without VNet injection (mode=None) \u2014 gateway is publicly accessible and backend API calls bypass network controls",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "APIM External mode without WAF",
+          "severity": "Medium",
+          "resource": "apim-external"
+        },
+        {
+          "type": "APIM without VNet isolation",
+          "severity": "Medium",
+          "resource": "apim-public"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f12-bastion-bypass.json",
+      "passed": true,
+      "score": {
+        "tp": 10,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "Bastion bypass \u2014 direct management port exposed",
+          "severity": "High",
+          "resource": "nic-vm-exposed",
+          "evidence": "Azure Bastion is deployed but NIC \"nic-vm-exposed\" has public IP pip-vm-exposed with port 22 open from internet \u2014 Bastion is intended to be the exclusive management ingress",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-exposed",
+          "evidence": "*:* inbound but not reachable",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-exposed",
+          "evidence": "0.0.0.0/0:22 inbound + route 0.0.0.0/0->Internet + public IP pip-vm-exposed",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nopip",
+          "evidence": "0.0.0.0/0:22 inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nopip",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "Bastion bypass \u2014 direct management port exposed",
+          "severity": "High",
+          "resource": "nic-vm-rdp",
+          "evidence": "Azure Bastion is deployed but NIC \"nic-vm-rdp\" has public IP pip-vm-rdp with port 3389 open from internet \u2014 Bastion is intended to be the exclusive management ingress",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-rdp",
+          "evidence": "*:* inbound but not reachable",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-rdp",
+          "evidence": "Internet:3389 inbound + route 0.0.0.0/0->Internet + public IP pip-vm-rdp",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-safe",
+          "evidence": "*:* inbound but not reachable",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-safe",
+          "evidence": "0.0.0.0/0:443 inbound + route 0.0.0.0/0->Internet + public IP pip-vm-safe",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "Bastion bypass \u2014 direct management port exposed",
+          "severity": "High",
+          "resource": "nic-vm-exposed"
+        },
+        {
+          "type": "Bastion bypass \u2014 direct management port exposed",
+          "severity": "High",
+          "resource": "nic-vm-rdp"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-exposed"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-rdp"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-vm-safe"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-exposed"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nopip"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-nopip"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-rdp"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-safe"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f13-vwan-unsecured.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "vWAN hub firewall bypasses private traffic",
+          "severity": "Medium",
+          "resource": "hub-eastus",
+          "evidence": "Virtual WAN hub \"hub-eastus\" has a secured firewall but RoutingPolicyPrivate=false \u2014 spoke-to-spoke (east-west) traffic bypasses the firewall; only internet-bound traffic is inspected",
+          "reachable": false
+        },
+        {
+          "type": "vWAN hub unsecured \u2014 no firewall",
+          "severity": "Medium",
+          "resource": "hub-westus",
+          "evidence": "Virtual WAN hub \"hub-westus\" has 2 spoke connection(s) but no secured Azure Firewall \u2014 all spoke-to-spoke and spoke-to-internet traffic is forwarded without inspection",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "vWAN hub unsecured \u2014 no firewall",
+          "severity": "Medium",
+          "resource": "hub-westus"
+        },
+        {
+          "type": "vWAN hub firewall bypasses private traffic",
+          "severity": "Medium",
+          "resource": "hub-eastus"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f14-frontdoor-waf.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "Front Door WAF in detection mode",
+          "severity": "Informational",
+          "resource": "fd-detection-mode",
+          "evidence": "Azure Front Door \"fd-detection-mode\" WAF is enabled but in Detection mode \u2014 threats are logged but not blocked; switch to Prevention for active protection",
+          "reachable": false
+        },
+        {
+          "type": "Front Door WAF disabled",
+          "severity": "Medium",
+          "resource": "fd-no-waf",
+          "evidence": "Azure Front Door \"fd-no-waf\" has no WAF policy enabled \u2014 all internet-facing endpoints lack L7 protection (OWASP Top 10, DDoS at app layer)",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "Front Door WAF disabled",
+          "severity": "Medium",
+          "resource": "fd-no-waf"
+        },
+        {
+          "type": "Front Door WAF in detection mode",
+          "severity": "Informational",
+          "resource": "fd-detection-mode"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f6-pe-dns-misconfiguration.json",
+      "passed": true,
+      "score": {
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-pe-storage-a",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-pe-storage-c",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-spoke-a",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-spoke-b",
+          "evidence": "*:* inbound but no public IP",
+          "reachable": false
+        },
+        {
+          "type": "private DNS zone not linked to VNet",
+          "severity": "High",
+          "resource": "pe-storage-a",
+          "evidence": "Private endpoint \"pe-storage-a\" (service: blob) is in VNet \"spoke-a-vnet\" but zone \"privatelink.blob.core.windows.net\" is not linked to that VNet \u2014 workloads in \"spoke-a-vnet\" resolve this service via public DNS, bypassing the private endpoint",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "private DNS zone not linked to VNet",
+          "severity": "High",
+          "resource": "pe-storage-a"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-pe-storage-a"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-pe-storage-c"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-spoke-a"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-vm-spoke-b"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f7-appgw-waf-disabled.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "app gateway WAF disabled",
+          "severity": "Medium",
+          "resource": "appgw-prod",
+          "evidence": "Application Gateway \"appgw-prod\" has public IP 20.10.10.1 but WAF is disabled \u2014 no L7 protection on public ingress",
+          "reachable": true
+        },
+        {
+          "type": "app gateway WAF in detection mode",
+          "severity": "Informational",
+          "resource": "appgw-staging",
+          "evidence": "Application Gateway \"appgw-staging\" WAF is enabled but in Detection mode \u2014 threats are logged but not blocked",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "app gateway WAF disabled",
+          "severity": "Medium",
+          "resource": "appgw-prod"
+        },
+        {
+          "type": "app gateway WAF in detection mode",
+          "severity": "Informational",
+          "resource": "appgw-staging"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-f8-aks-and-crosssub-peering.json",
+      "passed": true,
+      "score": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "AKS non-private cluster",
+          "severity": "Medium",
+          "resource": "aks-public",
+          "evidence": "AKS cluster \"aks-public\" is not a private cluster \u2014 API server is reachable from the public internet; use a private cluster with a private endpoint for production workloads",
+          "reachable": true
+        },
+        {
+          "type": "cross-subscription peering without firewall",
+          "severity": "Medium",
+          "resource": "spoke-a-vnet~remote-vnet",
+          "evidence": "VNet \"spoke-a-vnet\" and \"remote-vnet\" (sub sub-remote-99) are directly peered across subscriptions with no hub firewall in path \u2014 lateral movement between subscriptions is unrestricted",
+          "reachable": false
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "AKS non-private cluster",
+          "severity": "Medium",
+          "resource": "aks-public"
+        },
+        {
+          "type": "cross-subscription peering without firewall",
+          "severity": "Medium",
+          "resource": "spoke-a-vnet~remote-vnet"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-h1-dnat-multihop.json",
+      "passed": true,
+      "score": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend1",
+          "evidence": "firewall DNAT 20.70.0.10:443 -> 10.8.1.4:443 (source [*]); no public IP on the NIC",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-backend1"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    },
+    {
+      "fixture": "fixture-h2-blackhole-tags.json",
+      "passed": true,
+      "score": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "engine_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-api",
+          "evidence": "AzureCloud:443 inbound + route 0.0.0.0/0->Internet + public IP pip-api \u2014 AzureCloud tag = all Azure public IPs, cross-tenant",
+          "reachable": true
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-dark",
+          "evidence": "0.0.0.0/0:22 inbound but route 0.0.0.0/0->None (black-hole)",
+          "reachable": false
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-edge",
+          "evidence": "Internet:443 inbound + route 0.0.0.0/0->Internet + public IP pip-edge",
+          "reachable": true
+        }
+      ],
+      "expected_findings": [
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-api"
+        },
+        {
+          "type": "over-permissive NSG (reachable)",
+          "severity": "High",
+          "resource": "nic-edge"
+        },
+        {
+          "type": "over-permissive NSG (latent)",
+          "severity": "Informational",
+          "resource": "nic-dark"
+        }
+      ],
+      "fp_findings": [],
+      "fn_findings": []
+    }
+  ],
+  "errors": []
+}

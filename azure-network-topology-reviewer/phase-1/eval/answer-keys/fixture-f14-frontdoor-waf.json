@@ -1,0 +1,10 @@
+{
+  "fixture": "fixture-f14-frontdoor-waf.json",
+  "expected_findings": [
+    { "type": "Front Door WAF disabled", "severity": "Medium", "resource": "fd-no-waf" },
+    { "type": "Front Door WAF in detection mode", "severity": "Informational", "resource": "fd-detection-mode" }
+  ],
+  "trap_assertions": [
+    { "resource": "fd-prevention-mode", "must_not_have": "any Front Door finding — WAF in Prevention mode is correctly secured" }
+  ]
+}

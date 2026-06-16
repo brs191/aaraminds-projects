@@ -1,0 +1,11 @@
+{
+  "fixture": "fixture-h2-blackhole-tags.json",
+  "expected_findings": [
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-api" },
+    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-edge" },
+    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-dark" }
+  ],
+  "trap_assertions": [
+    { "resource": "nic-dark", "must_not_have": "reachable High — route 0.0.0.0/0->None (black-hole) blocks internet path" }
+  ]
+}

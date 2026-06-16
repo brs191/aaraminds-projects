@@ -4,7 +4,7 @@ This is the engine the whole project pointed at: the part that computes network 
 
 ## What's here, and why it's Python
 
-`reference/analyze.py` is the deterministic analysis core, with `reference/test_analyze.py` running it against the real eval fixtures. **The sandbox has no Go toolchain**, so this is a stdlib-only **reference implementation** — the executable spec and test oracle that the production Go engine (`engine-plan.md`) is a direct port of. Go stays the production stack; this proves the algorithm is correct first, so the port is mechanical and verified-by-twin.
+`reference/analyze.py` is the deterministic analysis core, with `reference/test_analyze.py` running it against the real eval fixtures. This is a stdlib-only **reference implementation** — the executable spec and test oracle that the production Go engine (`engine/go/`) is a direct port of. Go stays the production stack; this proves the algorithm is correct first, so the port is mechanical and verified-by-twin.
 
 ## It's proven — 5/5 golden tests on real fixtures
 

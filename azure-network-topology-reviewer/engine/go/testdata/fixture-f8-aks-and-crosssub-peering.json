@@ -1,0 +1,50 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Two AKS clusters — one private (safe), one non-private (finding). Plus a cross-subscription VNet peering without a hub firewall (finding). Expected findings: 1x 'AKS non-private cluster' (Medium) for aks-public, 1x 'cross-subscription peering without firewall' (Medium) for spoke-a-vnet~remote-vnet.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "spoke-a-vnet", "addressSpace": ["10.1.0.0/16"], "subnets": [
+        {"name": "aks-system", "addressPrefix": "10.1.1.0/24"},
+        {"name": "aks-private-system", "addressPrefix": "10.1.2.0/24"}
+      ], "peerings": [
+        {"remoteVnet": "remote-vnet", "remoteSubscriptionId": "sub-remote-99", "state": "Connected", "allowForwardedTraffic": true}
+      ]}
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [],
+    "aksClusters": [
+      {
+        "name": "aks-public",
+        "subnet": "spoke-a-vnet/aks-system",
+        "podCidr": "192.168.0.0/16",
+        "serviceCidr": "172.16.0.0/16",
+        "isPrivateCluster": false
+      },
+      {
+        "name": "aks-private",
+        "subnet": "spoke-a-vnet/aks-private-system",
+        "podCidr": "192.168.128.0/17",
+        "serviceCidr": "172.16.128.0/17",
+        "isPrivateCluster": true,
+        "apiServerIp": "10.1.2.100"
+      }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {},
+    "effectiveRoutes": {}
+  },
+  "avnm": {"securityAdminRules": []},
+  "crossSubscriptionPeerings": [
+    {
+      "localVnet": "spoke-a-vnet",
+      "remoteVnet": "remote-vnet",
+      "remoteSubscriptionId": "sub-remote-99",
+      "state": "Connected",
+      "allowForwardedTraffic": true,
+      "hasHubFirewall": false
+    }
+  ]
+}

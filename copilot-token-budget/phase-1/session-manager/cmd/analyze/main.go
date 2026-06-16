@@ -12,6 +12,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -25,10 +26,23 @@ import (
 	"github.com/aaraminds/copilot-session-manager/internal/session"
 )
 
+// Build-time version metadata, injected via -ldflags "-X main.version=...".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	jsonOut := flag.Bool("json", false, "print export.Report as JSON to stdout and exit (suppresses the ANSI report)")
 	csvOut := flag.Bool("csv", false, "print per-session CSV to stdout and exit (suppresses the ANSI report)")
+	showVersion := flag.Bool("version", false, "print version information and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("copilot-analyze %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
 
 	workspaceRoot, err := cli.ResolveWorkspaceRootFrom(flag.Args())
 	if err != nil {

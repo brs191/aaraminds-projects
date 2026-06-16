@@ -1,0 +1,25 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Azure Network Topology (HLD)" id="phase4-topo">
+    <mxGraphModel dx="1422" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vnet:vnet-east" value="vnet-east&lt;br&gt;[sub-prod-01]&lt;br&gt;10.50.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:vnet-west" value="vnet-west&lt;br&gt;[sub-prod-02]&lt;br&gt;10.50.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend — severity&lt;/b&gt;&lt;br&gt;🔴 Critical&lt;br&gt;🟠 High&lt;br&gt;🟡 Medium&lt;br&gt;🔵 Info&lt;br&gt;🟢 Clean&lt;br&gt;&lt;br&gt;&lt;b&gt;Structural&lt;/b&gt;&lt;br&gt;⬜ grey = infrastructure (unscored)" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="840" y="40" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:1" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:vnet-east" target="vnet:vnet-west">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cidr:2" value="CIDR overlap" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;endArrow=none;strokeColor=#d6b656;" edge="1" parent="1" source="vnet:vnet-east" target="vnet:vnet-west">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

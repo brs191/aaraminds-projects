@@ -1,0 +1,8 @@
+{
+  "fixture": "eval-fixture-14.json",
+  "expected_findings": [],
+  "trap_assertions": [
+    { "resource": "nic-empty-nsg", "must_not_have": "NSG finding — EffectiveSecurityRules=[] means no rules match; no allow rule exists to flag as permissive" },
+    { "resource": "pip-empty-nsg", "must_not_have": "orphaned endpoint finding — PIP is attached to nic-empty-nsg (ipConfiguration is non-null)" }
+  ]
+}

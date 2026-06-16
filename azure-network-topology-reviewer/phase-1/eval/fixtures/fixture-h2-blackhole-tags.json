@@ -1,0 +1,44 @@
+{
+  "subscription": "sub-prod-03",
+  "_scenario": "Three internet-facing subnets. One is a real exposure; one has a scary 0.0.0.0/0:22 rule but its default route is a UDR black-hole (None) so nothing reaches it; one allows 443 from the AzureCloud service tag, which is far broader (all Azure public IPs, cross-tenant) than it looks.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {"name": "svc-vnet", "addressSpace": ["10.9.0.0/16"], "subnets": [
+        {"name": "edge", "addressPrefix": "10.9.1.0/24", "networkSecurityGroup": "nsg-edge", "routeTable": null},
+        {"name": "darkpool", "addressPrefix": "10.9.2.0/24", "networkSecurityGroup": "nsg-darkpool", "routeTable": "rt-blackhole"},
+        {"name": "api", "addressPrefix": "10.9.3.0/24", "networkSecurityGroup": "nsg-api", "routeTable": null}
+      ], "peerings": []}
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-edge", "securityRules": [{"name": "allow-https", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "443"}], "associatedSubnets": ["svc-vnet/edge"]},
+      {"name": "nsg-darkpool", "securityRules": [{"name": "allow-ssh", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22"}], "associatedSubnets": ["svc-vnet/darkpool"]},
+      {"name": "nsg-api", "securityRules": [{"name": "allow-https-azurecloud", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "AzureCloud", "destinationPortRange": "443"}], "associatedSubnets": ["svc-vnet/api"]}
+    ],
+    "routeTables": [
+      {"name": "rt-blackhole", "routes": [{"name": "drop-default", "addressPrefix": "0.0.0.0/0", "nextHopType": "None"}], "associatedSubnets": ["svc-vnet/darkpool"]}
+    ],
+    "publicIPAddresses": [
+      {"name": "pip-edge", "ipAddress": "20.71.1.5", "ipConfiguration": "nic-edge/ipconfig1"},
+      {"name": "pip-dark", "ipAddress": "20.71.2.5", "ipConfiguration": "nic-dark/ipconfig1"},
+      {"name": "pip-api", "ipAddress": "20.71.3.5", "ipConfiguration": "nic-api/ipconfig1"}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-edge", "subnet": "svc-vnet/edge", "publicIp": "pip-edge", "privateIp": "10.9.1.4"},
+      {"name": "nic-dark", "subnet": "svc-vnet/darkpool", "publicIp": "pip-dark", "privateIp": "10.9.2.4"},
+      {"name": "nic-api", "subnet": "svc-vnet/api", "publicIp": "pip-api", "privateIp": "10.9.3.4"}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-edge": [{"name": "allow-https", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "443", "source": "subnet:edge"}],
+      "nic-dark": [{"name": "allow-ssh", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "22", "source": "subnet:darkpool"}],
+      "nic-api": [{"name": "allow-https-azurecloud", "priority": 100, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "AzureCloud", "destinationPortRange": "443", "source": "subnet:api"}]
+    },
+    "effectiveRoutes": {
+      "nic-edge": [{"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-dark": [{"addressPrefix": "0.0.0.0/0", "nextHopType": "None"}],
+      "nic-api": [{"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []}
+}

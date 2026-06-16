@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -21,7 +22,22 @@ import (
 
 const clearScreen = "\033[2J\033[H"
 
+// Build-time version metadata, injected via -ldflags "-X main.version=...".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version information and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("copilot-dashboard %s (commit %s, built %s)\n", version, commit, date)
+		return
+	}
+
 	workspaceRoot, err := cli.ResolveWorkspaceRoot()
 	if err != nil {
 		cli.Fatalf("cannot resolve workspace root: %v", err)

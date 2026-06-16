@@ -1,0 +1,113 @@
+{
+  "subscription": "sub-connectivity-01",
+  "_scenario": "Phase-4 visualization estate. Three subscriptions (connectivity/prod/dev) in a hub-and-spoke. Hub lives in the connectivity subscription, so every spoke->hub peering crosses a subscription boundary (the RC-1 case). One out-of-scope cross-subscription peer (sub-shared-99) must render as an external stub, not a dropped edge. Severity spread for the overlay: nic-prod-web (sensitive, internet-exposed) -> Critical (+ segmentation High); nic-dev-web (exposed, not sensitive) -> High; nic-prod-app (same NSG rule, firewalled, no public IP) -> latent/Informational; nic-dev-clean -> Clean; pip-orphan-01 -> Low. Boundary objects: Azure Firewall, VPN Gateway, ExpressRoute, NAT Gateway, public IPs.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "hub-vnet",
+        "subscriptionId": "sub-connectivity-01",
+        "addressSpace": ["10.0.0.0/16"],
+        "subnets": [
+          {"name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/26"},
+          {"name": "GatewaySubnet", "addressPrefix": "10.0.1.0/27"}
+        ],
+        "peerings": [
+          {"remoteVnet": "spoke-prod-vnet", "remoteSubscriptionId": "sub-prod-01", "state": "Connected", "allowForwardedTraffic": true, "allowGatewayTransit": true},
+          {"remoteVnet": "spoke-dev-vnet", "remoteSubscriptionId": "sub-dev-01", "state": "Connected", "allowForwardedTraffic": true, "allowGatewayTransit": true}
+        ]
+      },
+      {
+        "name": "spoke-prod-vnet",
+        "subscriptionId": "sub-prod-01",
+        "addressSpace": ["10.1.0.0/16"],
+        "subnets": [
+          {"name": "web", "addressPrefix": "10.1.1.0/24", "networkSecurityGroup": "nsg-prod-web", "routeTable": "rt-prod-web"},
+          {"name": "app", "addressPrefix": "10.1.2.0/24", "networkSecurityGroup": "nsg-prod-app", "routeTable": "rt-prod-app"}
+        ],
+        "peerings": [
+          {"remoteVnet": "hub-vnet", "remoteSubscriptionId": "sub-connectivity-01", "state": "Connected", "useRemoteGateways": true}
+        ]
+      },
+      {
+        "name": "spoke-dev-vnet",
+        "subscriptionId": "sub-dev-01",
+        "addressSpace": ["10.2.0.0/16"],
+        "subnets": [
+          {"name": "web", "addressPrefix": "10.2.1.0/24", "networkSecurityGroup": "nsg-dev-web", "routeTable": "rt-dev-web"},
+          {"name": "app", "addressPrefix": "10.2.2.0/24", "networkSecurityGroup": "nsg-dev-app", "routeTable": "rt-dev-app"}
+        ],
+        "peerings": [
+          {"remoteVnet": "hub-vnet", "remoteSubscriptionId": "sub-connectivity-01", "state": "Connected", "useRemoteGateways": true},
+          {"remoteVnet": "remote-shared-vnet", "remoteSubscriptionId": "sub-shared-99", "state": "Connected", "allowForwardedTraffic": true}
+        ]
+      }
+    ],
+    "networkSecurityGroups": [
+      {"name": "nsg-prod-web", "securityRules": [{"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443"}], "associatedSubnets": ["spoke-prod-vnet/web"]},
+      {"name": "nsg-prod-app", "securityRules": [{"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443"}], "associatedSubnets": ["spoke-prod-vnet/app"]},
+      {"name": "nsg-dev-web", "securityRules": [{"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443"}], "associatedSubnets": ["spoke-dev-vnet/web"]},
+      {"name": "nsg-dev-app", "securityRules": [], "associatedSubnets": ["spoke-dev-vnet/app"]}
+    ],
+    "routeTables": [
+      {"name": "rt-prod-web", "routes": [], "associatedSubnets": ["spoke-prod-vnet/web"]},
+      {"name": "rt-prod-app", "routes": [{"name": "default-to-fw", "addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["spoke-prod-vnet/app"]},
+      {"name": "rt-dev-web", "routes": [], "associatedSubnets": ["spoke-dev-vnet/web"]},
+      {"name": "rt-dev-app", "routes": [{"name": "default-to-fw", "addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}], "associatedSubnets": ["spoke-dev-vnet/app"]}
+    ],
+    "publicIPAddresses": [
+      {"name": "pip-prod-web", "ipAddress": "20.51.10.10", "ipConfiguration": "nic-prod-web/ipconfig1"},
+      {"name": "pip-dev-web", "ipAddress": "20.51.20.20", "ipConfiguration": "nic-dev-web/ipconfig1"},
+      {"name": "pip-orphan-01", "ipAddress": "20.51.10.99", "ipConfiguration": null}
+    ],
+    "networkInterfaces": [
+      {"name": "nic-prod-web", "subnet": "spoke-prod-vnet/web", "publicIp": "pip-prod-web", "privateIp": "10.1.1.4", "tags": {"sensitive": "true"}},
+      {"name": "nic-prod-app", "subnet": "spoke-prod-vnet/app", "publicIp": null, "privateIp": "10.1.2.4"},
+      {"name": "nic-dev-web", "subnet": "spoke-dev-vnet/web", "publicIp": "pip-dev-web", "privateIp": "10.2.1.4"},
+      {"name": "nic-dev-clean", "subnet": "spoke-dev-vnet/app", "publicIp": null, "privateIp": "10.2.2.4"}
+    ],
+    "virtualNetworkGateways": [
+      {"name": "vpngw-hub", "gatewayType": "Vpn", "vnet": "hub-vnet"},
+      {"name": "ergw-hub", "gatewayType": "ExpressRoute", "vnet": "hub-vnet"}
+    ],
+    "expressRouteCircuits": [
+      {"name": "er-circuit-att", "peeringLocation": "Silicon Valley", "serviceProvider": "Megaport"}
+    ],
+    "natGateways": [
+      {"name": "natgw-prod", "subnet": "spoke-prod-vnet/app"}
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-prod-web": [
+        {"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:web"},
+        {"name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*"},
+        {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}
+      ],
+      "nic-prod-app": [
+        {"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:app"},
+        {"name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*"},
+        {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}
+      ],
+      "nic-dev-web": [
+        {"name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:web"},
+        {"name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*"},
+        {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}
+      ],
+      "nic-dev-clean": [
+        {"name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*"},
+        {"name": "DenyAllInBound", "priority": 65500, "direction": "Inbound", "access": "Deny"}
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-prod-web": [{"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-prod-app": [{"addressPrefix": "10.1.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}],
+      "nic-dev-web": [{"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "Internet"}],
+      "nic-dev-clean": [{"addressPrefix": "10.2.0.0/16", "nextHopType": "VnetLocal"}, {"addressPrefix": "0.0.0.0/0", "nextHopType": "VirtualAppliance", "nextHopIpAddress": "10.0.0.4"}]
+    }
+  },
+  "avnm": {"securityAdminRules": []},
+  "azureFirewall": {"name": "afw-hub", "publicIp": "20.51.0.1", "vnet": "hub-vnet", "natRules": []},
+  "crossSubscriptionPeerings": [
+    {"localVnet": "spoke-dev-vnet", "remoteVnet": "remote-shared-vnet", "remoteSubscriptionId": "sub-shared-99", "state": "Connected", "allowForwardedTraffic": true, "hasHubFirewall": false}
+  ]
+}
