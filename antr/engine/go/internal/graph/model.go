@@ -12,11 +12,17 @@ import (
 )
 
 type Fixture struct {
-	Subscription              string            `json:"subscription"`
-	ResourceGraph             ResourceGraph     `json:"resourceGraph"`
-	NetworkWatcher            NetworkWatcher    `json:"networkWatcher"`
-	AVNM                      AVNM              `json:"avnm"`
-	AzureFirewall             *Firewall         `json:"azureFirewall,omitempty"`
+	Subscription   string         `json:"subscription"`
+	ResourceGraph  ResourceGraph  `json:"resourceGraph"`
+	NetworkWatcher NetworkWatcher `json:"networkWatcher"`
+	AVNM           AVNM           `json:"avnm"`
+	AzureFirewall  *Firewall      `json:"azureFirewall,omitempty"`
+	// AzureFirewalls holds ALL Azure Firewalls in the subscription. The adapter
+	// populates this; the singular AzureFirewall is retained for backward
+	// compatibility with existing single-firewall fixtures. The engine evaluates
+	// DNAT across the UNION of both, so a DNAT path behind ANY firewall is visible
+	// (external review F5 — the adapter previously modeled only fwRaw[0]).
+	AzureFirewalls            []*Firewall       `json:"azureFirewalls,omitempty"`
 	CrossSubscriptionPeerings []CrossSubPeering `json:"crossSubscriptionPeerings,omitempty"`
 	// Enrichment holds optional P1 data from Defender for Cloud, Azure Policy,
 	// and Activity Logs. Populated by the adapter only when the caller requests

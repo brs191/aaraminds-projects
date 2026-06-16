@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/aaraminds/azure-nettopo-engine/generator"
 	"github.com/aaraminds/azure-nettopo-engine/internal/analyze"
@@ -549,6 +550,82 @@ func TestSimulateChange_BadDeltaJSON(t *testing.T) {
 	}))
 	if !result.IsError {
 		t.Fatal("expected error result for malformed delta JSON")
+	}
+}
+
+// External review F1 (regression): the registered tool goes through
+// withMiddleware, whose prompt-injection filter rejects '{' and '}'. A JSON delta
+// CANNOT exist without braces, so the real MCP path blocked every valid delta
+// before json.Unmarshal — yet TestSimulateChange_* missed it by calling the
+// handler directly. These tests exercise the FULL middleware chain.
+func TestMiddleware_AllowsJSONDeltaThroughChain(t *testing.T) {
+	for _, tc := range []struct {
+		tool    string
+		handler server.ToolHandlerFunc
+	}{
+		{"simulate_change", simulateChangeHandler(&mockFetcher{fixture: minimalFixture()})},
+		{"forecast_cost", forecastCostHandler(&mockFetcher{fixture: minimalFixture()})},
+	} {
+		wrapped := withMiddleware(devNullLogger(), tc.tool, false, tc.handler, nil, "delta")
+		req := makeReq(map[string]any{
+			"subscription_id": "12345678-1234-1234-1234-123456789012",
+			"delta":           `{"addSubnet":{"vnetName":"vnet-hub","name":"new-subnet","addressPrefix":"10.0.5.0/24"}}`,
+		})
+		result, err := wrapped(context.Background(), req)
+		if err != nil {
+			t.Fatalf("%s: unexpected error through middleware: %v", tc.tool, err)
+		}
+		if result.IsError {
+			t.Fatalf("%s: middleware rejected a valid JSON delta (brace filter regression): %v",
+				tc.tool, result.Content)
+		}
+	}
+}
+
+// External review F8 — the audit line must carry real finding counts, not zeros.
+// recordFindings writes into the metrics sink the middleware installs.
+func TestRecordFindings_PopulatesAuditMetrics(t *testing.T) {
+	m := &callMetrics{}
+	ctx := withCallMetrics(context.Background(), m)
+	recordFindings(ctx, []analyze.Finding{
+		{Severity: "Critical"}, {Severity: "High"}, {Severity: "Medium"}, {Severity: "Informational"},
+	})
+	if m.Findings != 4 {
+		t.Errorf("Findings = %d, want 4", m.Findings)
+	}
+	if m.HighCrit != 2 {
+		t.Errorf("HighCrit = %d, want 2 (Critical+High)", m.HighCrit)
+	}
+	// No sink installed → no panic, no-op.
+	recordFindings(context.Background(), []analyze.Finding{{Severity: "High"}})
+}
+
+// A JSON param that is NOT valid JSON must still be rejected by the middleware.
+func TestMiddleware_RejectsMalformedJSONParam(t *testing.T) {
+	wrapped := withMiddleware(devNullLogger(), "simulate_change", false,
+		simulateChangeHandler(&mockFetcher{fixture: minimalFixture()}), nil, "delta")
+	result, _ := wrapped(context.Background(), makeReq(map[string]any{
+		"subscription_id": "12345678-1234-1234-1234-123456789012",
+		"delta":           "{not valid json",
+	}))
+	if !result.IsError {
+		t.Fatal("expected middleware to reject a malformed JSON delta param")
+	}
+}
+
+// A NON-JSON string param containing braces is still treated as a prompt-injection
+// attempt (the exemption is scoped to declared JSON params only).
+func TestMiddleware_StillBlocksBracesInNonJSONParam(t *testing.T) {
+	wrapped := withMiddleware(devNullLogger(), "get_topology", false,
+		func(_ context.Context, _ mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+			return mcpgo.NewToolResultText("ok"), nil
+		}, nil) // no jsonParams: every string param is injection-scanned
+	result, _ := wrapped(context.Background(), makeReq(map[string]any{
+		"subscription_id": "12345678-1234-1234-1234-123456789012",
+		"output_path":     "/tmp/${evil}/{x}",
+	}))
+	if !result.IsError {
+		t.Fatal("expected braces in a non-JSON param to be blocked as injection")
 	}
 }
 

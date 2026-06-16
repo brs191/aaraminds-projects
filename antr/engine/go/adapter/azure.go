@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -46,7 +47,7 @@ func FetchFixture(ctx context.Context, cred azcore.TokenCredential, subscription
 	var (
 		nwData nwResult
 		avnm   graph.AVNM
-		fw     *graph.Firewall
+		fws    []*graph.Firewall
 	)
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -63,11 +64,20 @@ func FetchFixture(ctx context.Context, cred azcore.TokenCredential, subscription
 		return err
 	})
 
-	if rg.rawFW != nil {
+	if len(rg.rawFWs) > 0 {
 		g.Go(func() error {
-			var err error
-			fw, err = a.fetchFirewall(gctx, rg.rawFW, rg.ResourceGraph.PublicIPAddresses)
-			return err
+			for _, rf := range rg.rawFWs {
+				f, err := a.fetchFirewall(gctx, rf, rg.ResourceGraph.PublicIPAddresses)
+				if err != nil {
+					return err
+				}
+				if f != nil {
+					fws = append(fws, f)
+				}
+			}
+			// Deterministic order regardless of ARG row order / fetch scheduling.
+			sort.Slice(fws, func(i, j int) bool { return fws[i].Name < fws[j].Name })
+			return nil
 		})
 	}
 
@@ -84,8 +94,9 @@ func FetchFixture(ctx context.Context, cred azcore.TokenCredential, subscription
 			EffectiveRoutes:        nwData.effectiveRoutes,
 			IncompleteNICs:         nwData.incompleteNICs,
 		},
-		AVNM:          avnm,
-		AzureFirewall: fw,
+		AVNM:                      avnm,
+		AzureFirewalls:            fws,
+		CrossSubscriptionPeerings: deriveCrossSubPeerings(rg.ResourceGraph.VirtualNetworks),
 	}
 	return fixture, nil
 }
@@ -138,7 +149,7 @@ type rgResult struct {
 	graph.ResourceGraph
 	nicMetas    []nicMeta
 	nwLocations map[string]nwLocation
-	rawFW       *rawFirewall
+	rawFWs      []*rawFirewall // ALL detected firewalls (external review F5)
 }
 
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────

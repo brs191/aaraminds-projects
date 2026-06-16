@@ -15,9 +15,51 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"time"
+
+	"github.com/aaraminds/azure-nettopo-engine/internal/analyze"
 )
+
+// callMetrics is a per-request sink the middleware installs in the context so a
+// generic handler can report how many findings it produced. Without it the audit
+// line reported zeros for findings/high_critical — the fields most useful in an
+// evidence trail (external review F8).
+type callMetrics struct {
+	Findings int
+	HighCrit int
+}
+
+type metricsKeyT struct{}
+
+var metricsKey = metricsKeyT{}
+
+func withCallMetrics(ctx context.Context, m *callMetrics) context.Context {
+	return context.WithValue(ctx, metricsKey, m)
+}
+
+func callMetricsFrom(ctx context.Context) *callMetrics {
+	m, _ := ctx.Value(metricsKey).(*callMetrics)
+	return m
+}
+
+// recordFindings stores finding counts for the audit line. No-op when no sink is
+// installed (e.g. a handler invoked directly in a unit test), so handlers can
+// call it unconditionally.
+func recordFindings(ctx context.Context, findings []analyze.Finding) {
+	m := callMetricsFrom(ctx)
+	if m == nil {
+		return
+	}
+	m.Findings = len(findings)
+	m.HighCrit = 0
+	for _, f := range findings {
+		if f.Severity == "Critical" || f.Severity == "High" {
+			m.HighCrit++
+		}
+	}
+}
 
 // auditLine holds the data for a single structured audit log entry.
 type auditLine struct {

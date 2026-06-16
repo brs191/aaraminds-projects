@@ -271,16 +271,51 @@ def check_virtual_wan(rg):
 
 
 # ---------------------------------------------------------------- Gate 1: AVNM admin rules
+def _parse_port_range(s):
+    """Parse an Azure destinationPortRange token into an inclusive (lo, hi), or
+    None for '*' / non-numeric. Mirrors Go analyze.parsePortRange (twin parity)."""
+    s = (s or "").strip()
+    if "-" in s:
+        a, _, b = s.partition("-")
+        try:
+            lo, hi = int(a.strip()), int(b.strip())
+        except ValueError:
+            return None
+        return (lo, hi) if lo <= hi else None
+    try:
+        p = int(s)
+    except ValueError:
+        return None
+    return (p, p)
+
+
+def _admin_port_covers(admin_spec, nsg_port):
+    """Whether an AVNM admin rule's port range governs the NSG rule's port. '*'
+    covers all ports; a range covers any port it contains. Without this the verdict
+    exact-matched strings, so a deny-all admin on '*'/'80-443' never governed an NSG
+    allow on '443' (external review F2). Mirrors Go analyze.adminPortCovers."""
+    a, n = (admin_spec or "").strip(), (nsg_port or "").strip()
+    if a == "*":
+        return True
+    if a == n:
+        return True
+    ar, nr = _parse_port_range(a), _parse_port_range(n)
+    if ar is None or nr is None:
+        return False
+    return ar[0] <= nr[0] and ar[1] >= nr[1]
+
+
 def admin_verdict(admin_rules, vnet, port, want_source="internet"):
     """Highest-priority inbound admin verdict that governs an `want_source`-sourced flow on `port`.
-    Source-scope aware: an Internet-tag rule does NOT govern intra-VNet/peered sources."""
+    Source-scope aware: an Internet-tag rule does NOT govern intra-VNet/peered sources.
+    Port-scope aware: wildcard/range admin ports govern any NSG port they cover (F2)."""
     best, best_pri = None, 10 ** 9
     for ar in admin_rules:
         if ar.get("direction") != "Inbound":
             continue
         if vnet not in (ar.get("appliesTo") or []):
             continue
-        if str(ar.get("destinationPortRange")) != str(port):
+        if not _admin_port_covers(ar.get("destinationPortRange", ""), port):
             continue
         ars = (ar.get("sourceAddressPrefix") or "").lower()
         # only rules whose source covers the source under test apply
@@ -297,7 +332,13 @@ def analyze(fx):
     rg = fx.get("resourceGraph", {})
     nw = fx.get("networkWatcher", {})
     admin_rules = fx.get("avnm", {}).get("securityAdminRules", [])
-    fw = fx.get("azureFirewall")
+    # DNAT is evaluated across ALL firewalls (plural) plus the legacy singular
+    # field, so a published backend behind any firewall is caught (external review
+    # F5). Mirrors Go analyze.go's union.
+    fws = list(fx.get("azureFirewalls") or [])
+    _fw1 = fx.get("azureFirewall")
+    if _fw1:
+        fws.append(_fw1)
     eff_rules = nw.get("effectiveSecurityRules", {})
     eff_routes = nw.get("effectiveRoutes", {})
     # Key NICs by stable identity (ARM id when present, else name). Keying by bare
@@ -366,8 +407,8 @@ def analyze(fx):
                 findings.append(finding("over-permissive NSG (latent)", "Informational", rid(nic),
                                         f"{src}:{port} inbound but " + ("; ".join(why) or "not reachable"), False))
 
-        # inbound firewall DNAT publishes a no-public-IP backend
-        if fw:
+        # inbound firewall DNAT publishes a no-public-IP backend (any firewall, F5)
+        for fw in fws:
             for nat in fw.get("natRules", []):
                 if nat.get("translatedAddress") == nic.get("privateIp"):
                     findings.append(finding(
@@ -400,7 +441,16 @@ def analyze(fx):
         rules = eff_for(nic, eff_rules)
         allow_vnet = any(r.get("name") == "AllowVnetInBound" or
                          (r.get("priority") == 65000 and r.get("access") == "Allow") for r in rules)
-        deny_vnet = any("DenyVnetInBound" in (r.get("name", "")) for r in rules)
+        # A real segmentation control overrides the default AllowVnetInBound only
+        # if it is an INBOUND DENY, VNet-scoped, at HIGHER precedence (priority <
+        # 65000). Trusting the rule NAME alone let a non-overriding rule falsely
+        # suppress the finding (external review F7). Mirrors Go analyze.go.
+        deny_vnet = any(
+            r.get("direction") == "Inbound" and r.get("access") == "Deny" and
+            (r.get("priority") or 0) < 65000 and
+            ((r.get("sourceAddressPrefix", "") or "").lower() == "virtualnetwork"
+             or "DenyVnetInBound" in (r.get("name", "")))
+            for r in rules)
         if allow_vnet and not deny_vnet:
             findings.append(finding("missing tier segmentation", "High", rid(nic),
                                     "sensitive subnet reachable VNet-wide via default AllowVnetInBound "

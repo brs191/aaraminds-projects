@@ -161,7 +161,8 @@ func registerTools(
 			"Generate an Azure network topology from architect intent. "+
 				"Produces validated Terraform and a GitHub PR for human approval. "+
 				"The topology is validated by the same engine that analyzes live deployments — "+
-				"zero High/Critical findings required before a PR is created."),
+				"zero Critical/High/Medium findings required before a PR is created (generated "+
+				"infra is held to a stricter bar than estate review)."),
 		mcpgo.WithString("intent",
 			mcpgo.Required(),
 			mcpgo.Description(
@@ -209,7 +210,7 @@ func registerTools(
 			mcpgo.Description("TopologyDelta as JSON (addNsgRule/addPublicIp/modifyRoute/addPeering/...). Omit to no-op.")),
 	)
 	s.AddTool(simulateTool,
-		withMiddleware(logger, "simulate_change", true, simulateChangeHandler(fetcher), auditor),
+		withMiddleware(logger, "simulate_change", true, simulateChangeHandler(fetcher), auditor, "delta"),
 	)
 
 	// ── Tool 6: forecast_cost ─────────────────────────────────────────────────
@@ -225,7 +226,7 @@ func registerTools(
 			mcpgo.Description("Azure region for pricing (default eastus)")),
 	)
 	s.AddTool(forecastTool,
-		withMiddleware(logger, "forecast_cost", true, forecastCostHandler(fetcher), auditor),
+		withMiddleware(logger, "forecast_cost", true, forecastCostHandler(fetcher), auditor, "delta"),
 	)
 }
 

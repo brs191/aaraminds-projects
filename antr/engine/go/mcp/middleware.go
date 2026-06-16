@@ -11,6 +11,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -51,12 +52,25 @@ func validatePromptInjection(s string) error {
 }
 
 // validateStringParams iterates over all string arguments in the request and
-// rejects any that contain prompt-injection characters.
-func validateStringParams(req mcpgo.CallToolRequest) error {
+// rejects any that contain prompt-injection characters. Parameters named in
+// jsonParams are STRUCTURED JSON (e.g. `delta`): they are destined for
+// json.Unmarshal into Go structs, never an LLM context, so the prompt-injection
+// char filter (which rejects `{` and `}`) does not apply to them — instead they
+// must be well-formed JSON. Without this exemption the brace filter rejected
+// EVERY valid delta, making simulate_change / forecast_cost unusable through the
+// MCP boundary even though the handlers themselves parse JSON correctly
+// (external review F1; the prior test missed it by calling the handler directly).
+func validateStringParams(req mcpgo.CallToolRequest, jsonParams map[string]bool) error {
 	args := req.GetArguments()
 	for k, v := range args {
 		s, ok := v.(string)
 		if !ok {
+			continue
+		}
+		if jsonParams[k] {
+			if s != "" && !json.Valid([]byte(s)) {
+				return fmt.Errorf("param %q must be valid JSON", k)
+			}
 			continue
 		}
 		if err := validatePromptInjection(s); err != nil {
@@ -75,7 +89,12 @@ func withMiddleware(
 	wantAudit bool,
 	h server.ToolHandlerFunc,
 	auditor *Auditor,
+	jsonParams ...string,
 ) server.ToolHandlerFunc {
+	jsonSet := make(map[string]bool, len(jsonParams))
+	for _, p := range jsonParams {
+		jsonSet[p] = true
+	}
 	return func(ctx context.Context, req mcpgo.CallToolRequest) (result *mcpgo.CallToolResult, retErr error) {
 		start := time.Now()
 
@@ -103,15 +122,18 @@ func withMiddleware(
 				return mcpgo.NewToolResultError(err.Error()), nil
 			}
 		}
-		// Prompt-injection defense on all string parameters.
-		if err := validateStringParams(req); err != nil {
+		// Prompt-injection defense on all string parameters (JSON params exempt).
+		if err := validateStringParams(req, jsonSet); err != nil {
 			logger.Warn("prompt injection attempt blocked",
 				"tool", toolName, "err", err)
 			return mcpgo.NewToolResultError(err.Error()), nil
 		}
 
 		// ── 3. Delegate to handler ───────────────────────────────────────────
-		result, retErr = h(ctx, req)
+		// Install a metrics sink so the handler can report finding counts back
+		// for the audit line (external review F8).
+		metrics := &callMetrics{}
+		result, retErr = h(withCallMetrics(ctx, metrics), req)
 
 		durationMS := time.Since(start).Milliseconds()
 
@@ -138,6 +160,8 @@ func withMiddleware(
 			auditor.write(auditLine{
 				Tool:       toolName,
 				Sub:        subID,
+				Findings:   metrics.Findings,
+				HighCrit:   metrics.HighCrit,
 				DurationMS: durationMS,
 			})
 		}

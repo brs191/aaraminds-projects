@@ -261,10 +261,14 @@ func (a *adapter) fetchResourceGraph(ctx context.Context) (rgResult, error) {
 	// Build NW location map.
 	nwLocs := buildNWLocationMap(nwRaw)
 
-	// Detected firewall (at most one per subscription in the canonical model).
-	var rawFW *rawFirewall
-	if len(fwRaw) > 0 {
-		rawFW = parseRawFirewall(fwRaw[0])
+	// Detected firewalls — ALL of them, not just fwRaw[0]. A subscription can run
+	// multiple Azure Firewalls (e.g. per-hub or per-region); modeling only the
+	// first hid every DNAT path behind the others (external review F5).
+	var rawFWs []*rawFirewall
+	for _, row := range fwRaw {
+		if rf := parseRawFirewall(row); rf != nil {
+			rawFWs = append(rawFWs, rf)
+		}
 	}
 
 	// Private DNS Zones — fetch VNet links for each zone.
@@ -296,7 +300,7 @@ func (a *adapter) fetchResourceGraph(ctx context.Context) (rgResult, error) {
 		},
 		nicMetas:    metas,
 		nwLocations: nwLocs,
-		rawFW:       rawFW,
+		rawFWs:      rawFWs,
 	}
 	return res, nil
 }
@@ -468,19 +472,33 @@ func kqlPrivateDNSZones() string {
 }
 
 func kqlAppGateways() string {
+	// WAF posture is read from the inline webApplicationFirewallConfiguration AND,
+	// for policy-based gateways, from the attached firewall policy (joined here as
+	// wafPolicyState / wafPolicyMode). The parser coalesces the two — never the SKU
+	// (external review F3). [VERIFY] the join is against live ARG.
 	return `resources
 | where type == "microsoft.network/applicationgateways"
 | extend wafc = properties.webApplicationFirewallConfiguration
 | extend sku  = properties.sku
+| extend fwPolicyId = tolower(tostring(properties.firewallPolicy.id))
+| join kind=leftouter (
+    resources
+    | where type == "microsoft.network/applicationgatewaywebapplicationfirewallpolicies"
+    | project fwPolicyId = tolower(tostring(id)),
+        wafPolicyState = tostring(properties.policySettings.state),
+        wafPolicyMode  = tostring(properties.policySettings.mode)
+  ) on fwPolicyId
 | project
     name, resourceGroup,
     gatewaySubnetRef   = tostring(properties.gatewayIPConfigurations[0].properties.subnet.id),
     wafEnabled         = tobool(coalesce(wafc.enabled, todynamic('false'))),
     wafMode            = tostring(wafc.firewallMode),
+    wafPolicyState     = wafPolicyState,
+    wafPolicyMode      = wafPolicyMode,
     skuTier            = tostring(sku.tier),
     frontendIPs        = properties.frontendIPConfigurations,
     backendPools       = properties.backendAddressPools,
-    firewallPolicy     = tostring(properties.firewallPolicy.id)`
+    firewallPolicy     = fwPolicyId`
 }
 
 func kqlAKS(sub string) string {
@@ -579,14 +597,37 @@ func kqlExpressRoutes(sub string) string {
 }
 
 func kqlFrontDoors(sub string) string {
+	// WAF posture comes from a real WAF-policy association, NOT from frontDoorId
+	// (which is set on every profile, so the old query reported WAF enabled
+	// universally and suppressed the finding — external review F3). A profile is
+	// WAF-protected only if a security policy references a WAF policy; wafMode is
+	// read from that policy. leftouter join so profiles with no WAF policy come
+	// back wafEnabled=false (surfaced for review). [VERIFY] against live ARG.
 	return fmt.Sprintf(`Resources
 | where subscriptionId == %q
 | where type == "microsoft.cdn/profiles"
 | where sku.name in ("Standard_AzureFrontDoor", "Premium_AzureFrontDoor")
+| extend profileIdLower = tolower(id)
+| join kind=leftouter (
+    Resources
+    | where type == "microsoft.cdn/profiles/securitypolicies"
+    | extend profileIdLower = tolower(substring(id, 0, indexof(id, "/securitypolicies/")))
+    | extend wafPolicyId = tolower(tostring(properties.parameters.wafPolicy.id))
+    | where isnotempty(wafPolicyId)
+    | join kind=leftouter (
+        Resources
+        | where type == "microsoft.network/frontdoorwebapplicationfirewallpolicies"
+        | project wafPolicyId = tolower(tostring(id)),
+            wafPolicyMode  = tostring(properties.policySettings.mode),
+            wafPolicyState = tostring(properties.policySettings.enabledState)
+      ) on wafPolicyId
+    | summarize wafPolicyMode = take_any(wafPolicyMode), wafPolicyState = take_any(wafPolicyState) by profileIdLower
+  ) on profileIdLower
 | project
     name, resourceGroup,
     sku = sku.name,
-    wafEnabled = isnotnull(properties.frontDoorId)`, sub)
+    wafEnabled = isnotempty(wafPolicyMode) and (isempty(wafPolicyState) or wafPolicyState =~ "Enabled"),
+    wafMode = wafPolicyMode`, sub)
 }
 
 // ─── Parse helpers ────────────────────────────────────────────────────────────
@@ -682,6 +723,39 @@ func parsePeerings(arr []interface{}) []graph.Peering {
 			p.RemoteSubscriptionID = remoteSub
 		}
 		out = append(out, p)
+	}
+	return out
+}
+
+// deriveCrossSubPeerings projects per-VNet peerings whose remote VNet lives in a
+// DIFFERENT subscription into the flat Fixture.CrossSubscriptionPeerings list that
+// checkCrossSubPeeringExposure reads. Without this the adapter parsed
+// RemoteSubscriptionID per peering but never populated the analysis input, so the
+// "cross-subscription peering without firewall" family was dead on live data
+// (external review F6).
+//
+// HasHubFirewall defaults to false: every connected cross-sub peering is surfaced
+// for review unless a firewall is PROVEN in the path. Precise path detection
+// (effective-route next hop == a hub-firewall private IP) is a future refinement;
+// defaulting false biases toward "don't miss" over "don't bother the reviewer".
+// Order follows VNet order then peering order; both are already sorted upstream,
+// so the output is deterministic (and Analyze sorts findings regardless).
+func deriveCrossSubPeerings(vnets []graph.VNet) []graph.CrossSubPeering {
+	var out []graph.CrossSubPeering
+	for _, v := range vnets {
+		for _, p := range v.Peerings {
+			if p.RemoteSubscriptionID == "" {
+				continue // intra-subscription peering — not this family
+			}
+			out = append(out, graph.CrossSubPeering{
+				LocalVnet:             v.Name,
+				RemoteVnet:            p.RemoteVnet,
+				RemoteSubscriptionID:  p.RemoteSubscriptionID,
+				State:                 p.State,
+				AllowForwardedTraffic: p.AllowForwardedTraffic,
+				HasHubFirewall:        false,
+			})
+		}
 	}
 	return out
 }
@@ -950,8 +1024,17 @@ func parseLBNatRules(arr []interface{}) []graph.LBNatRule {
 		if props == nil {
 			props = m
 		}
+		// ARM returns backendIPConfiguration as an OBJECT {"id": "..."} on the live
+		// REST/ARG path, not a bare string. Reading it as a string left BackendNic
+		// empty, so checkLoadBalancerNAT silently skipped the exposure (external
+		// review F4). Accept both shapes: object-with-id (live) and bare string.
 		backendNicID := getString(props, "backendIPConfiguration")
-		// backendIPConfiguration is ".../networkInterfaces/{nicName}/ipConfigurations/..."
+		if backendNicID == "" {
+			if bm := getMap(props, "backendIPConfiguration"); bm != nil {
+				backendNicID = getString(bm, "id")
+			}
+		}
+		// backendIPConfiguration id is ".../networkInterfaces/{nicName}/ipConfigurations/..."
 		// Extract NIC name: segment before "/ipconfigurations/"
 		backendNic := extractNICFromIPConfig(backendNicID)
 		r := graph.LBNatRule{
@@ -1046,13 +1129,21 @@ func (a *adapter) parsePrivateDNSZonesWithLinks(ctx context.Context, rows []map[
 func parseAppGateways(rows []map[string]interface{}) []graph.ApplicationGateway {
 	var out []graph.ApplicationGateway
 	for _, row := range rows {
-		skuTier := getString(row, "skuTier")
-		wafEnabled := getBool(row, "wafEnabled")
-		// WAF_v2 tier with policy-based WAF: set WafEnabled=true even if inline config absent.
-		if strings.EqualFold(skuTier, "WAF_v2") {
-			wafEnabled = true
+		// WAF state comes from the ACTUAL configuration, never from the SKU. The
+		// previous code forced WafEnabled=true for every WAF_v2 SKU, so a WAF_v2
+		// gateway with a disabled or Detection-mode policy was reported as fully
+		// protected and its finding was suppressed (external review F3). WAF_v2 only
+		// means WAF is *available*; enabled/mode come from the inline config or, for
+		// policy-based gateways, the attached firewall policy (projected by the KQL
+		// join as wafPolicyState / wafPolicyMode).
+		wafEnabled := getBool(row, "wafEnabled") // inline webApplicationFirewallConfiguration.enabled
+		wafMode := getString(row, "wafMode")     // inline firewallMode
+		if ps := getString(row, "wafPolicyState"); ps != "" {
+			wafEnabled = strings.EqualFold(ps, "Enabled")
 		}
-		wafMode := getString(row, "wafMode")
+		if pm := getString(row, "wafPolicyMode"); pm != "" && wafMode == "" {
+			wafMode = pm
+		}
 
 		gw := graph.ApplicationGateway{
 			Name:       getString(row, "name"),
@@ -1293,6 +1384,7 @@ func parseFrontDoors(rows []map[string]interface{}) []graph.AzureFrontDoor {
 			Name:       getString(row, "name"),
 			SKU:        getString(row, "sku"),
 			WafEnabled: getBool(row, "wafEnabled"),
+			WafMode:    getString(row, "wafMode"), // projected from the associated WAF policy (F3)
 		})
 	}
 	return out

@@ -196,7 +196,7 @@ func buildAdvisorySection(validation ValidationResult) string {
 func buildPRBody(intent, fileList, advisorySection, specHash, registrySHA string) string {
 	return "## Network Topology Generation — Automated PR\n\n" +
 		"**Intent:** " + intent + "\n\n" +
-		"**Gate Result:** ✅ PASS — zero Critical/High findings\n\n" +
+		"**Gate Result:** ✅ PASS — zero Critical/High/Medium findings\n\n" +
 		"## Terraform Files\n" +
 		fileList + "\n" +
 		"## ValidateBeforeEmit Findings\n" +

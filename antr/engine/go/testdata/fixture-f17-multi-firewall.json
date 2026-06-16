@@ -1,0 +1,32 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Multiple Azure Firewalls (external review F5). The estate runs two firewalls (one per hub). afw-east DNATs to nic-backend-east; afw-west DNATs to nic-backend-west. Neither backend NIC has a public IP. The engine must evaluate DNAT across ALL firewalls (the azureFirewalls plural), so both publish-to-backend exposures are found — not just the first firewall's.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      { "name": "hub-east", "addressSpace": ["10.0.0.0/16"], "subnets": [{ "name": "AzureFirewallSubnet", "addressPrefix": "10.0.0.0/24" }, { "name": "workload", "addressPrefix": "10.0.1.0/24" }], "peerings": [] },
+      { "name": "hub-west", "addressSpace": ["10.1.0.0/16"], "subnets": [{ "name": "AzureFirewallSubnet", "addressPrefix": "10.1.0.0/24" }, { "name": "workload", "addressPrefix": "10.1.1.0/24" }], "peerings": [] }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      { "name": "nic-backend-east", "subnet": "hub-east/workload", "privateIp": "10.0.1.4" },
+      { "name": "nic-backend-west", "subnet": "hub-west/workload", "privateIp": "10.1.1.4" }
+    ]
+  },
+  "networkWatcher": { "effectiveSecurityRules": {}, "effectiveRoutes": {} },
+  "azureFirewalls": [
+    {
+      "name": "afw-east", "privateIp": "10.0.0.4", "publicIp": "20.70.0.10",
+      "natRules": [
+        { "name": "dnat-https-east", "protocol": "Tcp", "sourceAddresses": ["*"], "destinationAddress": "20.70.0.10", "destinationPort": 443, "translatedAddress": "10.0.1.4", "translatedPort": 443 }
+      ]
+    },
+    {
+      "name": "afw-west", "privateIp": "10.1.0.4", "publicIp": "20.71.0.10",
+      "natRules": [
+        { "name": "dnat-https-west", "protocol": "Tcp", "sourceAddresses": ["*"], "destinationAddress": "20.71.0.10", "destinationPort": 443, "translatedAddress": "10.1.1.4", "translatedPort": 443 }
+      ]
+    }
+  ]
+}

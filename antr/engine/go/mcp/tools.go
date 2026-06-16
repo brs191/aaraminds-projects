@@ -135,6 +135,7 @@ func analyzeRisksHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
 		}
 
 		findings := analyze.Analyze(fixture)
+		recordFindings(ctx, findings) // audit evidence: full finding counts (F8)
 
 		// Optional severity filter.
 		if severityFilter != "" {
@@ -202,6 +203,7 @@ func formatReportHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
 		}
 
 		findings := analyze.Analyze(fixture)
+		recordFindings(ctx, findings) // audit evidence: finding counts (F8)
 		sortFindings(findings)
 
 		switch format {

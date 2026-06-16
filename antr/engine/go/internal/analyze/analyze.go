@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/netip"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aaraminds/azure-nettopo-engine/internal/graph"
@@ -70,14 +71,60 @@ func deref(s *string) string {
 	return *s
 }
 
+// parsePortRange parses an Azure destinationPortRange token into an inclusive
+// [lo,hi]. Accepts a single port ("443" -> 443,443) or a range ("80-443").
+// Returns ok=false for "*" or any non-numeric token (callers handle "*"
+// separately, as it means "all ports").
+func parsePortRange(s string) (lo, hi int, ok bool) {
+	s = strings.TrimSpace(s)
+	if i := strings.IndexByte(s, '-'); i >= 0 {
+		a, e1 := strconv.Atoi(strings.TrimSpace(s[:i]))
+		b, e2 := strconv.Atoi(strings.TrimSpace(s[i+1:]))
+		if e1 != nil || e2 != nil || a > b {
+			return 0, 0, false
+		}
+		return a, b, true
+	}
+	p, e := strconv.Atoi(s)
+	if e != nil {
+		return 0, 0, false
+	}
+	return p, p, true
+}
+
+// adminPortCovers reports whether an AVNM admin rule's destinationPortRange
+// (adminSpec) governs a flow on the effective NSG rule's port (nsgPort). An admin
+// rule on "*" covers every port; a range like "80-443" covers any port it
+// contains. Without this, adminVerdict exact-matched the strings, so a deny-all
+// admin rule on "*" or "80-443" silently failed to govern an NSG allow on "443"
+// — producing false exposure findings (and missing AlwaysAllow force-opens).
+// (External review F2.) Conservative on an all-ports NSG rule: only an admin "*"
+// fully governs an NSG "*", so a specific admin range never over-suppresses.
+func adminPortCovers(adminSpec, nsgPort string) bool {
+	adminSpec, nsgPort = strings.TrimSpace(adminSpec), strings.TrimSpace(nsgPort)
+	if adminSpec == "*" {
+		return true
+	}
+	if adminSpec == nsgPort {
+		return true
+	}
+	alo, ahi, aok := parsePortRange(adminSpec)
+	nlo, nhi, nok := parsePortRange(nsgPort)
+	if !aok || !nok {
+		return false
+	}
+	return alo <= nlo && ahi >= nhi
+}
+
 // adminVerdict — Gate 1. Highest-priority inbound AVNM verdict governing an
 // internet-sourced flow on port. Source-scope aware: an Internet-tag rule does
-// not govern intra-VNet/peered sources.
+// not govern intra-VNet/peered sources. Port-scope aware: wildcard and range
+// admin ports govern any NSG port they cover (external review F2).
 func adminVerdict(rules []graph.AdminRule, vnet, port string) string {
 	best := ""
 	bestPri := 1 << 30
 	for _, ar := range rules {
-		if ar.Direction != "Inbound" || !contains(ar.AppliesTo, vnet) || ar.DestinationPortRange != port {
+		if ar.Direction != "Inbound" || !contains(ar.AppliesTo, vnet) || !adminPortCovers(ar.DestinationPortRange, port) {
 			continue
 		}
 		src := strings.ToLower(ar.SourceAddressPrefix)
@@ -107,7 +154,12 @@ func Analyze(fx *graph.Fixture) []Finding {
 	effRules := fx.NetworkWatcher.EffectiveSecurityRules
 	effRoutes := fx.NetworkWatcher.EffectiveRoutes
 	admin := fx.AVNM.SecurityAdminRules
-	fw := fx.AzureFirewall
+	// Evaluate DNAT across ALL firewalls (plural) plus the legacy singular field,
+	// so a published backend behind any firewall is caught (external review F5).
+	fws := append([]*graph.Firewall(nil), fx.AzureFirewalls...)
+	if fx.AzureFirewall != nil {
+		fws = append(fws, fx.AzureFirewall)
+	}
 
 	nics := map[string]graph.NIC{}
 	for _, n := range rg.NetworkInterfaces {
@@ -197,7 +249,7 @@ func Analyze(fx *graph.Fixture) []Finding {
 			}
 		}
 
-		if fw != nil {
+		for _, fw := range fws {
 			for _, nat := range fw.NatRules {
 				if nat.TranslatedAddress == nic.PrivateIP {
 					findings = append(findings, Finding{"over-permissive NSG (reachable)", "High", name,
@@ -244,7 +296,13 @@ func Analyze(fx *graph.Fixture) []Finding {
 			if r.Name == "AllowVnetInBound" || (r.Priority == 65000 && r.Access == "Allow") {
 				allowVnet = true
 			}
-			if strings.Contains(r.Name, "DenyVnetInBound") {
+			// A real segmentation control overrides the default AllowVnetInBound
+			// only if it is an INBOUND DENY, VNet-scoped, at HIGHER precedence
+			// (priority < 65000). Trusting the rule NAME alone let a rule that does
+			// not actually override the allow — wrong access, wrong direction, or
+			// lower precedence — falsely suppress the finding (external review F7).
+			if r.Direction == "Inbound" && r.Access == "Deny" && r.Priority < 65000 &&
+				(strings.EqualFold(r.SourceAddressPrefix, "VirtualNetwork") || strings.Contains(r.Name, "DenyVnetInBound")) {
 				denyVnet = true
 			}
 		}

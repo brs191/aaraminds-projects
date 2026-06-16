@@ -3,6 +3,11 @@
 **Date:** 2026-06-16 · **Method:** code read + gate runs on Go 1.25.11 + an independent adversarial
 sub-agent pass (to counter author bias) · **Engine:** 12,405 Go LOC / 34 files + 205-line Python twin.
 
+> **Second external review (2026-06-17) — all 9 findings RESOLVED.** An independent reviewer ran the
+> gates clean but found 9 issues concentrated (as this audit predicted) in the live Azure adapter and the
+> MCP boundary, not the deterministic core. All nine are now fixed with tests. See
+> "External review round 2" at the bottom of this file for the per-finding resolution and evidence.
+
 ---
 
 ## Verdict
@@ -158,3 +163,27 @@ subscriptions, validated by a metric that only proves it reproduces itself, is a
 AT&T review board, not an asset. The single highest-priority fix is **C-1 (ARG pagination)** — it's small,
 it's known, and it's the difference between "misses nothing" and "silently misses on exactly the
 subscriptions that matter."
+
+---
+
+## External review round 2 (2026-06-17) — all resolved
+
+An independent reviewer (gates clean) found 9 issues, all in the adapter / MCP boundary — confirming this
+audit's thesis that the live path, not the engine, is the risk. Each is fixed with a test.
+
+| # | Finding | Sev | Fix + evidence |
+|---|---|---|---|
+| F1 | MCP middleware rejected `{`/`}` in every string param, so `simulate_change` / `forecast_cost` blocked every valid JSON `delta` through the real MCP path (the unit test missed it by calling the handler directly) | HIGH | `withMiddleware` now exempts declared JSON params (`delta`) from the injection filter and validates them with `json.Valid` instead. Added `TestMiddleware_AllowsJSONDeltaThroughChain` (+ malformed-JSON + still-blocks-braces-in-non-JSON tests) that run *through* the chain |
+| F2 | `adminVerdict` exact-matched ports, so a deny-all AVNM admin rule on `*` or `80-443` never governed an NSG allow on `443` → false exposure. The Python twin shared the bug, so twin-drift could not catch it | HIGH | New `adminPortCovers` (wildcard + range coverage) in **both** engines; `parsePortRange` helper. `fixture-f15` + `TestAdminPortCovers` / `TestAdminWildcardDenyClosesInternet`. Twin-drift now exercises it |
+| F3 | App Gateway forced `WafEnabled=true` for every WAF_v2 SKU; Front Door derived `wafEnabled` from `frontDoorId` (always set) and never projected `wafMode` → suppressed WAF findings on live data | HIGH | WAF state now read from inline config **and** the attached WAF policy (state+mode), never the SKU; FD KQL joins security-policies→WAF-policy and projects mode. `TestParseAppGateways_WAFFromPolicyNotSKU`, `TestParseFrontDoors_WAFModeProjected`. KQL joins `[VERIFY]` against live ARG |
+| F4 | `parseLBNatRules` read `backendIPConfiguration` as a string; live ARM returns an object `{id}`, so `BackendNic` was empty and LB-NAT exposure was skipped | HIGH | Accept both shapes (object-with-id and bare string). `TestParseLBNatRules_BackendIPConfigShapes` |
+| F5 | Only `fwRaw[0]` modeled; DNAT behind any additional firewall was invisible | MED/HIGH | Adapter fetches **all** firewalls (sorted, deterministic) into new `AzureFirewalls` slice; engine evaluates DNAT across the union (singular retained for back-compat) in both engines. `fixture-f17` + `TestMultipleFirewalls_AllDNATPathsFound` |
+| F6 | `parsePeerings` extracted `RemoteSubscriptionID` but `FetchFixture` never populated `CrossSubscriptionPeerings`, so that family was dead on live data | MED | `deriveCrossSubPeerings` wired into `FetchFixture` (HasHubFirewall defaults false = surface for review). `TestDeriveCrossSubPeerings` |
+| F7 | Segmentation suppression trusted any rule whose name contained `DenyVnetInBound`, ignoring access / direction / precedence | MED | Suppress only on an inbound Deny, VNet-scoped, priority < 65000 (real override) — both engines. `fixture-f16` + `TestSegmentation_LowerPrecedenceDenyDoesNotSuppress`; existing real-deny fixture still suppresses |
+| F8 | `auditLine` had `findings` / `high_critical` fields but the middleware wrote zeros | LOW/MED | Context-carried `callMetrics` sink: `analyze_risks` / `format_report` call `recordFindings`; middleware writes real counts. `TestRecordFindings_PopulatesAuditMetrics` |
+| F9 | Generator tool + PR text still said "zero Critical/High" after H-3 made the gate block Medium too | LOW | Updated `pr.go` and the `generate_topology` description to "zero Critical/High/Medium" |
+
+Gates after the round-2 fixes: `go test ./...` 7/7, `go vet` clean, gofmt clean, twin-drift **39 fixtures /
+0 divergences**, eval **23/23**, diagram-eval **26/26**. The two live-Azure KQL joins (F3) are marked
+`[VERIFY]` — they are the right structure but, like the rest of the adapter (C-2), remain unproven until a
+run against a real subscription. That is still the one gap that matters.

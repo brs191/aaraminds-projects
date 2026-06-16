@@ -1,0 +1,42 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "AVNM admin port-scope (external review F2). nic-web has an internet-facing NSG allow on 443 + public IP + default route to Internet, which alone would be a reachable High finding. A security admin Deny rule on destinationPortRange '*' (all ports) from Internet, applied to svc-vnet, must GOVERN the 443 flow and close it — yielding a latent (Informational) finding, not reachable. Before the fix, adminVerdict exact-matched '*' != '443' and the Deny was ignored, producing a false reachable High. nic-range is the symmetric range case: a Deny on '400-500' covers 443 and likewise closes it.",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "svc-vnet",
+        "addressSpace": ["10.50.0.0/16"],
+        "subnets": [{ "name": "web", "addressPrefix": "10.50.1.0/24" }],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      { "name": "nic-web", "subnet": "svc-vnet/web", "publicIp": "pip-web", "privateIp": "10.50.1.4" },
+      { "name": "nic-range", "subnet": "svc-vnet/web", "publicIp": "pip-range", "privateIp": "10.50.1.5" }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-web": [
+        { "name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:web" }
+      ],
+      "nic-range": [
+        { "name": "allow-https", "priority": 200, "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "0.0.0.0/0", "destinationPortRange": "443", "source": "subnet:web" }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-web": [{ "addressPrefix": "0.0.0.0/0", "nextHopType": "Internet" }],
+      "nic-range": [{ "addressPrefix": "0.0.0.0/0", "nextHopType": "Internet" }]
+    }
+  },
+  "avnm": {
+    "networkManager": "nm-corp",
+    "securityAdminRules": [
+      { "name": "deny-all-from-internet", "priority": 10, "direction": "Inbound", "access": "Deny", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "*", "appliesTo": ["svc-vnet"] },
+      { "name": "deny-range-from-internet", "priority": 11, "direction": "Inbound", "access": "Deny", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationPortRange": "400-500", "appliesTo": ["svc-vnet"] }
+    ]
+  }
+}

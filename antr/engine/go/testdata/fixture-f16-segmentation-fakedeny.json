@@ -1,0 +1,31 @@
+{
+  "subscription": "sub-prod-01",
+  "_scenario": "Segmentation suppression precedence (external review F7). nic-secure is a sensitive workload reachable VNet-wide via the default AllowVnetInBound (priority 65000). A rule NAMED 'DenyVnetInBound-custom' exists but at priority 65100 — LOWER precedence than the allow — so it does not actually override it. The old name-only check falsely suppressed the missing-tier-segmentation finding; the precedence-aware check correctly still fires it (the deny must be an inbound Deny, VNet-scoped, priority < 65000 to count).",
+  "resourceGraph": {
+    "virtualNetworks": [
+      {
+        "name": "svc-vnet",
+        "addressSpace": ["10.60.0.0/16"],
+        "subnets": [{ "name": "secure", "addressPrefix": "10.60.1.0/24" }],
+        "peerings": []
+      }
+    ],
+    "networkSecurityGroups": [],
+    "routeTables": [],
+    "publicIPAddresses": [],
+    "networkInterfaces": [
+      { "name": "nic-secure", "subnet": "svc-vnet/secure", "privateIp": "10.60.1.4", "tags": { "sensitive": "true" } }
+    ]
+  },
+  "networkWatcher": {
+    "effectiveSecurityRules": {
+      "nic-secure": [
+        { "name": "AllowVnetInBound", "priority": 65000, "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*" },
+        { "name": "DenyVnetInBound-custom", "priority": 65100, "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationPortRange": "*" }
+      ]
+    },
+    "effectiveRoutes": {
+      "nic-secure": [{ "addressPrefix": "10.60.0.0/16", "nextHopType": "VnetLocal" }]
+    }
+  }
+}
