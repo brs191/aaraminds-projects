@@ -60,6 +60,42 @@ def style_for(severity):
     return BUCKET_COLOR[bucket_for(severity)]
 
 
+# Finding types whose `resource` is a NIC id/name → painted on the nic:<id> node.
+# (over-permissive NSG covers both the NSG path and the firewall-DNAT path; LB-NAT
+# resolves to the backend NIC; Bastion-bypass and analysis-incomplete are per-NIC.)
+_NIC_FINDING_TYPES = {
+    "over-permissive NSG (reachable)",
+    "over-permissive NSG (latent)",
+    "missing tier segmentation",
+    "analysis incomplete",
+    "Bastion bypass — direct management port exposed",
+    "internet reachable via load balancer NAT",
+}
+
+# Finding types on resources the network-topology diagram does NOT model as
+# severity-colourable nodes: App Gateway, AKS, Front Door, vWAN hub, APIM, the
+# cross-subscription peering RELATIONSHIP, and Private DNS zone linkage. These are
+# real findings — they remain in the engine output and the risk register — but
+# they have no topology node to colour, so the overlay must NOT invent one.
+# (Before audit H-1's family port, the fallthrough mislabeled every one of these
+# as nic:<resource>, producing phantom NIC nodes the renderer never drew, which
+# the diagram-eval gate then reported as "dropped findings" — a false failure.)
+NON_TOPOLOGY_FINDING_TYPES = {
+    "app gateway WAF disabled",
+    "app gateway WAF in detection mode",
+    "AKS non-private cluster",
+    "cross-subscription peering without firewall",
+    "APIM without VNet isolation",
+    "APIM External mode without WAF",
+    "Front Door WAF disabled",
+    "Front Door WAF in detection mode",
+    "vWAN hub unsecured — no firewall",
+    "vWAN hub firewall bypasses private traffic",
+    "private DNS zone missing",
+    "private DNS zone not linked to VNet",
+}
+
+
 def finding_node_ids(f):
     """Canonical render node id(s) a finding paints, namespaced by kind.
 
@@ -67,6 +103,8 @@ def finding_node_ids(f):
       NIC findings      -> ["nic:<name>"]
       orphaned PIP      -> ["pip:<name>"]
       CIDR overlap pair -> ["vnet:<a>", "vnet:<b>"]
+    App-layer findings (NON_TOPOLOGY_FINDING_TYPES) paint nothing — they have no
+    topology node — and are surfaced in the risk register instead.
     """
     t, r = f.get("type", ""), f.get("resource", "")
     if t == "orphaned public endpoint":
@@ -74,7 +112,12 @@ def finding_node_ids(f):
     if t == "CIDR overlap":
         a, b = (r.split("~", 1) + [""])[:2]
         return ["vnet:" + a, "vnet:" + b]
-    # over-permissive NSG (reachable|latent), missing tier segmentation, firewall DNAT
+    if t in _NIC_FINDING_TYPES:
+        return ["nic:" + r]
+    if t in NON_TOPOLOGY_FINDING_TYPES:
+        return []  # surfaced in the risk register, not as a topology node colour
+    # Unknown type — paint as nic so the diagram-eval gate trips LOUDLY (dropped
+    # finding) and forces a deliberate classification of any new engine family.
     return ["nic:" + r]
 
 

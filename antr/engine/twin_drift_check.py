@@ -63,33 +63,27 @@ def main():
         fixtures += sorted(glob.glob(os.path.join(d, "*.json")))
     fixtures = [f for f in fixtures if os.path.basename(f) not in ("last_run.json",)]
 
-    # The Go engine is a SUPERSET of the Python reference: Python implements the
-    # core finding families (the oracle); Go adds ~9 Azure-specific families with no
-    # Python twin. So the gate asserts PARITY ON THE SHARED FAMILIES and reports
-    # Go-only families as informational, not divergence (V4-07 / twin-drift scoping).
-    SHARED = {"over-permissive NSG (reachable)", "over-permissive NSG (latent)",
-              "orphaned public endpoint", "CIDR overlap", "missing tier segmentation",
-              "analysis incomplete"}
+    # As of audit H-1 the Python reference is a FULL twin: all ~9 Azure-specific
+    # families were ported into engine/reference/analyze.py, so the gate now
+    # asserts PARITY ON THE WHOLE ENGINE — every finding the Go engine emits must
+    # be emitted byte-identically by the Python oracle, and vice versa. (Previously
+    # scoped to a SHARED core because Go was a superset; that scoping is retired.)
     drift = []
-    go_only_total = 0
     for fx_path in fixtures:
         fx = json.load(open(fx_path, encoding="utf-8"))
-        py = [r for r in canon(pyeng.analyze(fx)) if r[0] in SHARED]
+        py = canon(pyeng.analyze(fx))
         try:
-            go_all = canon(go_findings(go_dir, fx_path))
+            go = canon(go_findings(go_dir, fx_path))
         except Exception as e:  # noqa: BLE001
             drift.append((os.path.basename(fx_path), "go-error", str(e)[:200]))
             continue
-        go = [r for r in go_all if r[0] in SHARED]
-        go_only_total += sum(1 for r in go_all if r[0] not in SHARED)
         if py != go:
             only_py = [r for r in py if r not in go]
             only_go = [r for r in go if r not in py]
             drift.append((os.path.basename(fx_path), "DIVERGE",
                           {"only_python": only_py[:5], "only_go": only_go[:5]}))
-    print("twin-drift: %d fixtures checked, %d shared-family divergences "
-          "(%d Go-only-family findings, no Python oracle — informational)"
-          % (len(fixtures), len(drift), go_only_total))
+    print("twin-drift: %d fixtures checked, %d full-engine divergences"
+          % (len(fixtures), len(drift)))
     for d in drift:
         print("  ", d)
     return 1 if drift else 0

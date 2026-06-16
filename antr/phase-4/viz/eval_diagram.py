@@ -178,6 +178,13 @@ def eval_fixture(path):
                                    "vertices": total, "overlaps": overlaps[:5]}
 
     res["buckets"] = sorted({v["bucket"] for v in overlay.values()})
+    # App-layer findings have no topology node (App Gateway / AKS / Front Door /
+    # vWAN / APIM / cross-sub peering / PE DNS) — surface them explicitly so the
+    # gate does not silently hide engine output it cannot draw (audit transparency).
+    import analyze as _eng
+    res["non_topology_findings"] = sorted(
+        {f["type"] for f in _eng.analyze(fx)
+         if f.get("type") in ov.NON_TOPOLOGY_FINDING_TYPES})
     res["status"] = "FAIL" if any(c["status"] == "FAIL" for c in res["checks"].values()) else "PASS"
     return res
 

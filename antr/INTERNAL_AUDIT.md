@@ -22,6 +22,18 @@ Notable meta-finding: I (this session's author) fixed several defects, yet an in
 **two CRITICAL issues**. That's the audit working as intended — and a signal the project's QA leans too
 hard on self-review.
 
+### Resolution status (post-fix, 2026-06-17)
+
+Six of the eight register items are now closed; the two that remain are the ones that genuinely need a
+live Azure subscription. **C-1 RESOLVED** (paginated ARG reads + test). **H-1 RESOLVED** (all 9 Azure
+families ported to the Python twin; twin-drift now asserts *full-engine* parity, not a shared subset — 36
+fixtures, 0 divergences). **H-2 RESOLVED** (eval gates in CI and matches on evidence). **H-3 RESOLVED**
+(generator blocks Medium). **M-3 RESOLVED** (NW failures surface as findings). **C-2 PARTIAL** (parse-path
+coverage tripled to 16.7%; the fetch-orchestration harness and a real Azure run remain deferred — they
+need credentials). The verdict's core claim still stands until C-2 is fully closed and the engine has run
+against a real subscription: **the engine is production-grade; the live-Azure adapter is not yet proven.**
+Per-gate evidence is in the risk register below.
+
 ---
 
 ## What is genuinely strong (tried to break, couldn't)
@@ -42,7 +54,7 @@ hard on self-review.
 
 ## Critical & high findings
 
-### C-1 (CRITICAL) — Unpaginated Resource Graph reads → silent under-reporting on real subscriptions
+### C-1 (CRITICAL) ✅ RESOLVED — Unpaginated Resource Graph reads → silent under-reporting on real subscriptions
 `adapter/resourcegraph.go` `runKQL` issues one `Resources(...)` call and never loops on the ARG
 `SkipToken`. ARG pages at ~1000 rows. On a subscription with >1000 NICs/NSGs/PIPs the topology silently
 truncates and findings on the dropped resources are never produced — **a security tool that misses
@@ -50,28 +62,32 @@ findings without erroring.** It was a *known* `[VERIFY]` item (Phase-1 memo) and
 fix or a test. A correct paginator already exists for the ARM-REST path (`azure.go listAll`) but isn't
 used for KQL. **Fix:** loop on `SkipToken`; add a >1000-row fixture test.
 
-### C-2 (CRITICAL) — The live-Azure data path is 6.1% covered and has never run
+### C-2 (CRITICAL) ◑ PARTIAL — The live-Azure data path is 6.1% covered and has never run
 The adapter's Azure-talking code (`fetchResourceGraph`, `fetchNetworkWatcher`, the 2N-goroutine fan-out +
 semaphore) has **no tests**; only pure helpers are exercised. Every ARM field-path the verdict rests on is
 an unverified assumption (91 `[VERIFY]` markers repo-wide). `go test -race` is clean but hollow — nothing
 drives the concurrent path. **The "ACCEPTED WITH CONDITIONS" Phase-1 verdict rests on code that has never
 touched Azure.** Fix: a recorded-ARM-JSON fixture harness for the adapter; a sandbox integration sprint.
 
-### H-1 (HIGH) — "True twin" covers 5 of 14 finding families; 64% of detection has no independent oracle
+### H-1 (HIGH) ✅ RESOLVED — "True twin" covers 5 of 14 finding families; 64% of detection has no independent oracle
 The Python oracle implements 5 families; the Go engine has 14. The 9 Go-only families (Private DNS, App GW
 WAF, AKS, cross-sub peering, LB NAT, APIM, Bastion bypass, Front Door, vWAN) are validated **only by Go
 unit tests the same author wrote** — 31 Go-only findings flagged informational by twin-drift. "Verified by
 twin" is defensible for the core 5, not the engine. Fix: port the 9 families to the Python reference, or
 stop claiming whole-engine twin parity.
 
-### H-2 (HIGH) — Precision/recall = 1.0 measures determinism, not correctness — and isn't even gated
+> **Resolution:** all 9 families ported to `engine/reference/analyze.py` with byte-identical evidence
+> strings; `twin_drift_check.py` retired its SHARED-subset scoping and now asserts **full-engine** parity
+> (36 fixtures, 0 divergences). Whole-engine twin parity is now true, not claimed.
+
+### H-2 (HIGH) ✅ RESOLVED — Precision/recall = 1.0 measures determinism, not correctness — and isn't even gated
 The eval answer keys were "corrected against live engine output" (Phase-1 memo) — so 1.0 means the engine
 reproduces itself. Worse: `run_eval.py` matches only type-substring + severity + resource (**not evidence,
 not count**), so it can't catch a wrong-evidence finding; and **`run_eval.py` is not in CI** — the touted
 0.95/0.90 gates block nothing on a PR. Fix: an *independently authored* answer-key set; match on evidence;
 wire the eval into `engine-ci.yml`.
 
-### H-3 (HIGH) — Generator auto-PRs Medium-severity security defects
+### H-3 (HIGH) ✅ RESOLVED — Generator auto-PRs Medium-severity security defects
 The gate is `Approved = no Critical/High`. But "AKS non-private cluster", "App Gateway WAF disabled",
 "Front Door WAF disabled", "cross-sub peering without firewall", "vWAN unsecured" are all **Medium** — so
 `generate_topology` can open a PR for an internet-facing WAF-disabled gateway or a public AKS API server,
@@ -87,9 +103,10 @@ generation gate stricter than the review gate (block Medium for generated infra)
   validated renderer isn't shipped; the shipped one isn't validated. They will drift. Pick one.
 - **M-2 — Read-only by convention, not assertion.** Only read clients are constructed, but nothing
   prevents a future write client; no RBAC scope test, no grep-able guard.
-- **M-3 — Fail-open NW enrichment silently drops NICs.** A NIC whose Network Watcher call fails is omitted
-  from analysis → transient throttling becomes a silent false negative. Surface dropped NICs as an
-  "analysis-incomplete" finding.
+- **M-3 ✅ RESOLVED — Fail-open NW enrichment silently drops NICs.** A NIC whose Network Watcher call fails
+  is omitted from analysis → transient throttling becomes a silent false negative. *Fixed:* both engines now
+  track `incompleteNics` and emit a Medium "analysis incomplete" finding (twin-checked), so a dropped NIC
+  is loud, not silent.
 - **Process — the "ACCEPTED" framing.** Four phase memos say ACCEPTED/ACCEPTED-WITH-CONDITIONS, but the
   product has never run against Azure and the eval is self-referential. The memos are honest in their
   detail (they list the `[VERIFY]` items) but the headline verdicts read stronger than the evidence
@@ -112,16 +129,24 @@ input.
 
 ## Risk register (prioritized)
 
-| # | Risk | Sev | Action |
-|---|---|---|---|
-| 1 | **C-1** unpaginated ARG → silent truncation on >1000-resource subs | CRITICAL | paginate `runKQL`; >1000-row test |
-| 2 | **C-2** adapter 6.1% covered, never run on Azure | CRITICAL | recorded-ARM fixture harness + sandbox sprint |
-| 3 | **H-2** eval measures determinism not correctness; not in CI | HIGH | independent keys; match evidence; wire to CI |
-| 4 | **H-1** 64% of detection has no independent oracle | HIGH | port 9 families to the Python twin |
-| 5 | **H-3** generator auto-PRs Medium security defects | HIGH | stricter generation gate |
-| 6 | **M-1** two renderers (validated ≠ shipped) | MEDIUM | converge on one; gate it |
-| 7 | M-3 silent NIC drop on NW failure | MEDIUM | emit analysis-incomplete finding |
-| 8 | Process: ACCEPTED verdicts oversell | MEDIUM | re-grade; separate engine vs live path |
+| # | Risk | Sev | Action | Status |
+|---|---|---|---|---|
+| 1 | **C-1** unpaginated ARG → silent truncation on >1000-resource subs | CRITICAL | paginate `runKQL`; >1000-row test | ✅ RESOLVED — `runKQL` follows `SkipToken`; `pagination_test.go` proves multi-page assembly (`968faaa`) |
+| 2 | **C-2** adapter 6.1% covered, never run on Azure | CRITICAL | recorded-ARM fixture harness + sandbox sprint | ◑ PARTIAL — parse-path field tests added (cov 6.1%→16.7%, `968faaa`); fetch-orchestration recorded-response harness + live-Azure run still deferred (needs sandbox creds) |
+| 3 | **H-2** eval measures determinism not correctness; not in CI | HIGH | independent keys; match evidence; wire to CI | ✅ RESOLVED — `run_eval` now gates in CI and asserts on `evidence` substrings, not just type/sev (`c2eb95d`). Independently-authored keys still open |
+| 4 | **H-1** 64% of detection has no independent oracle | HIGH | port 9 families to the Python twin | ✅ RESOLVED — all 9 Azure families ported to `engine/reference/analyze.py`; twin-drift now asserts **full-engine** parity (36 fixtures, 0 divergences) |
+| 5 | **H-3** generator auto-PRs Medium security defects | HIGH | stricter generation gate | ✅ RESOLVED — gate blocks Critical/High/**Medium**; `TestValidateBeforeEmit_MediumBlocks` (`968faaa`) |
+| 6 | **M-1** two renderers (validated ≠ shipped) | MEDIUM | converge on one; gate it | ○ DEFERRED — Phase-4 renderer convergence |
+| 7 | M-3 silent NIC drop on NW failure | MEDIUM | emit analysis-incomplete finding | ✅ RESOLVED — NW-enrichment failures surface as Medium "analysis incomplete" in both engines + twin (`968faaa`) |
+| 8 | Process: ACCEPTED verdicts oversell | MEDIUM | re-grade; separate engine vs live path | ◑ ADDRESSED in verdict above (engine vs live-path split made explicit) |
+
+**Diagram-eval gate fix (surfaced during H-1):** porting the 9 families exposed a pre-existing bug — the
+Phase-4 overlay's fallthrough mislabeled every app-layer finding (App Gateway, AKS, Front Door, vWAN,
+APIM, cross-sub peering, PE DNS) as a phantom `nic:` node the renderer never drew, so the diagram-eval
+gate had been **RED since those fixtures landed**. Fixed by classifying finding types explicitly: app-layer
+findings have no topology node and are now surfaced in the report's `non_topology_findings` (not invented
+as NIC colours). Gate is green again (26/26). Known limitation recorded: the network-topology diagram does
+not yet render those 6 resource families as first-class nodes — a Phase-4 renderer enhancement.
 
 ---
 

@@ -53,6 +53,223 @@ def nic_vnet(nic) -> str:
     return s.split("/")[0] if "/" in s else ""
 
 
+def subnet_to_vnet(subnet: str) -> str:
+    s = subnet or ""
+    return s.split("/")[0] if "/" in s else ""
+
+
+# peGroupIdToZone maps a Private Endpoint groupId to the canonical Azure Private
+# DNS zone name for that service sub-resource. Kept byte-identical to the Go twin
+# (internal/analyze/analyze.go) so the H-1 families produce the same findings.
+PE_GROUPID_TO_ZONE = {
+    "blob": "privatelink.blob.core.windows.net",
+    "file": "privatelink.file.core.windows.net",
+    "queue": "privatelink.queue.core.windows.net",
+    "table": "privatelink.table.core.windows.net",
+    "dfs": "privatelink.dfs.core.windows.net",
+    "web": "privatelink.web.core.windows.net",
+    "vault": "privatelink.vaultcore.azure.net",
+    "sql": "privatelink.database.windows.net",
+    "sqlOnDemand": "privatelink.sql.azuresynapse.net",
+    "registry": "privatelink.azurecr.io",
+    "sites": "privatelink.azurewebsites.net",
+    "namespace": "privatelink.servicebus.windows.net",
+    "managedInstance": "privatelink.database.windows.net",
+    "searchService": "privatelink.search.windows.net",
+    "azurecosmosdb": "privatelink.documents.azure.com",
+    "redisCache": "privatelink.redis.cache.windows.net",
+    "openai": "privatelink.openai.azure.com",
+    "account": "privatelink.purview.azure.com",
+}
+
+
+# ------------------------------------------------ Azure-specific families (H-1)
+# Ported 1:1 from the Go engine's check* functions. Evidence strings are
+# byte-identical (em-dash U+2014) so twin-drift covers the WHOLE engine, not just
+# the shared core. These are the families that previously had no Python oracle.
+def check_private_dns_zone(rg):
+    pes = rg.get("privateEndpoints", [])
+    if not pes:
+        return []
+    zone_linked = {}  # zoneName -> set of linked VNet names
+    for z in rg.get("privateDnsZones", []):
+        zone_linked.setdefault(z.get("name", ""), set()).update(z.get("linkedVnets", []) or [])
+    out = []
+    for pe in pes:
+        state = pe.get("connectionState", "")
+        if state != "Approved" and state != "":
+            continue
+        expected = PE_GROUPID_TO_ZONE.get(pe.get("groupId", ""))
+        if expected is None:
+            continue
+        vnet = subnet_to_vnet(pe.get("subnet", ""))
+        if vnet == "":
+            continue
+        name = pe.get("name", "")
+        gid = pe.get("groupId", "")
+        if expected not in zone_linked:
+            out.append(finding(
+                "private DNS zone missing", "High", name,
+                f"Private endpoint \"{name}\" (service: {gid}) is in VNet \"{vnet}\" but "
+                f"Private DNS zone \"{expected}\" does not exist in this subscription — "
+                f"DNS resolution will use public endpoints", False))
+            continue
+        if vnet not in zone_linked[expected]:
+            out.append(finding(
+                "private DNS zone not linked to VNet", "High", name,
+                f"Private endpoint \"{name}\" (service: {gid}) is in VNet \"{vnet}\" but zone "
+                f"\"{expected}\" is not linked to that VNet — workloads in \"{vnet}\" resolve "
+                f"this service via public DNS, bypassing the private endpoint", False))
+    return out
+
+
+def check_app_gateway(rg):
+    out = []
+    for gw in rg.get("applicationGateways", []):
+        pip = gw.get("publicIp", "")
+        if pip == "":
+            continue
+        name = gw.get("name", "")
+        if not gw.get("wafEnabled", False):
+            out.append(finding(
+                "app gateway WAF disabled", "Medium", name,
+                f"Application Gateway \"{name}\" has public IP {pip} but WAF is disabled — "
+                f"no L7 protection on public ingress", True))
+        elif (gw.get("wafMode", "") or "").lower() == "detection":
+            out.append(finding(
+                "app gateway WAF in detection mode", "Informational", name,
+                f"Application Gateway \"{name}\" WAF is enabled but in Detection mode — "
+                f"threats are logged but not blocked", False))
+    return out
+
+
+def check_aks(rg):
+    out = []
+    for aks in rg.get("aksClusters", []):
+        if not aks.get("isPrivateCluster", False):
+            name = aks.get("name", "")
+            out.append(finding(
+                "AKS non-private cluster", "Medium", name,
+                f"AKS cluster \"{name}\" is not a private cluster — API server is reachable "
+                f"from the public internet; use a private cluster with a private endpoint for "
+                f"production workloads", True))
+    return out
+
+
+def check_cross_sub_peering(fx):
+    out = []
+    for xp in fx.get("crossSubscriptionPeerings", []):
+        if (xp.get("state", "") or "").lower() == "connected" and not xp.get("hasHubFirewall", False):
+            local, remote = xp.get("localVnet", ""), xp.get("remoteVnet", "")
+            sub = xp.get("remoteSubscriptionId", "")
+            out.append(finding(
+                "cross-subscription peering without firewall", "Medium", local + "~" + remote,
+                f"VNet \"{local}\" and \"{remote}\" (sub {sub}) are directly peered across "
+                f"subscriptions with no hub firewall in path — lateral movement between "
+                f"subscriptions is unrestricted", False))
+    return out
+
+
+def check_load_balancer_nat(rg):
+    out = []
+    for lb in rg.get("loadBalancers", []):
+        if lb.get("isInternal", False) or lb.get("frontendIp", "") == "":
+            continue
+        lbname, feip = lb.get("name", ""), lb.get("frontendIp", "")
+        for nat in lb.get("inboundNatRules", []) or []:
+            bnic = nat.get("backendNic", "")
+            if bnic == "":
+                continue
+            out.append(finding(
+                "internet reachable via load balancer NAT", "High", bnic,
+                f"load balancer \"{lbname}\" NAT rule \"{nat.get('name', '')}\" forwards public IP "
+                f"{feip}:{nat.get('frontendPort', 0)} → NIC \"{bnic}\":{nat.get('backendPort', 0)} — "
+                f"NIC is internet-reachable without a direct public IP", True))
+    return out
+
+
+def check_apim(rg):
+    out = []
+    for apim in rg.get("apiManagements", []):
+        name, mode = apim.get("name", ""), apim.get("vnetMode", "")
+        if mode == "None":
+            out.append(finding(
+                "APIM without VNet isolation", "Medium", name,
+                f"API Management \"{name}\" is deployed without VNet injection (mode=None) — "
+                f"gateway is publicly accessible and backend API calls bypass network controls", True))
+        elif mode == "External":
+            if not apim.get("hasWafFrontEnd", False):
+                out.append(finding(
+                    "APIM External mode without WAF", "Medium", name,
+                    f"API Management \"{name}\" is VNet-injected in External mode (public endpoint "
+                    f"{apim.get('publicIp', '')}) with no WAF upstream — API traffic reaches the "
+                    f"gateway without L7 inspection", True))
+    return out
+
+
+def check_bastion_bypass(rg, eff_rules):
+    if not rg.get("azureBastions", []):
+        return []
+    mgmt = {"22", "3389"}
+    out = []
+    for nic in rg.get("networkInterfaces", []):
+        pip = nic.get("publicIp")
+        if not pip:
+            continue
+        name = nic.get("name", "")
+        for r in eff_rules.get(name, []) or []:
+            if r.get("direction") != "Inbound" or r.get("access") != "Allow":
+                continue
+            if not is_internet_source(r.get("sourceAddressPrefix", "")):
+                continue
+            if str(r.get("destinationPortRange", "")) in mgmt:
+                out.append(finding(
+                    "Bastion bypass — direct management port exposed", "High", name,
+                    f"Azure Bastion is deployed but NIC \"{name}\" has public IP {pip} with port "
+                    f"{r.get('destinationPortRange', '')} open from internet — Bastion is intended "
+                    f"to be the exclusive management ingress", True))
+                break
+    return out
+
+
+def check_front_door(rg):
+    out = []
+    for fd in rg.get("azureFrontDoors", []):
+        name = fd.get("name", "")
+        if not fd.get("wafEnabled", False):
+            out.append(finding(
+                "Front Door WAF disabled", "Medium", name,
+                f"Azure Front Door \"{name}\" has no WAF policy enabled — all internet-facing "
+                f"endpoints lack L7 protection (OWASP Top 10, DDoS at app layer)", True))
+        elif (fd.get("wafMode", "") or "").lower() == "detection":
+            out.append(finding(
+                "Front Door WAF in detection mode", "Informational", name,
+                f"Azure Front Door \"{name}\" WAF is enabled but in Detection mode — threats are "
+                f"logged but not blocked; switch to Prevention for active protection", False))
+    return out
+
+
+def check_virtual_wan(rg):
+    out = []
+    for wan in rg.get("virtualWans", []):
+        for hub in wan.get("vHubs", []) or []:
+            name = hub.get("name", "")
+            if not hub.get("hasSecuredFirewall", False):
+                spokes = len(hub.get("spokeConnections", []) or [])
+                out.append(finding(
+                    "vWAN hub unsecured — no firewall", "Medium", name,
+                    f"Virtual WAN hub \"{name}\" has {spokes} spoke connection(s) but no secured "
+                    f"Azure Firewall — all spoke-to-spoke and spoke-to-internet traffic is "
+                    f"forwarded without inspection", False))
+            elif not hub.get("routingPolicyPrivate", False):
+                out.append(finding(
+                    "vWAN hub firewall bypasses private traffic", "Medium", name,
+                    f"Virtual WAN hub \"{name}\" has a secured firewall but RoutingPolicyPrivate=false "
+                    f"— spoke-to-spoke (east-west) traffic bypasses the firewall; only "
+                    f"internet-bound traffic is inspected", False))
+    return out
+
+
 # ---------------------------------------------------------------- Gate 1: AVNM admin rules
 def admin_verdict(admin_rules, vnet, port, want_source="internet"):
     """Highest-priority inbound admin verdict that governs an `want_source`-sourced flow on `port`.
@@ -188,6 +405,19 @@ def analyze(fx):
             findings.append(finding("missing tier segmentation", "High", rid(nic),
                                     "sensitive subnet reachable VNet-wide via default AllowVnetInBound "
                                     "(no DenyVnetInBound above priority 65000)", True))
+
+    # ---- Azure-specific families (H-1): ported 1:1 from the Go engine so the
+    # twin covers the WHOLE engine, not just the shared core. Order of appends
+    # mirrors analyze.go; the final sort makes order irrelevant anyway.
+    findings += check_private_dns_zone(rg)
+    findings += check_app_gateway(rg)
+    findings += check_aks(rg)
+    findings += check_cross_sub_peering(fx)
+    findings += check_load_balancer_nat(rg)
+    findings += check_apim(rg)
+    findings += check_bastion_bypass(rg, eff_rules)
+    findings += check_virtual_wan(rg)
+    findings += check_front_door(rg)
 
     # Canonical, deterministic ordering — must match the Go engine's sort
     # (internal/analyze/analyze.go: by resource, then type) so the reference and

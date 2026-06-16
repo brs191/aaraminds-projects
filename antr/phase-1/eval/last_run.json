@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-12T17:57:55 UTC",
+  "date": "2026-06-16T18:49:57 UTC",
   "overall_status": "PASS",
   "gates": {
     "precision_overall": {
@@ -386,12 +386,14 @@
         {
           "type": "over-permissive NSG (reachable)",
           "severity": "High",
-          "resource": "nic-vm-web-a"
+          "resource": "nic-vm-web-a",
+          "evidence": "route 0.0.0.0/0->Internet + public IP"
         },
         {
           "type": "over-permissive NSG (latent)",
           "severity": "Informational",
-          "resource": "nic-vm-web-b"
+          "resource": "nic-vm-web-b",
+          "evidence": "no public IP"
         }
       ],
       "fp_findings": [],
@@ -638,14 +640,14 @@
           "type": "over-permissive NSG (latent)",
           "severity": "Informational",
           "resource": "nic-vm-nopip",
-          "evidence": "0.0.0.0/0:22 inbound but no public IP",
+          "evidence": "*:* inbound but no public IP",
           "reachable": false
         },
         {
           "type": "over-permissive NSG (latent)",
           "severity": "Informational",
           "resource": "nic-vm-nopip",
-          "evidence": "*:* inbound but no public IP",
+          "evidence": "0.0.0.0/0:22 inbound but no public IP",
           "reachable": false
         },
         {
