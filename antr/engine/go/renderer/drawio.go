@@ -164,6 +164,7 @@ func ToDrawIO(fixture *graph.Fixture, findings []analyze.Finding) string {
 	rg := fixture.ResourceGraph
 
 	// ── Index NIC → findings ────────────────────────────────────────────────
+	// TODO(V4-07): index by id-or-name once renders carry NIC ids; superseded by phase-4/viz.
 	nicFindings := make(map[string][]analyze.Finding, len(findings))
 	for _, f := range findings {
 		nicFindings[f.Resource] = append(nicFindings[f.Resource], f)

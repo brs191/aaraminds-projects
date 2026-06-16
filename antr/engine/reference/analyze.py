@@ -35,6 +35,11 @@ def finding(ftype, severity, resource, evidence, reachable):
             "evidence": evidence, "reachable": reachable}
 
 
+def _go_list(xs):
+    # Format like Go fmt %v ([a b c]) so DNAT evidence matches the Go twin (V4-07).
+    return "[" + " ".join(str(x) for x in (xs or [])) + "]"
+
+
 def rid(obj) -> str:
     """Stable identity for a resource: its ARM resource id when present, else its
     bare name. Bare names are NOT unique across subscriptions/resource groups, so
@@ -146,7 +151,7 @@ def analyze(fx):
                     findings.append(finding(
                         "over-permissive NSG (reachable)", "High", rid(nic),
                         f"firewall DNAT {fw.get('publicIp')}:{nat.get('destinationPort')} -> "
-                        f"{nic.get('privateIp')}:{nat.get('translatedPort')} (source {nat.get('sourceAddresses')}); "
+                        f"{nic.get('privateIp')}:{nat.get('translatedPort')} (source {_go_list(nat.get('sourceAddresses'))}); "
                         f"no public IP on the NIC", True))
 
     # ---- orphaned public endpoints ----

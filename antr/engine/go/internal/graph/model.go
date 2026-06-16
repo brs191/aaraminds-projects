@@ -12,12 +12,12 @@ import (
 )
 
 type Fixture struct {
-	Subscription              string             `json:"subscription"`
-	ResourceGraph             ResourceGraph      `json:"resourceGraph"`
-	NetworkWatcher            NetworkWatcher     `json:"networkWatcher"`
-	AVNM                      AVNM               `json:"avnm"`
-	AzureFirewall             *Firewall          `json:"azureFirewall,omitempty"`
-	CrossSubscriptionPeerings []CrossSubPeering  `json:"crossSubscriptionPeerings,omitempty"`
+	Subscription              string            `json:"subscription"`
+	ResourceGraph             ResourceGraph     `json:"resourceGraph"`
+	NetworkWatcher            NetworkWatcher    `json:"networkWatcher"`
+	AVNM                      AVNM              `json:"avnm"`
+	AzureFirewall             *Firewall         `json:"azureFirewall,omitempty"`
+	CrossSubscriptionPeerings []CrossSubPeering `json:"crossSubscriptionPeerings,omitempty"`
 	// Enrichment holds optional P1 data from Defender for Cloud, Azure Policy,
 	// and Activity Logs. Populated by the adapter only when the caller requests
 	// enriched analysis. The engine does not read Enrichment; the MCP explainer
@@ -26,26 +26,26 @@ type Fixture struct {
 }
 
 type ResourceGraph struct {
-	VirtualNetworks        []VNet                `json:"virtualNetworks"`
-	NetworkSecurityGroups  []NSG                 `json:"networkSecurityGroups"`
-	RouteTables            []RouteTable          `json:"routeTables"`
-	PublicIPAddresses      []PublicIP            `json:"publicIPAddresses"`
-	NetworkInterfaces      []NIC                 `json:"networkInterfaces"`
-	PrivateEndpoints       []PrivateEndpoint     `json:"privateEndpoints,omitempty"`
-	LoadBalancers          []LoadBalancer        `json:"loadBalancers,omitempty"`
-	PrivateDnsZones        []PrivateDnsZone      `json:"privateDnsZones,omitempty"`
-	ApplicationGateways    []ApplicationGateway  `json:"applicationGateways,omitempty"`
-	AKSClusters            []AKSCluster          `json:"aksClusters,omitempty"`
-	NatGateways            []NatGateway          `json:"natGateways,omitempty"`
-	PrivateLinkServices    []PrivateLinkService  `json:"privateLinkServices,omitempty"`
-	ExpressRouteCircuits   []ExpressRouteCircuit `json:"expressRouteCircuits,omitempty"`
-	APIManagements         []APIManagement       `json:"apiManagements,omitempty"`
-	AzureBastions          []AzureBastion        `json:"azureBastions,omitempty"`
+	VirtualNetworks        []VNet                  `json:"virtualNetworks"`
+	NetworkSecurityGroups  []NSG                   `json:"networkSecurityGroups"`
+	RouteTables            []RouteTable            `json:"routeTables"`
+	PublicIPAddresses      []PublicIP              `json:"publicIPAddresses"`
+	NetworkInterfaces      []NIC                   `json:"networkInterfaces"`
+	PrivateEndpoints       []PrivateEndpoint       `json:"privateEndpoints,omitempty"`
+	LoadBalancers          []LoadBalancer          `json:"loadBalancers,omitempty"`
+	PrivateDnsZones        []PrivateDnsZone        `json:"privateDnsZones,omitempty"`
+	ApplicationGateways    []ApplicationGateway    `json:"applicationGateways,omitempty"`
+	AKSClusters            []AKSCluster            `json:"aksClusters,omitempty"`
+	NatGateways            []NatGateway            `json:"natGateways,omitempty"`
+	PrivateLinkServices    []PrivateLinkService    `json:"privateLinkServices,omitempty"`
+	ExpressRouteCircuits   []ExpressRouteCircuit   `json:"expressRouteCircuits,omitempty"`
+	APIManagements         []APIManagement         `json:"apiManagements,omitempty"`
+	AzureBastions          []AzureBastion          `json:"azureBastions,omitempty"`
 	VirtualNetworkGateways []VirtualNetworkGateway `json:"virtualNetworkGateways,omitempty"`
 	// Virtual WAN — P0 per Microsoft docs. Structurally different from
 	// traditional hub-spoke: spokes connect to vHubs (not via VNet peerings).
 	// Absent from a subscription = traditional hub-spoke; present = vWAN topology.
-	VirtualWANs            []VirtualWAN          `json:"virtualWans,omitempty"`
+	VirtualWANs []VirtualWAN `json:"virtualWans,omitempty"`
 	// Phase 2: collected but no analysis rule yet
 	DNSPrivateResolvers  []DNSPrivateResolver  `json:"dnsPrivateResolvers,omitempty"`
 	AzureRouteServers    []AzureRouteServer    `json:"azureRouteServers,omitempty"`
@@ -119,16 +119,18 @@ type Route struct {
 
 type PublicIP struct {
 	Name            string  `json:"name"`
+	ID              string  `json:"id,omitempty"` // ARM id (V4-07)
 	IPAddress       string  `json:"ipAddress"`
 	IPConfiguration *string `json:"ipConfiguration"` // null => orphaned
 	// AllocationMethod and SKU are populated in Phase 2 (TMR-005).
 	// Required for fixed-cost PIP pricing in forecast_cost.
 	AllocationMethod string `json:"allocationMethod,omitempty"` // "Static" | "Dynamic"
-	SKU              string `json:"sku,omitempty"`               // "Basic" | "Standard"
+	SKU              string `json:"sku,omitempty"`              // "Basic" | "Standard"
 }
 
 type NIC struct {
 	Name                 string            `json:"name"`
+	ID                   string            `json:"id,omitempty"` // ARM id; identity key across subscriptions (V4-07)
 	Subnet               string            `json:"subnet"`
 	NetworkSecurityGroup *string           `json:"networkSecurityGroup"`
 	PublicIP             *string           `json:"publicIp"`
@@ -193,11 +195,11 @@ type NatRule struct {
 // degrade to a heuristic; with it the check is deterministic.
 type PrivateEndpoint struct {
 	Name                 string `json:"name"`
-	Subnet               string `json:"subnet"`                // "{vnetName}/{subnetName}"
-	PrivateIP            string `json:"privateIp"`             // IP of the PE NIC
-	GroupId              string `json:"groupId"`               // service sub-resource: "blob", "vault", "sql", "registry", etc.
-	PrivateLinkServiceId string `json:"privateLinkServiceId"`  // ARM resource ID of the target service
-	ConnectionState      string `json:"connectionState"`       // "Approved" | "Pending" | "Rejected"
+	Subnet               string `json:"subnet"`               // "{vnetName}/{subnetName}"
+	PrivateIP            string `json:"privateIp"`            // IP of the PE NIC
+	GroupId              string `json:"groupId"`              // service sub-resource: "blob", "vault", "sql", "registry", etc.
+	PrivateLinkServiceId string `json:"privateLinkServiceId"` // ARM resource ID of the target service
+	ConnectionState      string `json:"connectionState"`      // "Approved" | "Pending" | "Rejected"
 }
 
 // LoadBalancer models both External (internet-facing, public frontend) and
@@ -206,22 +208,22 @@ type PrivateEndpoint struct {
 // in the backend pool is internet-reachable via port-forwarding even without a
 // direct public IP (the same DNAT pattern as Azure Firewall NatRules).
 type LoadBalancer struct {
-	Name           string          `json:"name"`
-	Sku            string          `json:"sku"`            // "Standard" | "Basic"
-	FrontendIP     string          `json:"frontendIp"`     // public IP for ELB; private IP for ILB
-	IsInternal     bool            `json:"isInternal"`     // false = internet-facing (public frontend)
-	InboundNatRules []LBNatRule   `json:"inboundNatRules,omitempty"`
-	BackendPools   []LBBackendPool `json:"backendPools,omitempty"`
+	Name            string          `json:"name"`
+	Sku             string          `json:"sku"`        // "Standard" | "Basic"
+	FrontendIP      string          `json:"frontendIp"` // public IP for ELB; private IP for ILB
+	IsInternal      bool            `json:"isInternal"` // false = internet-facing (public frontend)
+	InboundNatRules []LBNatRule     `json:"inboundNatRules,omitempty"`
+	BackendPools    []LBBackendPool `json:"backendPools,omitempty"`
 }
 
 // LBNatRule is a single port-forwarding rule on a Load Balancer.
 // FrontendPort on the LB's frontend IP is forwarded to BackendPort on BackendNic.
 type LBNatRule struct {
 	Name         string `json:"name"`
-	Protocol     string `json:"protocol"`     // "Tcp" | "Udp"
+	Protocol     string `json:"protocol"` // "Tcp" | "Udp"
 	FrontendPort int    `json:"frontendPort"`
 	BackendPort  int    `json:"backendPort"`
-	BackendNic   string `json:"backendNic"`   // NIC name receiving forwarded traffic
+	BackendNic   string `json:"backendNic"` // NIC name receiving forwarded traffic
 }
 
 // LBBackendPool is the set of NICs (or IP addresses) that receive load-balanced traffic.
@@ -234,9 +236,9 @@ type LBBackendPool struct {
 // A zone not linked to a VNet that hosts a PE for that service means DNS
 // resolution in that VNet goes public — the PE's security guarantee is broken.
 type PrivateDnsZone struct {
-	Name       string       `json:"name"`       // e.g. "privatelink.blob.core.windows.net"
-	LinkedVnets []string    `json:"linkedVnets"` // VNet names with autoregistration or manual link
-	ARecords   []DnsARecord `json:"aRecords,omitempty"`
+	Name        string       `json:"name"`        // e.g. "privatelink.blob.core.windows.net"
+	LinkedVnets []string     `json:"linkedVnets"` // VNet names with autoregistration or manual link
+	ARecords    []DnsARecord `json:"aRecords,omitempty"`
 }
 
 type DnsARecord struct {
@@ -248,10 +250,10 @@ type DnsARecord struct {
 // WAF mode and public IP presence drive security findings.
 type ApplicationGateway struct {
 	Name         string             `json:"name"`
-	Subnet       string             `json:"subnet"`              // "{vnetName}/{subnetName}"
-	PublicIP     string             `json:"publicIp,omitempty"`  // empty = internal only
+	Subnet       string             `json:"subnet"`             // "{vnetName}/{subnetName}"
+	PublicIP     string             `json:"publicIp,omitempty"` // empty = internal only
 	WafEnabled   bool               `json:"wafEnabled"`
-	WafMode      string             `json:"wafMode,omitempty"`   // "Prevention" | "Detection" | ""
+	WafMode      string             `json:"wafMode,omitempty"` // "Prevention" | "Detection" | ""
 	BackendPools []AppGWBackendPool `json:"backendPools,omitempty"`
 }
 
@@ -264,7 +266,7 @@ type AppGWBackendPool struct {
 // IsPrivateCluster=false means the API server is reachable from the public internet.
 type AKSCluster struct {
 	Name             string `json:"name"`
-	Subnet           string `json:"subnet"`               // "{vnetName}/{subnetName}" of node pool subnet
+	Subnet           string `json:"subnet"` // "{vnetName}/{subnetName}" of node pool subnet
 	PodCidr          string `json:"podCidr,omitempty"`
 	ServiceCidr      string `json:"serviceCidr,omitempty"`
 	IsPrivateCluster bool   `json:"isPrivateCluster"`
@@ -283,9 +285,9 @@ type NatGateway struct {
 // PLS is the provider side of a private link connection (vs PE which is the consumer).
 // Bastion NVA patterns and cross-tenant access use PLS.
 type PrivateLinkService struct {
-	Name                  string   `json:"name"`
-	Subnet                string   `json:"subnet"`                 // "{vnetName}/{subnetName}"
-	NatIPConfig           string   `json:"natIpConfig,omitempty"`  // private IP used for SNAT
+	Name                   string   `json:"name"`
+	Subnet                 string   `json:"subnet"`                           // "{vnetName}/{subnetName}"
+	NatIPConfig            string   `json:"natIpConfig,omitempty"`            // private IP used for SNAT
 	LinkedPrivateEndpoints []string `json:"linkedPrivateEndpoints,omitempty"` // PE names connected to this PLS
 }
 
@@ -293,23 +295,23 @@ type PrivateLinkService struct {
 // When BGP advertises a default route (0.0.0.0/0) via ER, Gateway Subnet routes
 // override UDRs on connected VNets — Gate 3 must account for this.
 type ExpressRouteCircuit struct {
-	Name                    string `json:"name"`
-	PeeringLocation         string `json:"peeringLocation,omitempty"`
-	BandwidthMbps           int    `json:"bandwidthMbps,omitempty"`
-	ConnectedVnet           string `json:"connectedVnet,omitempty"`         // VNet name of the connected virtual network gateway
-	BGPAdvertisesDefaultRoute bool `json:"bgpAdvertisesDefaultRoute"`       // true = on-prem advertises 0.0.0.0/0 via BGP → overrides local internet routing
+	Name                      string `json:"name"`
+	PeeringLocation           string `json:"peeringLocation,omitempty"`
+	BandwidthMbps             int    `json:"bandwidthMbps,omitempty"`
+	ConnectedVnet             string `json:"connectedVnet,omitempty"`   // VNet name of the connected virtual network gateway
+	BGPAdvertisesDefaultRoute bool   `json:"bgpAdvertisesDefaultRoute"` // true = on-prem advertises 0.0.0.0/0 via BGP → overrides local internet routing
 }
 
 // CrossSubPeering captures a VNet peering that crosses a subscription boundary.
 // These are not returned in a single-subscription Resource Graph query and require
 // separate collection. HasHubFirewall=false means traffic is unrestricted between subs.
 type CrossSubPeering struct {
-	LocalVnet            string `json:"localVnet"`
-	RemoteVnet           string `json:"remoteVnet"`
-	RemoteSubscriptionID string `json:"remoteSubscriptionId"`
-	State                string `json:"state"`
-	AllowForwardedTraffic bool  `json:"allowForwardedTraffic"`
-	HasHubFirewall       bool   `json:"hasHubFirewall"` // true = a firewall sits in the peering path
+	LocalVnet             string `json:"localVnet"`
+	RemoteVnet            string `json:"remoteVnet"`
+	RemoteSubscriptionID  string `json:"remoteSubscriptionId"`
+	State                 string `json:"state"`
+	AllowForwardedTraffic bool   `json:"allowForwardedTraffic"`
+	HasHubFirewall        bool   `json:"hasHubFirewall"` // true = a firewall sits in the peering path
 }
 
 // APIManagement represents an Azure API Management instance.
@@ -323,12 +325,12 @@ type CrossSubPeering struct {
 // gateway IP against APP GW backend pools.
 type APIManagement struct {
 	Name           string `json:"name"`
-	Subnet         string `json:"subnet,omitempty"`      // "{vnetName}/{subnetName}" — empty when VNetMode=None
+	Subnet         string `json:"subnet,omitempty"` // "{vnetName}/{subnetName}" — empty when VNetMode=None
 	PublicIP       string `json:"publicIp,omitempty"`
-	VNetMode       string `json:"vnetMode"`               // "External" | "Internal" | "None"
+	VNetMode       string `json:"vnetMode"` // "External" | "Internal" | "None"
 	GatewayURL     string `json:"gatewayUrl,omitempty"`
-	HasWAFFrontEnd bool   `json:"hasWafFrontEnd"`         // true = APP GW or Front Door WAF is upstream
-	SkuName        string `json:"skuName,omitempty"`      // "Developer"|"Basic"|"Standard"|"Premium"
+	HasWAFFrontEnd bool   `json:"hasWafFrontEnd"`    // true = APP GW or Front Door WAF is upstream
+	SkuName        string `json:"skuName,omitempty"` // "Developer"|"Basic"|"Standard"|"Premium"
 }
 
 // AzureBastion represents an Azure Bastion host.
@@ -339,24 +341,25 @@ type APIManagement struct {
 // that circumvents the Bastion controls.
 type AzureBastion struct {
 	Name     string `json:"name"`
-	Subnet   string `json:"subnet"`    // must be "AzureBastionSubnet" in the VNet
+	Subnet   string `json:"subnet"` // must be "AzureBastionSubnet" in the VNet
 	PublicIP string `json:"publicIp"`
 	SKU      string `json:"sku,omitempty"` // "Basic" | "Standard"
 }
 
 // VirtualNetworkGateway represents an Azure VPN or ExpressRoute gateway.
 // Required by the adapter to:
-//   (a) Associate ExpressRoute circuits with VNets via the gateway resource
-//   (b) Detect forced tunneling (EnableForcedTunneling or BGP default route) intent
-//   (c) Enable GatewaySubnet NSG/UDR validation via the existing NSG analysis
+//
+//	(a) Associate ExpressRoute circuits with VNets via the gateway resource
+//	(b) Detect forced tunneling (EnableForcedTunneling or BGP default route) intent
+//	(c) Enable GatewaySubnet NSG/UDR validation via the existing NSG analysis
 //
 // The engine does NOT need VNG for Gate 3 correctness — NW effective routes already
 // capture the BGP outcome at the NIC level. VNG is adapter context and Phase-2 analysis.
 type VirtualNetworkGateway struct {
 	Name                  string   `json:"name"`
-	Subnet                string   `json:"subnet"`                        // must be "GatewaySubnet"
-	GatewayType           string   `json:"gatewayType"`                   // "Vpn" | "ExpressRoute"
-	SKU                   string   `json:"sku,omitempty"`                 // "ErGw1AZ"|"ErGw2AZ"|"ErGw3AZ"|"VpnGw1"-"VpnGw5"|"Basic"
+	Subnet                string   `json:"subnet"`        // must be "GatewaySubnet"
+	GatewayType           string   `json:"gatewayType"`   // "Vpn" | "ExpressRoute"
+	SKU                   string   `json:"sku,omitempty"` // "ErGw1AZ"|"ErGw2AZ"|"ErGw3AZ"|"VpnGw1"-"VpnGw5"|"Basic"
 	PublicIP              string   `json:"publicIp,omitempty"`
 	EnableBGP             bool     `json:"enableBgp"`
 	EnableForcedTunneling bool     `json:"enableForcedTunneling"`         // true = BGP default route advertisement → on-prem forces internet traffic
@@ -371,9 +374,9 @@ type VirtualNetworkGateway struct {
 // Azure → on-prem DNS. Analysis (Phase 2): if no inbound endpoint covers the
 // privatelink.* zones, on-prem clients resolve PEs via public DNS.
 type DNSPrivateResolver struct {
-	Name             string               `json:"name"`
-	VNet             string               `json:"vnet"`
-	InboundEndpoints []DNSResolverEndpoint `json:"inboundEndpoints,omitempty"`  // on-prem → Azure
+	Name              string                `json:"name"`
+	VNet              string                `json:"vnet"`
+	InboundEndpoints  []DNSResolverEndpoint `json:"inboundEndpoints,omitempty"`  // on-prem → Azure
 	OutboundEndpoints []DNSResolverEndpoint `json:"outboundEndpoints,omitempty"` // Azure → on-prem
 }
 
@@ -388,10 +391,10 @@ type DNSResolverEndpoint struct {
 // Analysis (Phase 2): if Route Server is present and NVA BGP peers advertise 0.0.0.0/0,
 // effective routes on all connected spokes would route to the NVA, not the internet.
 type AzureRouteServer struct {
-	Name         string   `json:"name"`
-	Subnet       string   `json:"subnet"`          // must be "RouteServerSubnet"
-	PublicIP     string   `json:"publicIp,omitempty"`
-	BGPPeerASNs  []int    `json:"bgpPeerAsns,omitempty"`
+	Name           string   `json:"name"`
+	Subnet         string   `json:"subnet"` // must be "RouteServerSubnet"
+	PublicIP       string   `json:"publicIp,omitempty"`
+	BGPPeerASNs    []int    `json:"bgpPeerAsns,omitempty"`
 	ConnectedVNets []string `json:"connectedVnets,omitempty"`
 }
 
@@ -400,11 +403,11 @@ type AzureRouteServer struct {
 // where it was profile-level). An endpoint without a WAF policy ID has no L7 protection.
 // Analysis: FD with WafEnabled=false or WafMode="Detection" → Medium/Informational finding.
 type AzureFrontDoor struct {
-	Name      string              `json:"name"`
-	SKU       string              `json:"sku,omitempty"`     // "Standard_AzureFrontDoor" | "Premium_AzureFrontDoor"
-	WafEnabled bool               `json:"wafEnabled"`        // true = at least one WAF policy is associated
-	WafMode   string              `json:"wafMode,omitempty"` // "Prevention" | "Detection" — worst-case mode across all endpoints
-	Endpoints []FrontDoorEndpoint `json:"endpoints,omitempty"`
+	Name       string              `json:"name"`
+	SKU        string              `json:"sku,omitempty"`     // "Standard_AzureFrontDoor" | "Premium_AzureFrontDoor"
+	WafEnabled bool                `json:"wafEnabled"`        // true = at least one WAF policy is associated
+	WafMode    string              `json:"wafMode,omitempty"` // "Prevention" | "Detection" — worst-case mode across all endpoints
+	Endpoints  []FrontDoorEndpoint `json:"endpoints,omitempty"`
 }
 
 // FrontDoorEndpoint is a Front Door routing endpoint.
@@ -420,17 +423,17 @@ type FrontDoorEndpoint struct {
 // rely on basic/default protection only — volumetric attacks are not mitigated.
 // Analysis (Phase 2): VNet without linked DDoS plan → Informational.
 type DDoSProtectionPlan struct {
-	Name           string   `json:"name"`
-	LinkedVNets    []string `json:"linkedVnets"`
+	Name        string   `json:"name"`
+	LinkedVNets []string `json:"linkedVnets"`
 }
 
 // LocalNetworkGateway represents an on-premises network in a VPN connection.
 // It holds the on-prem CIDR ranges and BGP settings.
 // Analysis (Phase 2): overlapping on-prem ranges with Azure VNets (shadow routing).
 type LocalNetworkGateway struct {
-	Name            string   `json:"name"`
-	GatewayIPAddress string  `json:"gatewayIpAddress"`    // public IP of on-prem VPN device
-	AddressPrefixes  []string `json:"addressPrefixes"`     // on-prem CIDR ranges
+	Name             string   `json:"name"`
+	GatewayIPAddress string   `json:"gatewayIpAddress"` // public IP of on-prem VPN device
+	AddressPrefixes  []string `json:"addressPrefixes"`  // on-prem CIDR ranges
 	BGPAsn           int      `json:"bgpAsn,omitempty"`
 }
 
@@ -444,9 +447,9 @@ type LocalNetworkGateway struct {
 // Analysis rule: vHub without a secured firewall (HasSecuredFirewall=false) means
 // spoke-to-spoke and spoke-to-internet traffic is NOT inspected — lateral movement is unrestricted.
 type VirtualWAN struct {
-	Name     string        `json:"name"`
-	SKU      string        `json:"sku"`   // "Basic" | "Standard"
-	VHubs    []VirtualHub  `json:"vHubs"`
+	Name  string       `json:"name"`
+	SKU   string       `json:"sku"` // "Basic" | "Standard"
+	VHubs []VirtualHub `json:"vHubs"`
 }
 
 // VirtualHub is a Microsoft-managed routing appliance inside a vWAN.
@@ -456,10 +459,10 @@ type VirtualWAN struct {
 // RoutingPolicyPrivate=true → private (spoke-to-spoke) traffic routes through the firewall.
 type VirtualHub struct {
 	Name                  string   `json:"name"`
-	AddressPrefix         string   `json:"addressPrefix"`         // vHub private address space
+	AddressPrefix         string   `json:"addressPrefix"` // vHub private address space
 	Location              string   `json:"location,omitempty"`
-	SpokeConnections      []string `json:"spokeConnections"`      // names of connected VNets
-	HasSecuredFirewall    bool     `json:"hasSecuredFirewall"`    // true = Azure Firewall in vHub
+	SpokeConnections      []string `json:"spokeConnections"`   // names of connected VNets
+	HasSecuredFirewall    bool     `json:"hasSecuredFirewall"` // true = Azure Firewall in vHub
 	FirewallPrivateIP     string   `json:"firewallPrivateIp,omitempty"`
 	RoutingPolicyInternet bool     `json:"routingPolicyInternet"` // internet traffic through FW
 	RoutingPolicyPrivate  bool     `json:"routingPolicyPrivate"`  // private traffic through FW
@@ -488,20 +491,20 @@ type Enrichment struct {
 // DefenderAssessment is a single Defender for Cloud security recommendation for a resource.
 // Source: GET /subscriptions/{sub}/providers/Microsoft.Security/assessments
 type DefenderAssessment struct {
-	ResourceId        string `json:"resourceId"`
-	AssessmentName    string `json:"assessmentName"`     // human-readable recommendation name
-	Status            string `json:"status"`             // "Healthy" | "Unhealthy" | "NotApplicable"
-	Severity          string `json:"severity"`           // "High" | "Medium" | "Low"
-	RemediationSteps  string `json:"remediationSteps,omitempty"`
+	ResourceId       string `json:"resourceId"`
+	AssessmentName   string `json:"assessmentName"` // human-readable recommendation name
+	Status           string `json:"status"`         // "Healthy" | "Unhealthy" | "NotApplicable"
+	Severity         string `json:"severity"`       // "High" | "Medium" | "Low"
+	RemediationSteps string `json:"remediationSteps,omitempty"`
 }
 
 // PolicyFinding is the compliance state of a resource against an Azure Policy definition.
 // Source: GET /subscriptions/{sub}/providers/Microsoft.PolicyInsights/policyStates/latest/queryResults
 type PolicyFinding struct {
-	ResourceId          string `json:"resourceId"`
+	ResourceId           string `json:"resourceId"`
 	PolicyDefinitionName string `json:"policyDefinitionName"`
-	ComplianceState     string `json:"complianceState"` // "Compliant" | "NonCompliant" | "Exempt"
-	PolicySetName       string `json:"policySetName,omitempty"` // initiative (e.g., "Azure Security Benchmark")
+	ComplianceState      string `json:"complianceState"`         // "Compliant" | "NonCompliant" | "Exempt"
+	PolicySetName        string `json:"policySetName,omitempty"` // initiative (e.g., "Azure Security Benchmark")
 }
 
 // ActivityLogEntry is a network-plane change event from the Azure Activity Log.
@@ -521,12 +524,12 @@ type ActivityLogEntry struct {
 // A segment without flow logs is a forensics blind spot — traffic cannot be reconstructed
 // after a security incident, and compliance posture (PCI-DSS 10.x, SOC 2) is weakened.
 type FlowLogSummary struct {
-	ResourceId    string `json:"resourceId"`              // ARM ID of the NSG or VNet
-	ResourceName  string `json:"resourceName"`
-	ResourceType  string `json:"resourceType"`            // "NSG" | "VNet"
-	Enabled       bool   `json:"enabled"`
+	ResourceId     string `json:"resourceId"` // ARM ID of the NSG or VNet
+	ResourceName   string `json:"resourceName"`
+	ResourceType   string `json:"resourceType"` // "NSG" | "VNet"
+	Enabled        bool   `json:"enabled"`
 	StorageAccount string `json:"storageAccount,omitempty"` // destination storage account name
-	RetentionDays int    `json:"retentionDays,omitempty"`  // 0 = forever
+	RetentionDays  int    `json:"retentionDays,omitempty"`  // 0 = forever
 }
 
 // Load parses a topology export (the Azure adapter will produce this shape from

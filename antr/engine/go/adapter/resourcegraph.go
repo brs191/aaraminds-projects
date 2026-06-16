@@ -364,6 +364,7 @@ func kqlPublicIPs(sub string) string {
 | where type == "microsoft.network/publicipaddresses"
 | project
     name,
+    id,
     resourceGroup,
     location,
     ipAddress = properties.ipAddress,
@@ -378,6 +379,7 @@ func kqlNICs(sub string) string {
 | where type == "microsoft.network/networkinterfaces"
 | project
     name,
+    id,
     resourceGroup,
     location,
     ipConfigurations = properties.ipConfigurations,
@@ -758,6 +760,7 @@ func parsePublicIPs(rows []map[string]interface{}) []graph.PublicIP {
 		ipCfg := getString(row, "ipConfiguration")
 		pip := graph.PublicIP{
 			Name:      getString(row, "name"),
+			ID:        getString(row, "id"),
 			IPAddress: getString(row, "ipAddress"),
 		}
 		if ipCfg != "" {
@@ -821,6 +824,7 @@ func parseNICs(rows []map[string]interface{}) ([]graph.NIC, []nicMeta) {
 
 		nic := graph.NIC{
 			Name:       name,
+			ID:         getString(row, "id"),
 			Subnet:     subnet,
 			PrivateIP:  privateIP,
 			Tags:       tags,
@@ -1142,9 +1146,9 @@ func parseVirtualWANs(wanRows, hubRows []map[string]interface{}) []graph.Virtual
 
 func parseVirtualHub(row map[string]interface{}) graph.VirtualHub {
 	hub := graph.VirtualHub{
-		Name:          getString(row, "name"),
-		AddressPrefix: getString(row, "addressPrefix"),
-		Location:      getString(row, "location"),
+		Name:               getString(row, "name"),
+		AddressPrefix:      getString(row, "addressPrefix"),
+		Location:           getString(row, "location"),
 		HasSecuredFirewall: getBool(row, "hasSecuredFw"),
 	}
 
@@ -1284,4 +1288,3 @@ func extractSubscriptionID(armID string) string {
 	}
 	return rest
 }
-

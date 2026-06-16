@@ -91,6 +91,15 @@ func adminVerdict(rules []graph.AdminRule, vnet, port string) string {
 	return best
 }
 
+// rid returns the ARM resource id when present, else the bare name. Bare names
+// are not unique across subscriptions, so multi-sub estates must carry id (V4-07).
+func rid(name, id string) string {
+	if id != "" {
+		return id
+	}
+	return name
+}
+
 // Analyze computes the findings for a topology. Deterministic.
 func Analyze(fx *graph.Fixture) []Finding {
 	var findings []Finding
@@ -102,12 +111,20 @@ func Analyze(fx *graph.Fixture) []Finding {
 
 	nics := map[string]graph.NIC{}
 	for _, n := range rg.NetworkInterfaces {
-		nics[n.Name] = n
+		nics[rid(n.Name, n.ID)] = n
 	}
 
 	for name, nic := range nics {
+		// name is the rid (id||name); NW tables are id-keyed on a live multi-sub
+		// estate but name-keyed in current fixtures — try rid, fall back to name.
 		rules := effRules[name]
+		if rules == nil {
+			rules = effRules[nic.Name]
+		}
 		routes := effRoutes[name]
+		if routes == nil {
+			routes = effRoutes[nic.Name]
+		}
 		hasPIP := nic.PublicIP != nil && *nic.PublicIP != ""
 		defaultHop := ""
 		for _, r := range routes {
@@ -186,7 +203,7 @@ func Analyze(fx *graph.Fixture) []Finding {
 
 	for _, pip := range rg.PublicIPAddresses {
 		if pip.IPConfiguration == nil || *pip.IPConfiguration == "" {
-			findings = append(findings, Finding{"orphaned public endpoint", "Low", pip.Name,
+			findings = append(findings, Finding{"orphaned public endpoint", "Low", rid(pip.Name, pip.ID),
 				fmt.Sprintf("public IP %s with null ipConfiguration", pip.IPAddress), false})
 		}
 	}
@@ -211,8 +228,12 @@ func Analyze(fx *graph.Fixture) []Finding {
 		if !strings.EqualFold(nic.Tags["sensitive"], "true") {
 			continue
 		}
+		segRules := effRules[name]
+		if segRules == nil {
+			segRules = effRules[nic.Name]
+		}
 		allowVnet, denyVnet := false, false
-		for _, r := range effRules[name] {
+		for _, r := range segRules {
 			if r.Name == "AllowVnetInBound" || (r.Priority == 65000 && r.Access == "Allow") {
 				allowVnet = true
 			}
@@ -256,24 +277,24 @@ func Analyze(fx *graph.Fixture) []Finding {
 // Azure Private DNS zone name for that service sub-resource.
 // Deterministic: only zones where a PE actually exists in a VNet are checked.
 var peGroupIdToZone = map[string]string{
-	"blob":               "privatelink.blob.core.windows.net",
-	"file":               "privatelink.file.core.windows.net",
-	"queue":              "privatelink.queue.core.windows.net",
-	"table":              "privatelink.table.core.windows.net",
-	"dfs":                "privatelink.dfs.core.windows.net",
-	"web":                "privatelink.web.core.windows.net",
-	"vault":              "privatelink.vaultcore.azure.net",
-	"sql":                "privatelink.database.windows.net",
-	"sqlOnDemand":        "privatelink.sql.azuresynapse.net",
-	"registry":           "privatelink.azurecr.io",
-	"sites":              "privatelink.azurewebsites.net",
-	"namespace":          "privatelink.servicebus.windows.net",
-	"managedInstance":    "privatelink.database.windows.net",
-	"searchService":      "privatelink.search.windows.net",
-	"azurecosmosdb":      "privatelink.documents.azure.com",
-	"redisCache":         "privatelink.redis.cache.windows.net",
-	"openai":             "privatelink.openai.azure.com",
-	"account":            "privatelink.purview.azure.com",
+	"blob":            "privatelink.blob.core.windows.net",
+	"file":            "privatelink.file.core.windows.net",
+	"queue":           "privatelink.queue.core.windows.net",
+	"table":           "privatelink.table.core.windows.net",
+	"dfs":             "privatelink.dfs.core.windows.net",
+	"web":             "privatelink.web.core.windows.net",
+	"vault":           "privatelink.vaultcore.azure.net",
+	"sql":             "privatelink.database.windows.net",
+	"sqlOnDemand":     "privatelink.sql.azuresynapse.net",
+	"registry":        "privatelink.azurecr.io",
+	"sites":           "privatelink.azurewebsites.net",
+	"namespace":       "privatelink.servicebus.windows.net",
+	"managedInstance": "privatelink.database.windows.net",
+	"searchService":   "privatelink.search.windows.net",
+	"azurecosmosdb":   "privatelink.documents.azure.com",
+	"redisCache":      "privatelink.redis.cache.windows.net",
+	"openai":          "privatelink.openai.azure.com",
+	"account":         "privatelink.purview.azure.com",
 }
 
 // checkPrivateDnsZoneMisconfiguration detects Private Endpoints whose VNet
@@ -393,10 +414,10 @@ func checkCrossSubPeeringExposure(fx *graph.Fixture) []Finding {
 	for _, xp := range fx.CrossSubscriptionPeerings {
 		if strings.EqualFold(xp.State, "Connected") && !xp.HasHubFirewall {
 			findings = append(findings, Finding{
-				Type:     "cross-subscription peering without firewall",
-				Severity: "Medium",
-				Resource: xp.LocalVnet + "~" + xp.RemoteVnet,
-				Evidence: fmt.Sprintf("VNet %q and %q (sub %s) are directly peered across subscriptions with no hub firewall in path — lateral movement between subscriptions is unrestricted", xp.LocalVnet, xp.RemoteVnet, xp.RemoteSubscriptionID),
+				Type:      "cross-subscription peering without firewall",
+				Severity:  "Medium",
+				Resource:  xp.LocalVnet + "~" + xp.RemoteVnet,
+				Evidence:  fmt.Sprintf("VNet %q and %q (sub %s) are directly peered across subscriptions with no hub firewall in path — lateral movement between subscriptions is unrestricted", xp.LocalVnet, xp.RemoteVnet, xp.RemoteSubscriptionID),
 				Reachable: false,
 			})
 		}
@@ -530,6 +551,7 @@ func checkFrontDoorExposure(rg graph.ResourceGraph) []Finding {
 	}
 	return findings
 }
+
 // In a vWAN topology, all spoke-to-spoke and spoke-to-internet traffic flows
 // through the vHub. A vHub without a secured Azure Firewall (HasSecuredFirewall=false)
 // means all inter-spoke traffic is forwarded without inspection — unrestricted

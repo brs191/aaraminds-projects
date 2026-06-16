@@ -25,6 +25,7 @@ import analyze as pyeng  # noqa: E402
 
 
 def canon(findings):
+    findings = findings or []
     """Canonical comparable form: sorted by (resource, type, evidence)."""
     rows = [(f["type"], f["severity"], f["resource"], f["evidence"], bool(f["reachable"]))
             for f in findings]
@@ -39,7 +40,7 @@ def go_findings(go_dir, fixture):
         cwd=go_dir, capture_output=True, text=True, timeout=120)
     if out.returncode != 0:
         raise RuntimeError("go run failed for %s:\n%s" % (fixture, out.stderr[-2000:]))
-    return json.loads(out.stdout)
+    return json.loads(out.stdout) or []  # Go nil slice -> JSON null -> []
 
 
 def main():
@@ -62,21 +63,32 @@ def main():
         fixtures += sorted(glob.glob(os.path.join(d, "*.json")))
     fixtures = [f for f in fixtures if os.path.basename(f) not in ("last_run.json",)]
 
+    # The Go engine is a SUPERSET of the Python reference: Python implements the
+    # core finding families (the oracle); Go adds ~9 Azure-specific families with no
+    # Python twin. So the gate asserts PARITY ON THE SHARED FAMILIES and reports
+    # Go-only families as informational, not divergence (V4-07 / twin-drift scoping).
+    SHARED = {"over-permissive NSG (reachable)", "over-permissive NSG (latent)",
+              "orphaned public endpoint", "CIDR overlap", "missing tier segmentation"}
     drift = []
+    go_only_total = 0
     for fx_path in fixtures:
         fx = json.load(open(fx_path, encoding="utf-8"))
-        py = canon(pyeng.analyze(fx))
+        py = [r for r in canon(pyeng.analyze(fx)) if r[0] in SHARED]
         try:
-            go = canon(go_findings(go_dir, fx_path))
+            go_all = canon(go_findings(go_dir, fx_path))
         except Exception as e:  # noqa: BLE001
             drift.append((os.path.basename(fx_path), "go-error", str(e)[:200]))
             continue
+        go = [r for r in go_all if r[0] in SHARED]
+        go_only_total += sum(1 for r in go_all if r[0] not in SHARED)
         if py != go:
             only_py = [r for r in py if r not in go]
             only_go = [r for r in go if r not in py]
             drift.append((os.path.basename(fx_path), "DIVERGE",
                           {"only_python": only_py[:5], "only_go": only_go[:5]}))
-    print("twin-drift: %d fixtures checked, %d divergences" % (len(fixtures), len(drift)))
+    print("twin-drift: %d fixtures checked, %d shared-family divergences "
+          "(%d Go-only-family findings, no Python oracle — informational)"
+          % (len(fixtures), len(drift), go_only_total))
     for d in drift:
         print("  ", d)
     return 1 if drift else 0
