@@ -48,6 +48,17 @@ interface SerializedConsumer {
   model: string;
 }
 
+// One per-model prompt-cache tally surfaced alongside the Top Models table. Mirrors
+// the Go renderModelCacheReads output: cache-read tokens per model, with a flag when
+// cache reads dominate raw input for that model.
+interface SerializedModelCache {
+  model: string;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  reasoningTokens: number;
+  dominatesInput: boolean; // cacheReadTokens > inputTokens
+}
+
 interface SerializedOptimizationOpportunity {
   name: string;
   reducibleTokens: number;
@@ -76,8 +87,11 @@ interface DashboardMessage {
   topSessions: SerializedConsumer[];
   topModels: SerializedConsumer[];
   topProjects: SerializedConsumer[];
-  cliTotal: number; // NEW: total credits from CLI sessions
-  ideTotal: number; // NEW: total credits from IDE sessions
+  modelCache: SerializedModelCache[]; // per-model prompt-cache tallies (Top Models)
+  premiumRequests: number; // total premium requests across this month's settled sessions
+  cliTotal: number; // total credits from CLI sessions — the real, tracked total
+  ideTotal: number; // IDE credits: ALWAYS 0 today (no live IDE source); presented as "not tracked yet"
+  ideTracked: boolean; // false until a live IDE source exists; gates the IDE figure's framing
   optimization: SerializedOptimizationSummary;
 }
 
@@ -153,15 +167,50 @@ export class DashboardPanel {
     );
     const cfg = loadPricing();
 
-    // Compute source breakdown.
+    // Compute source breakdown and premium-request total. cliTotal is the real,
+    // tracked total. ideTotal is collected for completeness but is ALWAYS 0 today —
+    // VS Code Chat is a separate, not-yet-implemented source (see reader.ts ideCollector
+    // / ADR-007). It is presented as "not tracked yet (Phase 6)", NOT summed into a
+    // combined total, so the dashboard never implies the IDE figure is a measured 0.
     let cliTotal = 0;
     let ideTotal = 0;
+    let premiumRequests = 0;
     for (const s of sessions) {
       const credits = s.totalNanoAIU / 1_000_000_000;
       if (s.source === "copilot-cli") {
         cliTotal += credits;
       } else if (s.source === "copilot-ide") {
         ideTotal += credits;
+      }
+      premiumRequests += s.totalPremiumRequests;
+    }
+    // ideTracked stays false until a live IDE collector contributes sessions. Detecting
+    // an actual IDE session (not the no-op stub) flips it on so the UI relabels itself
+    // automatically when Phase 6 lands.
+    const ideTracked = sessions.some((s) => s.source === "copilot-ide");
+
+    // Per-model prompt-cache tallies for the Top Models area — mirrors Go
+    // renderModelCacheReads. Aggregate cache/reasoning tokens and raw input per model.
+    const cacheByModel = new Map<
+      string,
+      {
+        cacheRead: number;
+        cacheWrite: number;
+        reasoning: number;
+        input: number;
+      }
+    >();
+    for (const s of sessions) {
+      for (const m of s.modelMetrics) {
+        let t = cacheByModel.get(m.model);
+        if (t === undefined) {
+          t = { cacheRead: 0, cacheWrite: 0, reasoning: 0, input: 0 };
+          cacheByModel.set(m.model, t);
+        }
+        t.cacheRead += m.cacheReadTokens;
+        t.cacheWrite += m.cacheWriteTokens;
+        t.reasoning += m.reasoningTokens;
+        t.input += m.inputTokens;
       }
     }
 
@@ -175,6 +224,24 @@ export class DashboardPanel {
         credits: b.credits,
         anomalous: anomalousKeys.has(b.key),
       }));
+
+    // Mirror Go: only surface models that actually have cache reads, in Top-Models rank
+    // order, so the section stays compact (empty when no model has cache reads).
+    const rankedModels = topModels(sessions, 5).map(serializeConsumer);
+    const modelCache: SerializedModelCache[] = [];
+    for (const c of rankedModels) {
+      const t = cacheByModel.get(c.model);
+      if (t === undefined || t.cacheRead === 0) {
+        continue;
+      }
+      modelCache.push({
+        model: c.model,
+        cacheReadTokens: t.cacheRead,
+        cacheWriteTokens: t.cacheWrite,
+        reasoningTokens: t.reasoning,
+        dominatesInput: t.cacheRead > t.input,
+      });
+    }
 
     const plan = buildOptimizationSummary(instructionFiles);
     const current = estimateInstructionCostPerSession(plan.alwaysLoadedTokens);
@@ -191,10 +258,13 @@ export class DashboardPanel {
       },
       trend,
       topSessions: topSessions(sessions, 5).map(serializeConsumer),
-      topModels: topModels(sessions, 5).map(serializeConsumer),
+      topModels: rankedModels,
       topProjects: topProjects(sessions, 5).map(serializeConsumer),
-      cliTotal, // NEW: source breakdown
-      ideTotal, // NEW: source breakdown
+      modelCache,
+      premiumRequests,
+      cliTotal, // real tracked total
+      ideTotal, // always 0 today — see ideTracked
+      ideTracked,
       optimization: {
         alwaysLoadedTokens: plan.alwaysLoadedTokens,
         targetTokens: plan.targetTokens,
@@ -320,6 +390,12 @@ function buildHtml(webview: vscode.Webview): string {
   .stat-value.critical { color: var(--vscode-statusBarItem-errorBackground, #e05252); }
   .stat-value.warning  { color: #ff9800; }
   .stat-value.ok       { color: #4caf50; }
+  /* "pending" marks a figure that is not measured yet (e.g. IDE source, Phase 6) so it
+     is never read as a real value. */
+  .stat-value.pending  { color: var(--vscode-descriptionForeground); font-style: italic; font-size: 1em; }
+  .source-note { font-size: 0.8em; color: var(--vscode-descriptionForeground); margin: 4px 0 8px; }
+  .cache-note  { font-size: 0.82em; color: var(--vscode-descriptionForeground); margin: 6px 0 0; }
+  .cache-note .dominant { color: #ff9800; }
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
@@ -387,18 +463,19 @@ function buildHtml(webview: vscode.Webview): string {
 <h2>Source Breakdown</h2>
 <div class="budget-grid">
   <div class="stat-card">
-    <div class="stat-label">CLI Sessions</div>
+    <div class="stat-label">CLI Sessions (tracked)</div>
     <div id="cli-total" class="stat-value">—</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">IDE Sessions</div>
-    <div id="ide-total" class="stat-value">—</div>
+    <div class="stat-label" id="ide-label">IDE Sessions</div>
+    <div id="ide-total" class="stat-value pending">—</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Total</div>
+    <div class="stat-label">Tracked Total</div>
     <div id="source-total" class="stat-value">—</div>
   </div>
 </div>
+<p id="ide-note" class="source-note">IDE (VS Code Chat) usage is not tracked yet — Phase 6. The tracked total reflects CLI sessions only.</p>
 
   <h2>Forecast</h2>
   <div class="budget-grid">
@@ -413,6 +490,10 @@ function buildHtml(webview: vscode.Webview): string {
     <div class="stat-card">
       <div class="stat-label">vs Allowance</div>
       <div id="forecast-verdict" class="stat-value">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Premium Requests</div>
+      <div id="premium-requests" class="stat-value">—</div>
     </div>
   </div>
 
@@ -438,6 +519,7 @@ function buildHtml(webview: vscode.Webview): string {
         <thead><tr><th>Model</th><th>In K</th><th>Out K</th><th>Credits</th></tr></thead>
         <tbody id="top-model-rows"></tbody>
       </table>
+      <div id="model-cache-note"></div>
     </div>
     <div class="consumer-block">
       <h3>Top Projects</h3>
@@ -528,12 +610,28 @@ function buildHtml(webview: vscode.Webview): string {
     remEl.textContent = formatCreditsDisplay(bs.remainingCredits);
     remEl.className = 'stat-value ' + (bs.remainingCredits < 0 ? 'critical' : 'ok');
 
-    // Source breakdown — CLI vs IDE credits.
+    // Source breakdown — CLI is the real tracked total. IDE is NOT a live source yet
+    // (VS Code Chat is separate, Phase 6), so its figure is shown as "not tracked yet"
+    // and is NEVER summed into the tracked total. ideTracked flips on automatically once
+    // a live IDE collector contributes sessions, at which point it reads as a real value.
     const cliEl = document.getElementById('cli-total');
     cliEl.textContent = formatCreditsDisplay(msg.cliTotal);
-    document.getElementById('ide-total').textContent = formatCreditsDisplay(msg.ideTotal);
-    const sourceTotal = msg.cliTotal + msg.ideTotal;
-    document.getElementById('source-total').textContent = formatCreditsDisplay(sourceTotal);
+    const ideEl = document.getElementById('ide-total');
+    const ideNote = document.getElementById('ide-note');
+    if (msg.ideTracked) {
+      ideEl.textContent = formatCreditsDisplay(msg.ideTotal);
+      ideEl.className = 'stat-value';
+      ideNote.style.display = 'none';
+      document.getElementById('source-total').textContent =
+        formatCreditsDisplay(msg.cliTotal + msg.ideTotal);
+    } else {
+      // No live IDE source: do not present a measured "0". Label as pending and keep the
+      // tracked total = CLI only so it is not implied to include IDE.
+      ideEl.textContent = 'not tracked yet';
+      ideEl.className = 'stat-value pending';
+      ideNote.style.display = '';
+      document.getElementById('source-total').textContent = formatCreditsDisplay(msg.cliTotal);
+    }
 
     // Forecast block — daily burn rate, projected month-end total, over/under allowance.
     const fc = msg.forecast;
@@ -547,6 +645,11 @@ function buildHtml(webview: vscode.Webview): string {
       ? 'OVER ' + formatCreditsDisplay(fc.projectedMonthEndTotal - bs.allowedCredits)
       : 'within ' + formatCreditsDisplay(bs.allowedCredits - fc.projectedMonthEndTotal);
     verdictEl.className = 'stat-value ' + overClass;
+
+    // Premium requests this month — count of paid-tier requests across settled
+    // sessions (parity with the Go budget block). Only finalized sessions carry it.
+    document.getElementById('premium-requests').textContent =
+      Number(msg.premiumRequests || 0).toLocaleString();
 
     // Session rows
     const tbody = document.getElementById('session-rows');
@@ -573,6 +676,10 @@ function buildHtml(webview: vscode.Webview): string {
     renderConsumers('top-session-rows', msg.topSessions || [], 'session');
     renderConsumers('top-model-rows',   msg.topModels   || [], 'model');
     renderConsumers('top-project-rows', msg.topProjects || [], 'project');
+
+    // Per-model prompt-cache / reasoning tokens — parity with the Go report's
+    // renderModelCacheReads. Only models with cache reads appear; empty otherwise.
+    renderModelCache(msg.modelCache || []);
 
     // Instruction rows
     const itbody = document.getElementById('instr-rows');
@@ -687,6 +794,40 @@ function buildHtml(webview: vscode.Webview): string {
       return '<tr><td>' + esc(c.name) + '</td><td>' + esc(modelShort(c.model)) +
              '</td><td>' + c.credits.toFixed(2) + '</td></tr>';
     }).join('');
+  }
+
+  // renderModelCache lists prompt-cache read tokens (plus write/reasoning) per model
+  // under the Top Models table — surfacing data captured on ModelMetric that was
+  // otherwise never shown. Mirrors the Go renderModelCacheReads section: one line per
+  // model with cache reads, flagged when cache reads dominate raw input. All text is
+  // esc()'d; this whole script runs under the nonce, so it is CSP-safe.
+  function renderModelCache(rows) {
+    const host = document.getElementById('model-cache-note');
+    if (!rows.length) {
+      host.innerHTML = '';
+      return;
+    }
+    const lines = rows.map(r => {
+      const extras = [];
+      if (r.cacheWriteTokens) extras.push(fmtK(r.cacheWriteTokens) + ' write');
+      if (r.reasoningTokens)  extras.push(fmtK(r.reasoningTokens) + ' reasoning');
+      const extra = extras.length ? ' (' + esc(extras.join(', ')) + ')' : '';
+      const dom = r.dominatesInput
+        ? ' <span class="dominant">cache reads dominate</span>'
+        : '';
+      return esc(modelShort(r.model)) + ': ' + esc(fmtK(r.cacheReadTokens)) +
+             ' cache-read tokens' + extra + dom;
+    });
+    host.innerHTML = '<p class="cache-note">' + lines.join('<br/>') + '</p>';
+  }
+
+  // fmtK renders a token count compactly (e.g. 12,345 → "12.3K"); small counts stay raw.
+  function fmtK(n) {
+    n = Number(n) || 0;
+    if (n >= 1000) {
+      return (n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'K';
+    }
+    return String(n);
   }
 
   // formatCreditsDisplay must be defined HERE, in webview (browser) scope — the inline

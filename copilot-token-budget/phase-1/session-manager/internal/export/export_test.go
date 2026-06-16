@@ -19,17 +19,19 @@ func sampleSessions() []session.Session {
 	d := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
 	return []session.Session{
 		{
-			ID:           "id1",
-			Source:       "copilot-cli",
-			ProjectName:  "alpha",
-			PrimaryModel: "claude-sonnet-4.6",
-			StartTime:    d,
-			EndTime:      d.Add(time.Hour),
-			IsFinal:      true,
-			TotalNanoAIU: 5 * credit,
-			Tokens:       session.TokenBreakdown{SystemTokens: 1200, CurrentTokens: 30000},
+			ID:                   "id1",
+			Source:               "copilot-cli",
+			ProjectName:          "alpha",
+			PrimaryModel:         "claude-sonnet-4.6",
+			StartTime:            d,
+			EndTime:              d.Add(time.Hour),
+			IsFinal:              true,
+			TotalNanoAIU:         5 * credit,
+			TotalPremiumRequests: 7,
+			Tokens:               session.TokenBreakdown{SystemTokens: 1200, CurrentTokens: 30000},
 			ModelMetrics: []session.ModelMetric{
-				{Model: "claude-sonnet-4.6", InputTokens: 1000, OutputTokens: 100, NanoAIU: 5 * credit},
+				{Model: "claude-sonnet-4.6", InputTokens: 1000, OutputTokens: 100, NanoAIU: 5 * credit,
+					CacheReadTokens: 9000, CacheWriteTokens: 300, ReasoningTokens: 42},
 			},
 		},
 		{
@@ -52,13 +54,14 @@ func sampleSessions() []session.Session {
 func TestToJSON_DeterministicAndShape(t *testing.T) {
 	sessions := sampleSessions()
 	r := Report{
-		GeneratedAt: time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
-		BudgetState: budget.Calculate([]int64{5 * credit, 2 * credit}, 0),
-		Daily:       analytics.DailySeries(sessions),
-		TopSessions: analytics.TopSessions(sessions, 5),
-		TopModels:   analytics.TopModels(sessions, 5),
-		TopProjects: analytics.TopProjects(sessions, 5),
-		Sessions:    SessionViews(sessions),
+		GeneratedAt:     time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
+		BudgetState:     budget.Calculate([]int64{5 * credit, 2 * credit}, 0),
+		PremiumRequests: 7,
+		Daily:           analytics.DailySeries(sessions),
+		TopSessions:     analytics.TopSessions(sessions, 5),
+		TopModels:       analytics.TopModels(sessions, 5),
+		TopProjects:     analytics.TopProjects(sessions, 5),
+		Sessions:        SessionViews(sessions),
 	}
 
 	a, err := ToJSON(r)
@@ -78,7 +81,7 @@ func TestToJSON_DeterministicAndShape(t *testing.T) {
 	if err := json.Unmarshal(a, &m); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	for _, k := range []string{"generatedAt", "budgetState", "daily", "topSessions", "topModels", "topProjects", "sessions"} {
+	for _, k := range []string{"generatedAt", "budgetState", "premiumRequests", "daily", "topSessions", "topModels", "topProjects", "sessions"} {
 		if _, ok := m[k]; !ok {
 			t.Errorf("missing key %q in JSON", k)
 		}
@@ -112,6 +115,23 @@ func TestToJSON_DeterministicAndShape(t *testing.T) {
 	if first["billingDate"] != "2026-06-10" {
 		t.Errorf("billingDate = %v, want 2026-06-10", first["billingDate"])
 	}
+	// The new cache/reasoning/premium fields must be present in camelCase and
+	// carry the alpha session's aggregated values (JSON numbers decode to float64).
+	for k, want := range map[string]float64{
+		"cacheReadTokens":  9000,
+		"cacheWriteTokens": 300,
+		"reasoningTokens":  42,
+		"premiumRequests":  7,
+	} {
+		got, ok := first[k].(float64)
+		if !ok {
+			t.Errorf("session missing %q (camelCase contract)", k)
+			continue
+		}
+		if got != want {
+			t.Errorf("session %q = %v, want %v", k, got, want)
+		}
+	}
 }
 
 func TestSessionsToCSV(t *testing.T) {
@@ -127,7 +147,10 @@ func TestSessionsToCSV(t *testing.T) {
 	if len(rows) != 3 {
 		t.Fatalf("rows = %d, want 3 (header + 2)", len(rows))
 	}
-	wantHeader := []string{"date", "project", "model", "source", "credits", "inputTokens", "outputTokens", "systemTokens", "isActive", "isFinal"}
+	wantHeader := []string{
+		"date", "project", "model", "source", "credits", "inputTokens", "outputTokens", "systemTokens",
+		"cacheReadTokens", "cacheWriteTokens", "reasoningTokens", "premiumRequests", "isActive", "isFinal",
+	}
 	for i, h := range wantHeader {
 		if rows[0][i] != h {
 			t.Errorf("header[%d] = %q, want %q", i, rows[0][i], h)
@@ -144,8 +167,14 @@ func TestSessionsToCSV(t *testing.T) {
 	if got[7] != "1200" {
 		t.Errorf("row1 systemTokens = %q, want 1200", got[7])
 	}
-	if got[8] != "false" || got[9] != "true" {
-		t.Errorf("row1 isActive/isFinal = %q/%q, want false/true", got[8], got[9])
+	if got[8] != "9000" || got[9] != "300" || got[10] != "42" {
+		t.Errorf("row1 cacheRead/cacheWrite/reasoning = %q/%q/%q, want 9000/300/42", got[8], got[9], got[10])
+	}
+	if got[11] != "7" {
+		t.Errorf("row1 premiumRequests = %q, want 7", got[11])
+	}
+	if got[12] != "false" || got[13] != "true" {
+		t.Errorf("row1 isActive/isFinal = %q/%q, want false/true", got[12], got[13])
 	}
 }
 

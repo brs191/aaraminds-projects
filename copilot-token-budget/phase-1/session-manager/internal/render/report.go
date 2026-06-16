@@ -160,8 +160,10 @@ func printSection3(sessions []session.Session, cfg pricing.Config) budget.Budget
 		ansiBold, ansiCyan, now.Month().String(), now.Year(), ansiReset)
 
 	var nanoValues []int64
+	var premiumRequests int64
 	for _, s := range sessions {
 		nanoValues = append(nanoValues, s.TotalNanoAIU)
+		premiumRequests += s.TotalPremiumRequests
 	}
 	state := budget.Calculate(nanoValues, cfg.AllowanceCredits)
 	color := colorForStatus(state.Status)
@@ -173,7 +175,8 @@ func printSection3(sessions []session.Session, cfg pricing.Config) budget.Budget
 		ansiDim, budget.ToDollars(state.UsedCredits), ansiReset,
 	)
 	fmt.Printf("  Remaining: %.2f credits\n", state.RemainingCredit)
-	fmt.Printf("  Usage:     %.1f%%\n\n", state.UsedPct)
+	fmt.Printf("  Usage:     %.1f%%\n", state.UsedPct)
+	fmt.Printf("  Premium requests this month: %d\n\n", premiumRequests)
 
 	filled := int(state.UsedPct / 100 * progressBarWidth)
 	if filled > progressBarWidth {
@@ -338,8 +341,53 @@ func RenderTopConsumers(out io.Writer, sessions []session.Session) {
 		ansiBold, ansiCyan, ansiReset, ansiDim, topN, ansiReset)
 
 	printConsumerGroup(out, "Sessions", analytics.TopSessions(sessions, topN), true)
-	printConsumerGroup(out, "Models", analytics.TopModels(sessions, topN), false)
+	topModels := analytics.TopModels(sessions, topN)
+	printConsumerGroup(out, "Models", topModels, false)
+	renderModelCacheReads(out, sessions, topModels)
 	printConsumerGroup(out, "Projects", analytics.TopProjects(sessions, topN), false)
+}
+
+// renderModelCacheReads surfaces prompt-cache read tokens per model — data that
+// is captured on ModelMetric but otherwise never shown. It prints one line per
+// model in the supplied (already top-ranked) list that has any cache reads, and
+// flags when cache reads dominate raw input for that model. Models with zero
+// cache reads are skipped so the section stays compact; if none have cache reads
+// nothing is printed.
+func renderModelCacheReads(out io.Writer, sessions []session.Session, models []analytics.Consumer) {
+	type tally struct{ cacheRead, input int64 }
+	byModel := make(map[string]*tally)
+	for _, s := range sessions {
+		for _, m := range s.ModelMetrics {
+			t := byModel[m.Model]
+			if t == nil {
+				t = &tally{}
+				byModel[m.Model] = t
+			}
+			t.cacheRead += m.CacheReadTokens
+			t.input += m.InputTokens
+		}
+	}
+
+	var lines []string
+	for _, m := range models {
+		t := byModel[m.Name]
+		if t == nil || t.cacheRead == 0 {
+			continue
+		}
+		note := ""
+		if t.cacheRead > t.input {
+			note = fmt.Sprintf("  %scache reads dominate%s", ansiYellow, ansiReset)
+		}
+		lines = append(lines, fmt.Sprintf("    %s%s%s: %d cache-read tokens%s",
+			ansiDim, modelShort(m.Name), ansiReset, t.cacheRead, note))
+	}
+	if len(lines) == 0 {
+		return
+	}
+	fmt.Fprintf(out, "\n  %sCache reads (by model):%s\n", ansiBold, ansiReset)
+	for _, ln := range lines {
+		fmt.Fprintln(out, ln)
+	}
 }
 
 // printConsumerGroup renders one ranked leaderboard. showModel adds a Model

@@ -35,6 +35,13 @@ export interface Session {
   endTime: Date;
   isActive: boolean;            // true when inuse.*.lock file present in session dir
   totalNanoAIU: number;
+
+  // totalPremiumRequests is the count of premium (paid-tier) requests this session
+  // made, from session.shutdown → data.totalPremiumRequests. It is only carried by
+  // the final/shutdown event; running snapshots leave it zero. Mirrors Go
+  // Session.TotalPremiumRequests.
+  totalPremiumRequests: number;
+
   tokens: TokenBreakdown;
   modelMetrics: ModelMetric[];
 

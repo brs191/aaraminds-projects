@@ -1,7 +1,7 @@
 # Copilot Token Budget — Phase 6 Acceptance Test Suite
 
 **Phase:** 6 — IDE + CLI Multi-Source Capture
-**Status:** ⚠️ **NOT MET / REOPENED 2026-06-17.** Gates G61–G66 below were marked passed against an
+**Status:** ⚠️ **NOT MET / REOPENED 2026-06-17.** Gates G65–G70 below were marked passed against an
 implementation that pointed the IDE collector at `~/.copilot/session-state/` + an unverified
 `vscode.metadata.json` marker. That was wrong: **VS Code Copilot Chat is a separate local source**
 (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`), proven by an
@@ -23,28 +23,28 @@ only as a record of what was claimed; treat them as **not valid**.
 
 | Gate | Type | Description | Status |
 |---|---|---|---|
-| G61 | Automated | IDE source discovered locally (vscode.metadata.json marker) | ✅ |
-| G62 | Automated | Event-level dedup prevents double-counting ({sessionId}:{eventId}) | ✅ |
-| G63 | Automated | apiCallId dedup groups retries, earliest-wins | ✅ |
-| G64 | Automated | CLI + IDE combined total = CLI total + IDE total - overlaps (zero when pure sources) | ✅ |
-| G65 | Automated | Per-source totals render in Go CLI and TS extension dashboard | ✅ |
-| G66 | Automated | Graceful degradation: IDE absence doesn't affect CLI (continue-on-error) | ✅ |
+| G65 | Automated | IDE source discovered locally (vscode.metadata.json marker) | ✅ |
+| G66 | Automated | Event-level dedup prevents double-counting ({sessionId}:{eventId}) | ✅ |
+| G67 | Automated | apiCallId dedup groups retries, earliest-wins | ✅ |
+| G68 | Automated | CLI + IDE combined total = CLI total + IDE total - overlaps (zero when pure sources) | ✅ |
+| G69 | Automated | Per-source totals render in Go CLI and TS extension dashboard | ✅ |
+| G70 | Automated | Graceful degradation: IDE absence doesn't affect CLI (continue-on-error) | ✅ |
 
-**Blocking gate for "Phase 6 complete":** G61–G66 must all pass. *(Met 2026-06-16.)*
+**Blocking gate for "Phase 6 complete":** G65–G70 must all pass. *(Met 2026-06-16.)*
 
 ---
 
-## Automated gates (G61–G66) — validated 2026-06-16
+## Automated gates (G65–G70) — validated 2026-06-16
 
 All commands assume the repo root unless stated. Toolchain: Go (v1.22+), Node.js (v18+), TypeScript (4.8+).
 
 ---
 
-### G61 — IDE source discovered locally via vscode.metadata.json marker
+### G65 — IDE source discovered locally via vscode.metadata.json marker
 
 | Field | Value |
 |---|---|
-| **ID** | G61 |
+| **ID** | G65 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -90,11 +90,11 @@ If marker detection fails:
 
 ---
 
-### G62 — Event-level dedup prevents duplicate events ({sessionId}:{eventId})
+### G66 — Event-level dedup prevents duplicate events ({sessionId}:{eventId})
 
 | Field | Value |
 |---|---|
-| **ID** | G62 |
+| **ID** | G66 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -141,11 +141,11 @@ If event dedup fails:
 
 ---
 
-### G63 — apiCallId dedup groups retries, earliest-wins
+### G67 — apiCallId dedup groups retries, earliest-wins
 
 | Field | Value |
 |---|---|
-| **ID** | G63 |
+| **ID** | G67 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -196,11 +196,11 @@ If apiCallId dedup fails:
 
 ---
 
-### G64 — CLI + IDE combined total = CLI sum + IDE sum (zero overlap when pure sources)
+### G68 — CLI + IDE combined total = CLI sum + IDE sum (zero overlap when pure sources)
 
 | Field | Value |
 |---|---|
-| **ID** | G64 |
+| **ID** | G68 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -252,11 +252,11 @@ If merged totals don't match:
 
 ---
 
-### G65 — Per-source totals render in Go CLI and TS extension dashboard
+### G69 — Per-source totals render in Go CLI and TS extension dashboard
 
 | Field | Value |
 |---|---|
-| **ID** | G65 |
+| **ID** | G69 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -313,11 +313,11 @@ If per-source display is missing:
 
 ---
 
-### G66 — Graceful degradation: IDE absence doesn't affect CLI
+### G70 — Graceful degradation: IDE absence doesn't affect CLI
 
 | Field | Value |
 |---|---|
-| **ID** | G66 |
+| **ID** | G70 |
 | **Type** | Automated |
 | **Owner** | Developer |
 
@@ -385,12 +385,12 @@ If graceful degradation fails:
 
 | Gate | Validates | Evidence |
 |---|---|---|
-| G61 | IDE discovered locally (marker file) | TestIDECollectorDetectsVSCodeMetadata + testIDEMarkerDetection |
-| G62 | Event dedup prevents duplicates | TestIDEDedup + testIDEDedup |
-| G63 | apiCallId dedup (earliest-wins) | TestIDEAPICallIDDedup + testIDEAPICallIDDedup |
-| G64 | Combined math (no double-count) | TestIDEAndCLIMerge + testCLIAndIDEMerge |
-| G65 | Per-source display in CLI/dashboard | cmd/analyze output + dashboard HTML rendering |
-| G66 | Graceful IDE absence | TestIDECollectorDetectsVSCodeMetadata + TestIDEAndCLIMerge + testIDEDegradation |
+| G65 | IDE discovered locally (marker file) | TestIDECollectorDetectsVSCodeMetadata + testIDEMarkerDetection |
+| G66 | Event dedup prevents duplicates | TestIDEDedup + testIDEDedup |
+| G67 | apiCallId dedup (earliest-wins) | TestIDEAPICallIDDedup + testIDEAPICallIDDedup |
+| G68 | Combined math (no double-count) | TestIDEAndCLIMerge + testCLIAndIDEMerge |
+| G69 | Per-source display in CLI/dashboard | cmd/analyze output + dashboard HTML rendering |
+| G70 | Graceful IDE absence | TestIDECollectorDetectsVSCodeMetadata + TestIDEAndCLIMerge + testIDEDegradation |
 
 **Zero-network verification:**
 - No `http`, `https`, `fetch`, `axios` imports in implementation (grep confirms)
@@ -398,4 +398,7 @@ If graceful degradation fails:
 - Marker detection via local file existence only
 - All data sourced from `~/.copilot/session-state/` (local JSONL + SQLite)
 
-**Acceptance:** G61–G66 all pass → Phase 6 complete and production-ready.
+**Acceptance:** *(Originally: G65–G70 all pass → Phase 6 complete.)* **REOPENED / NOT MET 2026-06-17** —
+these gates assumed an `~/.copilot` + `vscode.metadata.json` IDE path that does not exist. They must be
+re-defined against the real VS Code Copilot Chat schema (`…/chatSessions/`, `…/transcripts/`) after
+discovery on an IDE-only machine. IDE usage is **not captured today**; the IDE collector is a no-op stub.

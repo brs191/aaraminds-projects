@@ -457,10 +457,12 @@ func TestReadAll_SetsCLISource(t *testing.T) {
 	}
 }
 
-func TestIDECollector_ReturnsIDESessions(t *testing.T) {
-	// Phase 6.2: ideCollector now reads actual IDE sessions marked with vscode.metadata.json.
-	// It may return 0 or more sessions depending on the user's system state.
-	// The contract is: all returned sessions must have Source: "copilot-ide".
+func TestIDECollector_IsHermeticNoOp(t *testing.T) {
+	// The ideCollector is a no-op stub: the real VS Code Copilot Chat reader is a
+	// SEPARATE source (chatSessions/transcripts under VS Code user data, NOT
+	// ~/.copilot) and is deferred to Phase 6 (see ADR-007 corrected). Until then
+	// it must be hermetic — return no error and no sessions, and never read the
+	// real ~/.copilot or any marker file.
 	c := ideCollector{}
 	if c.Name() != "copilot-ide" {
 		t.Errorf("Name = %q, want %q", c.Name(), "copilot-ide")
@@ -469,13 +471,9 @@ func TestIDECollector_ReturnsIDESessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ideCollector.Collect: %v", err)
 	}
-	// Verify all returned sessions have the correct source.
-	for _, s := range got {
-		if s.Source != "copilot-ide" {
-			t.Errorf("Session %s has Source = %q, want %q", s.ID, s.Source, "copilot-ide")
-		}
+	if len(got) != 0 {
+		t.Errorf("Collect() returned %d sessions, want 0 (no-op stub)", len(got))
 	}
-	t.Logf("ideCollector returned %d sessions, all with Source = copilot-ide", len(got))
 }
 
 func TestDedupByID(t *testing.T) {

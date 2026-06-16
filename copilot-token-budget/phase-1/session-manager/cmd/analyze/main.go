@@ -90,18 +90,21 @@ func main() {
 func buildReport(allSessions []session.Session, cfg pricing.Config) export.Report {
 	monthly := cli.FilterThisMonth(allSessions)
 	nano := make([]int64, 0, len(monthly))
+	var premiumRequests int64
 	for _, s := range monthly {
 		nano = append(nano, s.TotalNanoAIU)
+		premiumRequests += s.TotalPremiumRequests
 	}
 
 	const topN = 5
 	return export.Report{
-		GeneratedAt: time.Now(),
-		BudgetState: budget.Calculate(nano, cfg.AllowanceCredits),
-		Daily:       analytics.DailySeries(allSessions),
-		TopSessions: analytics.TopSessions(allSessions, topN),
-		TopModels:   analytics.TopModels(allSessions, topN),
-		TopProjects: analytics.TopProjects(allSessions, topN),
-		Sessions:    export.SessionViews(allSessions),
+		GeneratedAt:     time.Now(),
+		BudgetState:     budget.Calculate(nano, cfg.AllowanceCredits),
+		PremiumRequests: premiumRequests,
+		Daily:           analytics.DailySeries(allSessions),
+		TopSessions:     analytics.TopSessions(allSessions, topN),
+		TopModels:       analytics.TopModels(allSessions, topN),
+		TopProjects:     analytics.TopProjects(allSessions, topN),
+		Sessions:        export.SessionViews(allSessions),
 	}
 }

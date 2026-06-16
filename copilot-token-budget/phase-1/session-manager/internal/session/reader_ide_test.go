@@ -1,10 +1,18 @@
 package session
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
+
+// These tests exercise readSession's parsing of cache-read, cache-write, and
+// reasoning token metrics from session.shutdown / running-snapshot events. They
+// are source-agnostic: readSession is the shared parser for every Collector, so
+// the coverage applies to the CLI source today and any future source.
+//
+// NOTE: the IDE collector (ideCollector) is a no-op stub — it does NOT read
+// vscode.metadata.json or any marker file (see ADR-007 corrected and
+// TestIDECollectorIsNoOp). These tests therefore do not create marker files or
+// assert any marker-driven behavior; doing so would contradict the stub.
 
 // assistantMessageEvent returns a synthetic assistant.message event with cache and reasoning tokens.
 func assistantMessageEvent(ts, apiCallID string, inputTokens, outputTokens int64,
@@ -34,7 +42,7 @@ func shutdownEventWithCache(endTime string, nanoAIU int64, model string, systemT
 		"type":      "session.shutdown",
 		"timestamp": endTime,
 		"id":        "evt-shutdown",
-		"parentId":  "sess-ide-001",
+		"parentId":  "sess-001",
 		"data": map[string]any{
 			"totalNanoAiu":          nanoAIU,
 			"currentModel":          model,
@@ -58,34 +66,28 @@ func shutdownEventWithCache(endTime string, nanoAIU int64, model string, systemT
 	}
 }
 
-// TestIDEParseEventsFile verifies IDE events.jsonl parsing with cache and reasoning tokens.
-func TestIDEParseEventsFile(t *testing.T) {
+// TestReadSession_ParsesCacheReasoningTokens verifies readSession extracts cache
+// and reasoning tokens onto ModelMetric from a shutdown event.
+func TestReadSession_ParsesCacheReasoningTokens(t *testing.T) {
 	root := t.TempDir()
-	uuid := "ide-001-parse-tokens"
+	uuid := "session-001-parse-tokens"
 
 	start := "2026-06-13T08:00:00.000Z"
 	end := "2026-06-13T10:00:00.000Z"
 
 	events := []map[string]any{
-		startEvent(start, "/home/user/ideproject"),
+		startEvent(start, "/home/user/project"),
 		shutdownEventWithCache(end, 500_000_000_000, "claude-sonnet-4.6", 12000, 35000,
 			28_009_533, 697_780, 14_618),
 	}
 
 	dir := makeSessionDir(t, root, uuid, events, false)
 
-	// Create IDE marker file.
-	if err := os.WriteFile(filepath.Join(dir, "vscode.metadata.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("create vscode.metadata.json: %v", err)
-	}
-
-	// Parse via readSession (reuses existing logic).
 	s, err := readSession(uuid, dir)
 	if err != nil {
 		t.Fatalf("readSession: %v", err)
 	}
 
-	// Verify cache and reasoning tokens are extracted.
 	if len(s.ModelMetrics) != 1 {
 		t.Fatalf("expected 1 model metric, got %d", len(s.ModelMetrics))
 	}
@@ -99,6 +101,17 @@ func TestIDEParseEventsFile(t *testing.T) {
 	}
 	if mm.ReasoningTokens != 14_618 {
 		t.Errorf("ReasoningTokens = %d, want 14618", mm.ReasoningTokens)
+	}
+
+	// Session-level aggregates must surface the same values (single model).
+	if s.TotalCacheReadTokens() != 28_009_533 {
+		t.Errorf("TotalCacheReadTokens = %d, want 28009533", s.TotalCacheReadTokens())
+	}
+	if s.TotalCacheWriteTokens() != 697_780 {
+		t.Errorf("TotalCacheWriteTokens = %d, want 697780", s.TotalCacheWriteTokens())
+	}
+	if s.TotalReasoningTokens() != 14_618 {
+		t.Errorf("TotalReasoningTokens = %d, want 14618", s.TotalReasoningTokens())
 	}
 }
 
@@ -124,10 +137,10 @@ func TestIDECollectorIsNoOp(t *testing.T) {
 	}
 }
 
-// TestIDECollectorRaceCondition verifies no data races with concurrent access.
-func TestIDECollectorRaceCondition(t *testing.T) {
+// TestReadSession_ConcurrentReads verifies no data races with concurrent readSession calls.
+func TestReadSession_ConcurrentReads(t *testing.T) {
 	root := t.TempDir()
-	uuid := "ide-race-test-001"
+	uuid := "race-test-001"
 
 	start := "2026-06-13T08:00:00.000Z"
 	end := "2026-06-13T10:00:00.000Z"
@@ -139,17 +152,10 @@ func TestIDECollectorRaceCondition(t *testing.T) {
 
 	dir := makeSessionDir(t, root, uuid, events, false)
 
-	// Create IDE marker file.
-	if err := os.WriteFile(filepath.Join(dir, "vscode.metadata.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("create vscode.metadata.json: %v", err)
-	}
-
-	// Run concurrent reads to detect races.
 	done := make(chan bool, 2)
 	for i := 0; i < 2; i++ {
 		go func() {
 			s, _ := readSession(uuid, dir)
-			// Use the session to ensure fields are accessed.
 			_ = s.ID
 			_ = s.TotalNanoAIU
 			done <- true
@@ -158,56 +164,46 @@ func TestIDECollectorRaceCondition(t *testing.T) {
 
 	<-done
 	<-done
-	// If we got here without a data race, the test passes.
-	// (Run with -race flag to catch actual races.)
+	// If we got here without a data race (run with -race), the test passes.
 }
 
-// TestIDESessionWithoutFinalBilling verifies active IDE sessions without shutdown event.
-func TestIDESessionWithoutFinalBilling(t *testing.T) {
+// TestReadSession_ActiveWithoutShutdown verifies active sessions without a shutdown event.
+func TestReadSession_ActiveWithoutShutdown(t *testing.T) {
 	root := t.TempDir()
-	uuid := "ide-active-session"
+	uuid := "active-session"
 
 	start := "2026-06-13T08:00:00.000Z"
 
 	events := []map[string]any{
 		startEvent(start, "/home/user/active"),
-		// No shutdown event; session is still active.
+		// No shutdown event; session is still active. assistant.message is not a
+		// billing-bearing snapshot, so it leaves billing at zero.
 		assistantMessageEvent("2026-06-13T08:30:00.000Z", "msg_active_001", 1000, 100, 400, 50, 8,
-			"evt-active-001", "sess-ide-active"),
+			"evt-active-001", "sess-active"),
 	}
 
 	dir := makeSessionDir(t, root, uuid, events, true) // lock file present
-
-	// Create IDE marker file.
-	if err := os.WriteFile(filepath.Join(dir, "vscode.metadata.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("create vscode.metadata.json: %v", err)
-	}
 
 	s, err := readSession(uuid, dir)
 	if err != nil {
 		t.Fatalf("readSession: %v", err)
 	}
 
-	// Active session should not have IsFinal set.
 	if s.IsFinal {
 		t.Error("IsFinal = true, want false (no shutdown event, active session)")
 	}
-
-	// But should have IsActive set (due to lock file).
 	if !s.IsActive {
 		t.Error("IsActive = false, want true (lock file present)")
 	}
-
-	// TotalNanoAIU should be zero (no shutdown event).
 	if s.TotalNanoAIU != 0 {
 		t.Errorf("TotalNanoAIU = %d, want 0 (no shutdown event)", s.TotalNanoAIU)
 	}
 }
 
-// TestIDEWithMultipleModels verifies IDE sessions using multiple models.
-func TestIDEWithMultipleModels(t *testing.T) {
+// TestReadSession_MultipleModels verifies sessions using multiple models aggregate correctly.
+func TestReadSession_MultipleModels(t *testing.T) {
 	root := t.TempDir()
-	uuid := "ide-multimodel"
+	uuid := "multimodel"
 
 	start := "2026-06-13T08:00:00.000Z"
 	end := "2026-06-13T10:00:00.000Z"
@@ -216,7 +212,7 @@ func TestIDEWithMultipleModels(t *testing.T) {
 		"type":      "session.shutdown",
 		"timestamp": end,
 		"id":        "evt-shutdown-multi",
-		"parentId":  "sess-ide-multi",
+		"parentId":  "sess-multi",
 		"data": map[string]any{
 			"totalNanoAiu":          700_000_000_000,
 			"currentModel":          "claude-opus-4.6",
@@ -256,17 +252,11 @@ func TestIDEWithMultipleModels(t *testing.T) {
 
 	dir := makeSessionDir(t, root, uuid, events, false)
 
-	// Create IDE marker file.
-	if err := os.WriteFile(filepath.Join(dir, "vscode.metadata.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("create vscode.metadata.json: %v", err)
-	}
-
 	s, err := readSession(uuid, dir)
 	if err != nil {
 		t.Fatalf("readSession: %v", err)
 	}
 
-	// Verify both models are in ModelMetrics.
 	if len(s.ModelMetrics) != 2 {
 		t.Fatalf("expected 2 model metrics, got %d", len(s.ModelMetrics))
 	}
@@ -276,7 +266,6 @@ func TestIDEWithMultipleModels(t *testing.T) {
 		t.Errorf("PrimaryModel = %q, want %q", s.PrimaryModel, "claude-opus-4.6")
 	}
 
-	// Verify cache tokens for both models.
 	var sonnet, opus *ModelMetric
 	for i := range s.ModelMetrics {
 		if s.ModelMetrics[i].Model == "claude-sonnet-4.6" {
@@ -293,12 +282,17 @@ func TestIDEWithMultipleModels(t *testing.T) {
 	if opus == nil || opus.CacheReadTokens != 20000 {
 		t.Errorf("opus CacheReadTokens = %v, want 20000", opus)
 	}
+
+	// Session aggregate sums both models.
+	if s.TotalCacheReadTokens() != 30000 {
+		t.Errorf("TotalCacheReadTokens = %d, want 30000", s.TotalCacheReadTokens())
+	}
 }
 
-// TestIDEWithZeroCacheTokens verifies handling of sessions with zero cache/reasoning tokens.
-func TestIDEWithZeroCacheTokens(t *testing.T) {
+// TestReadSession_ZeroCacheTokens verifies handling of sessions with zero cache/reasoning tokens.
+func TestReadSession_ZeroCacheTokens(t *testing.T) {
 	root := t.TempDir()
-	uuid := "ide-zero-cache"
+	uuid := "zero-cache"
 
 	start := "2026-06-13T08:00:00.000Z"
 	end := "2026-06-13T10:00:00.000Z"
@@ -310,11 +304,6 @@ func TestIDEWithZeroCacheTokens(t *testing.T) {
 	}
 
 	dir := makeSessionDir(t, root, uuid, events, false)
-
-	// Create IDE marker file.
-	if err := os.WriteFile(filepath.Join(dir, "vscode.metadata.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("create vscode.metadata.json: %v", err)
-	}
 
 	s, err := readSession(uuid, dir)
 	if err != nil {

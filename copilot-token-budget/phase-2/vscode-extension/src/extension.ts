@@ -59,6 +59,8 @@ export function activate(context: vscode.ExtensionContext): void {
     showCollapseAll: true,
   });
   context.subscriptions.push(treeView);
+  // Dispose the tree provider's change EventEmitter on deactivate.
+  context.subscriptions.push(treeProvider);
 
   statusBar.show();
 

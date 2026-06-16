@@ -52,9 +52,9 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 | Source | Format | Schema | Scope |
 |---|---|---|---|
 | **CLI Sessions** | JSONL (`events.jsonl`) | `session.start`, `assistant.message`, `session.shutdown` | `~/.copilot/session-state/{uuid}/` |
-| **IDE Sessions** | JSONL (`events.jsonl`) + marker (`vscode.metadata.json`) | Same as CLI (identical schema) | `~/.copilot/session-state/{uuid}/` |
+| **IDE Sessions** *(not captured yet)* | VS Code Copilot Chat store (schema TBD) | Pending discovery on an IDE-only machine | `…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/` — a **separate** local source, **not** `~/.copilot` |
 | **Workspace Config** | YAML (`workspace.yaml`) | Project path, context | Per-session metadata |
-| **Instruction Files** | Text (`.md`, `.txt`, `.json`) | Arbitrary content | `{cwd}/.copilot/instructions/` |
+| **Instruction Files** | Text (`.md`, `.txt`, `.json`) | Arbitrary content | `{cwd}/.github/instructions/` |
 | **Pricing Override** | JSON (`pricing.json`) | Model rates, allowance, context window | `~/.config/copilot-token-budget/` |
 
 ### **Outputs**
@@ -74,15 +74,15 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 ### **Core Monitoring (All Phases)**
 
 ✅ **Real-time budget tracking**
-- Used / Allowed / Remaining (in Billions format, e.g., 8.55 B / 7.00 B)
+- Used / Allowed / Remaining (raw credits with thousands separators, e.g., 8,550 cr / 7,000 cr)
 - Status: OK / WARNING (60%) / CRITICAL (90%)
 - Daily burn rate + month-end forecast
 
-✅ **Multi-source visibility (Phase 6)**
-- CLI Sessions: X credits
-- IDE Sessions: Y credits
-- Combined (deduplicated): Z credits
-- Per-session source label (CLI vs IDE)
+🔲 **Multi-source visibility (Phase 6 — groundwork only, IDE NOT captured yet)**
+- CLI Sessions: captured today from `~/.copilot/session-state/`
+- IDE Sessions: VS Code Copilot Chat is a **separate** local source (`…/chatSessions/`, `…/transcripts/`); the IDE collector is a **no-op stub** pending discovery — IDE usage is **not captured yet**
+- The `Source`/`Collector` abstraction and dedup-by-ID are in place; today the combined total equals the CLI source only
+- Per-session source label (CLI vs IDE) — IDE label unused until the collector lands
 
 ✅ **Usage analytics (Phase 7)**
 - Daily/weekly/monthly trend with anomaly flags (mean + 2σ)
@@ -91,9 +91,9 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 - Input/output token split
 
 ✅ **Instruction file audit (Phase 1)**
-- Detected files in workspace `.copilot/instructions/`
+- Detected files in workspace `.github/instructions/`
 - Per-file token count
-- Overhead cost estimation (default: 5 Sonnet turns/session)
+- Overhead cost estimation (default: 50-turn session)
 
 ✅ **Data export (Phase 7)**
 - JSON: Full report (all metrics, all sessions)
@@ -112,11 +112,11 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 - Status bar badge (color-coded: green/yellow/red)
 - Hover tooltip (today/month/burn/forecast/context%)
 - `Copilot Budget: Export Usage` command (JSON/CSV save dialog)
-- Config settings: `copilotBudget.monthlyAllowance`, `copilotBudget.pricingPath`, `copilotBudget.teamsWebhook`
+- Config settings: `copilotBudget.monthlyAllowance`, `copilotBudget.pricingPath`, `copilotBudget.teamsWebhookUrl`, `copilotBudget.refreshIntervalSec`
 
 ✅ **Microsoft Teams Alerts (Phase 3)**
 - Adaptive Card alerts on CRITICAL and WARNING transitions
-- Alert suppression (no duplicate fires within 1 hour, UTC)
+- Alert suppression (deduped once per day per threshold, UTC)
 - Includes: used %, burn rate, projected total, verdict (within/OVER)
 
 ✅ **MCP Server (Phase 4 + 7)**
@@ -139,9 +139,9 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 ```
 
 **Outputs:**
-- Confirmed: `events.jsonl` is the source
-- Confirmed: `vscode.metadata.json` marks IDE sessions
+- Confirmed: `events.jsonl` is the CLI source
 - Schema validated against real 50KB+ event file
+- Correction (2026-06-17): VS Code Copilot Chat is a **separate** local store (`…/chatSessions/`, `…/transcripts/`), **not** `~/.copilot`; the earlier `vscode.metadata.json` marker was an unverified assumption and has been retracted (see `phase-0/findings/IDE_USAGE_FINDINGS.md` + ADR-007 corrections)
 
 ---
 
@@ -162,14 +162,13 @@ go build ./cmd/analyze ./cmd/dashboard ./cmd/statusline
 ./dashboard ~/projects/aaraminds-projects         # Live TUI
 ./statusline                                       # One-liner for shell prompt
 
-# Test (includes Phase 7 analytics + Phase 6 IDE dedup)
+# Test (includes Phase 7 analytics + Phase 6 dedup-by-ID groundwork)
 go test -race ./...
 ```
 
 **Test Results:**
-- ✅ 20+ tests, all passing
-- ✅ Race detector: 0 races (33.4s)
-- ⚠️ Pre-existing: `pricing_test.go` has 2 failures (config merge issues, unrelated to Phase 6)
+- ✅ Per-package unit tests pass with `-race` (0 races)
+- ⚠️ Phase 6 IDE collector is a **no-op stub** — its tests cover the source/dedup wiring only, not real IDE capture
 
 **Outputs:**
 - Binary: `analyze` (credit report)
@@ -206,7 +205,7 @@ npm run package
 - ✅ 10+ tests, all passing
 - ✅ 0 TypeScript errors (strict mode)
 - ✅ 0 `any` types
-- ✅ Compilation clean after Billions format update
+- ✅ Compilation clean (credits render as raw values with thousands separators)
 
 **Development Loop:**
 ```bash
@@ -248,7 +247,7 @@ export COPILOT_BUDGET_TEAMS_WEBHOOK="https://outlook.webhook.office.com/webhookb
 
 # Run in background (integration with Phase 1 refresh loop)
 # → Fires on CRITICAL or WARNING transitions
-# → No duplicate alerts within 1 hour (UTC)
+# → Deduped once per day per threshold (UTC)
 ```
 
 **Outputs:**
@@ -336,32 +335,26 @@ cd phase-2/vscode-extension && npm run package
 ```bash
 cd phase-1/session-manager && go run ./cmd/analyze
 
-# Outputs:
+# Outputs (today — CLI only; IDE not captured yet):
 # ▶ SOURCE BREAKDOWN
-#   CLI Sessions:      X.XX B
-#   IDE Sessions:      Y.YY B
-#   Combined Total:    Z.ZZ B
+#   CLI Sessions:      8,550 cr
+#   IDE Sessions:      0 cr   (collector is a no-op stub)
+#   Combined Total:    8,550 cr
 
-# Implementation:
-# - ideCollector() reads ~/.copilot/session-state/{uuid}/vscode.metadata.json marker
-# - 3-layer dedup: event-level, apiCallId grouping, session-level reconciliation
-# - Per-source totals displayed in CLI and VS Code dashboard
-
-# Tests
-go test -v -run "IDE" ./internal/session
-# ✅ TestIDECollectorDetectsVSCodeMetadata
-# ✅ TestIDEDedup
-# ✅ TestIDEAPICallIDDedup
-# ✅ TestIDEAndCLIMerge (no double-counting)
-# ✅ TestIDEDegradation (graceful when IDE absent)
+# Implementation status:
+# - Source/Collector abstraction + CLI collector: in place
+# - IDE collector: NO-OP STUB. VS Code Copilot Chat is a separate local source
+#   (…/workspaceStorage/<ws>/chatSessions/, …/GitHub.copilot-chat/transcripts/),
+#   NOT ~/.copilot, and is pending discovery on an IDE-only machine.
+# - dedup-by-ID (winner = IsFinal else higher TotalNanoAIU): wired, CLI-only today
+# - Per-source totals render in CLI and VS Code dashboard (IDE row shows 0)
 ```
 
 **Outputs:**
-- Updated reader: CLI + IDE sources
-- ADR-007: Multi-source dedup architecture (702 lines)
-- 10 new tests for IDE collector
-- 10 new TS tests for IDE reader
-- Per-source breakdown in dashboard + CLI
+- Reader with Source/Collector abstraction; CLI source live, **IDE collector is a no-op stub**
+- ADR-007 (corrected): multi-source dedup architecture; IDE is a separate VS Code Chat source, not yet implemented
+- Acceptance gates **G65–G70** in `evaluation/PHASE6_ACCEPTANCE.md` — **REOPENED / NOT MET** (the earlier `vscode.metadata.json` marker assumption was retracted)
+- Per-source breakdown in dashboard + CLI (IDE total is 0 until the collector lands)
 
 ---
 
@@ -410,24 +403,12 @@ PRICING
 
 ---
 
-## Usage: Currency Format
+## Usage: Credit Display Format
 
-All credit displays now use **Billions** (B) format for international compatibility:
-
-```
-7,000 credits → 7.00 B
-3,652.90 credits → 3.65 B
-12.34 credits → 0.01 B
-```
-
-Conversion: `display = credits / 1000` (2 decimal places)
-
-Updated in:
-- ✅ Dashboard panel
-- ✅ Session tree
-- ✅ Status bar
-- ✅ Extension alerts
-- ✅ Teams webhook messages
+All credit displays use **raw credits with thousands separators** (e.g. `8,550 cr`, `7,000 cr`).
+There is no Billions/`B` scaling and no `credits / 1000` conversion — the earlier "B format" was
+removed from the code. Consistent across the dashboard panel, session tree, status bar, extension
+alerts, and Teams webhook messages.
 
 ---
 
@@ -454,7 +435,7 @@ code --list-extensions | grep copilot-token-budget
 cd phase-2/vscode-extension
 npm run package
 gh release create v0.1.0 copilot-token-budget-0.1.0.vsix \
-  --notes "Copilot Token Budget for AT&T team — Phase 1-7 complete"
+  --notes "Copilot Token Budget for AT&T team — Phases 0-4 + v1.1 (Phase 7) shipped; Phase 5 config-complete; Phase 6 IDE capture pending"
 
 # Team downloads from:
 # https://github.com/your-org/copilot-token-budget/releases/download/v0.1.0/copilot-token-budget-0.1.0.vsix
@@ -546,7 +527,7 @@ copilot-token-budget/
 │       ├── cmd/dashboard/      — Live TUI with charts
 │       ├── cmd/statusline/     — WezTerm badge
 │       ├── internal/
-│       │   ├── session/        — Reader (CLI + IDE dedup)
+│       │   ├── session/        — Reader (CLI source + dedup-by-ID; IDE collector stubbed)
 │       │   ├── analytics/      — Daily/weekly/monthly trends (Phase 7)
 │       │   ├── export/         — JSON/CSV (Phase 7)
 │       │   ├── pricing/        — Config + model rates (Phase 7, ADR-008)
@@ -556,10 +537,10 @@ copilot-token-budget/
 │   └── vscode-extension/       — TypeScript extension
 │       ├── src/
 │       │   ├── ui/
-│       │   │   ├── dashboardPanel.ts   — Webview (Billions format)
+│       │   │   ├── dashboardPanel.ts   — Webview (raw credits, thousands separators)
 │       │   │   ├── sessionTree.ts      — Tree view
 │       │   │   └── statusBar.ts        — Status bar badge
-│       │   ├── session/reader.ts       — CLI + IDE collector
+│       │   ├── session/reader.ts       — CLI collector (IDE collector is a no-op stub)
 │       │   ├── analytics/model.ts      — Trend/anomaly (Phase 7)
 │       │   ├── export/report.ts        — JSON/CSV (Phase 7)
 │       │   └── types.ts                — Session, BudgetState, SessionSource
@@ -574,7 +555,7 @@ copilot-token-budget/
 │       ├── ADR-007.md          — Multi-source dedup (Phase 6)
 │       └── ADR-008.md          — Pricing override (Phase 7)
 ├── evaluation/                 — Acceptance gates
-│   ├── PHASE6_ACCEPTANCE.md    — G61-G66 (IDE multi-source)
+│   ├── PHASE6_ACCEPTANCE.md    — G65-G70 (IDE multi-source — REOPENED/NOT MET)
 │   └── PHASE7_ACCEPTANCE.md    — G38-G50 (analytics)
 ├── docs/                       — Runbooks & guides
 │   └── onboarding-runbook.md   — ≤5-min install (all OS)
@@ -674,13 +655,13 @@ actionlint .github/workflows/*.yml
 
 | Phase | Status | Gate | Notes |
 |---|---|---|---|
-| **0** | ✅ Complete | Data source validated | IDE schema discovered, JSONL format confirmed |
+| **0** | ✅ Complete | Data source validated | CLI JSONL source + schema confirmed (IDE source is separate, not yet discovered) |
 | **1** | ✅ Complete | CLI tool live | analyze + dashboard + statusline |
 | **2** | ✅ Complete | Extension F5 + .vsix | Dashboard, tree view, export |
 | **3** | ✅ Complete | Teams alerts | CRITICAL/WARNING on transitions |
 | **4** | ⚠️ 8/10 gates | G31–G32 pending | 6 MCP tools live; 2 gates for live Copilot integration |
-| **5** | ✅ Config-complete | G60–G64 pending | Binaries + .vsix packaged; live publish awaits JFrog + first tag |
-| **6** | ✅ Complete | All 6 gates | IDE + CLI multi-source, dedup, per-source display |
+| **5** | 🟡 Config-complete | G60–G64 pending | Binaries + .vsix packaged; live publish awaits JFrog + first tag |
+| **6** | 🔲 Groundwork | G65–G70 REOPENED/NOT MET | CLI source + dedup wired; IDE collector is a no-op stub — IDE usage not captured yet |
 | **7** | ✅ Complete | All gates | Analytics, export, pricing override, rich UI |
 
 **Live deployment:** Ready for team distribution immediately. See `docs/onboarding-runbook.md` for ≤5-min install.

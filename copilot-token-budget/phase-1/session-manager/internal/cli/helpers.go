@@ -20,10 +20,13 @@ const (
 // StartTime for active sessions — see session.Session.BillingTime. Both Year and Month
 // are checked to avoid a false match on the same month of a prior year.
 func FilterThisMonth(sessions []session.Session) []session.Session {
-	now := time.Now()
+	// Compare in UTC to match the analytics bucketing (which normalizes
+	// BillingTime to UTC) and session.ReadThisMonth, so a session near a month
+	// boundary is attributed to the same month regardless of the host timezone.
+	now := time.Now().UTC()
 	var result []session.Session
 	for _, s := range sessions {
-		bt := s.BillingTime()
+		bt := s.BillingTime().UTC()
 		if bt.Year() == now.Year() && bt.Month() == now.Month() {
 			result = append(result, s)
 		}

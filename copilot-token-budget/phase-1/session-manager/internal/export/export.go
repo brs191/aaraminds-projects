@@ -22,50 +22,61 @@ import (
 // Report is the top-level aggregate serialized by ToJSON. It bundles the budget
 // summary, time series, leaderboards, and a flattened per-session view.
 type Report struct {
-	GeneratedAt time.Time            `json:"generatedAt"`
-	BudgetState budget.BudgetState   `json:"budgetState"`
-	Daily       []analytics.Bucket   `json:"daily"`
-	TopSessions []analytics.Consumer `json:"topSessions"`
-	TopModels   []analytics.Consumer `json:"topModels"`
-	TopProjects []analytics.Consumer `json:"topProjects"`
-	Sessions    []SessionView        `json:"sessions"`
+	GeneratedAt time.Time          `json:"generatedAt"`
+	BudgetState budget.BudgetState `json:"budgetState"`
+	// PremiumRequests is the total premium-request count across this month's
+	// settled sessions (sum of session.shutdown.totalPremiumRequests).
+	PremiumRequests int64                `json:"premiumRequests"`
+	Daily           []analytics.Bucket   `json:"daily"`
+	TopSessions     []analytics.Consumer `json:"topSessions"`
+	TopModels       []analytics.Consumer `json:"topModels"`
+	TopProjects     []analytics.Consumer `json:"topProjects"`
+	Sessions        []SessionView        `json:"sessions"`
 }
 
 // SessionView is the flattened, serialization-friendly projection of a session.
 // It exposes derived figures (credits, token totals, billing date) rather than
 // the raw event-shaped Session, so consumers do not depend on internal fields.
 type SessionView struct {
-	ID           string    `json:"id"`
-	Source       string    `json:"source"`
-	Project      string    `json:"project"`
-	Model        string    `json:"model"`
-	BillingDate  string    `json:"billingDate"` // "2006-01-02"
-	Credits      float64   `json:"credits"`
-	InputTokens  int64     `json:"inputTokens"`
-	OutputTokens int64     `json:"outputTokens"`
-	SystemTokens int64     `json:"systemTokens"`
-	IsActive     bool      `json:"isActive"`
-	IsFinal      bool      `json:"isFinal"`
-	StartTime    time.Time `json:"startTime"`
-	EndTime      time.Time `json:"endTime,omitempty"`
+	ID               string    `json:"id"`
+	Source           string    `json:"source"`
+	Project          string    `json:"project"`
+	Model            string    `json:"model"`
+	BillingDate      string    `json:"billingDate"` // "2006-01-02"
+	Credits          float64   `json:"credits"`
+	InputTokens      int64     `json:"inputTokens"`
+	OutputTokens     int64     `json:"outputTokens"`
+	SystemTokens     int64     `json:"systemTokens"`
+	CacheReadTokens  int64     `json:"cacheReadTokens"`  // prompt-cache reads, summed over the session's models
+	CacheWriteTokens int64     `json:"cacheWriteTokens"` // prompt-cache writes, summed over the session's models
+	ReasoningTokens  int64     `json:"reasoningTokens"`  // extended-thinking tokens, summed over the session's models
+	PremiumRequests  int64     `json:"premiumRequests"`  // session.shutdown.totalPremiumRequests (0 until finalized)
+	IsActive         bool      `json:"isActive"`
+	IsFinal          bool      `json:"isFinal"`
+	StartTime        time.Time `json:"startTime"`
+	EndTime          time.Time `json:"endTime,omitempty"`
 }
 
 // NewSessionView builds the flattened view for one session.
 func NewSessionView(s session.Session) SessionView {
 	return SessionView{
-		ID:           s.ID,
-		Source:       s.Source,
-		Project:      s.ProjectName,
-		Model:        s.PrimaryModel,
-		BillingDate:  s.BillingTime().Format("2006-01-02"),
-		Credits:      budget.FromNanoAIU(s.TotalNanoAIU),
-		InputTokens:  s.TotalInputTokens(),
-		OutputTokens: s.TotalOutputTokens(),
-		SystemTokens: s.Tokens.SystemTokens,
-		IsActive:     s.IsActive,
-		IsFinal:      s.IsFinal,
-		StartTime:    s.StartTime,
-		EndTime:      s.EndTime,
+		ID:               s.ID,
+		Source:           s.Source,
+		Project:          s.ProjectName,
+		Model:            s.PrimaryModel,
+		BillingDate:      s.BillingTime().Format("2006-01-02"),
+		Credits:          budget.FromNanoAIU(s.TotalNanoAIU),
+		InputTokens:      s.TotalInputTokens(),
+		OutputTokens:     s.TotalOutputTokens(),
+		SystemTokens:     s.Tokens.SystemTokens,
+		CacheReadTokens:  s.TotalCacheReadTokens(),
+		CacheWriteTokens: s.TotalCacheWriteTokens(),
+		ReasoningTokens:  s.TotalReasoningTokens(),
+		PremiumRequests:  s.TotalPremiumRequests,
+		IsActive:         s.IsActive,
+		IsFinal:          s.IsFinal,
+		StartTime:        s.StartTime,
+		EndTime:          s.EndTime,
 	}
 }
 
@@ -86,12 +97,14 @@ func ToJSON(r Report) ([]byte, error) {
 }
 
 // SessionsToCSV writes one row per session with a stable header. Columns:
-// date,project,model,source,credits,inputTokens,outputTokens,systemTokens,isActive,isFinal.
+// date,project,model,source,credits,inputTokens,outputTokens,systemTokens,
+// cacheReadTokens,cacheWriteTokens,reasoningTokens,premiumRequests,isActive,isFinal.
 func SessionsToCSV(w io.Writer, sessions []session.Session) error {
 	cw := csv.NewWriter(w)
 	header := []string{
 		"date", "project", "model", "source",
 		"credits", "inputTokens", "outputTokens", "systemTokens",
+		"cacheReadTokens", "cacheWriteTokens", "reasoningTokens", "premiumRequests",
 		"isActive", "isFinal",
 	}
 	if err := cw.Write(header); err != nil {
@@ -107,6 +120,10 @@ func SessionsToCSV(w io.Writer, sessions []session.Session) error {
 			strconv.FormatInt(s.TotalInputTokens(), 10),
 			strconv.FormatInt(s.TotalOutputTokens(), 10),
 			strconv.FormatInt(s.Tokens.SystemTokens, 10),
+			strconv.FormatInt(s.TotalCacheReadTokens(), 10),
+			strconv.FormatInt(s.TotalCacheWriteTokens(), 10),
+			strconv.FormatInt(s.TotalReasoningTokens(), 10),
+			strconv.FormatInt(s.TotalPremiumRequests, 10),
 			strconv.FormatBool(s.IsActive),
 			strconv.FormatBool(s.IsFinal),
 		}

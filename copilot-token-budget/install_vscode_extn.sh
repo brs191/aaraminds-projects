@@ -18,82 +18,57 @@ Options:
   --skip-npm-install   Skip npm install before packaging.
   -h, --help           Show this help.
 
-Dashboard Metrics (Phase 1–7):
-  ✨ Copilot Token Budget Dashboard provides comprehensive monitoring across:
+What the extension shows (reads local files only — zero network):
 
-  📊 BUDGET OVERVIEW (Top Section)
-  • Used Credits / Allowed Credits (Billions format: e.g., 8.55 B / 7.00 B)
-  • Remaining Credits (positive = under budget; negative = CRITICAL)
-  • Budget Status (OK | WARNING @ 60% | CRITICAL @ 90%)
+  BUDGET OVERVIEW
+  • Used / Allowed / Remaining credits (raw credits, e.g. 8,550 / 7,000)
+  • Status: OK | WARNING (>=60%) | CRITICAL (>=90%)
 
-  🔀 SOURCE BREAKDOWN (Phase 6)
-  • CLI Sessions Total (credits from copilot-cli)
-  • IDE Sessions Total (credits from VS Code copilot-ide)
-  • Combined Total (deduplicated, no double-counting)
+  FORECAST & BURN RATE
+  • Daily burn rate (month credits / days elapsed)
+  • Projected month-end total (used + burn * days remaining)
+  • Premium-request count for the month
 
-  🚀 FORECAST & BURN RATE
-  • Daily Burn Rate (credits/day, 7-day rolling average)
-  • Projected Month-End Total (linear extrapolation)
-  • Verdict (within/OVER allowance)
+  USAGE TREND (last 14 days)
+  • Inline SVG bar chart; anomalous days flagged (mean + 2 sigma)
 
-  📈 USAGE TREND (Last 14 Days)
-  • Inline SVG bar chart with daily credits
-  • Anomalous days flagged (mean + 2σ threshold)
-  • Hover tooltip: date, credits, anomaly status
+  TOP CONSUMERS
+  • Top sessions / models / projects by credits
+  • Per-model prompt-cache reads (cache-read tokens, where present)
 
-  👥 TOP CONSUMERS
-  • Top 3 Sessions (by credits, name, model)
-  • Top 3 Models (by credits, input/output K tokens)
-  • Top 3 Projects (by credits, model used)
+  SESSIONS TABLE
+  • Project, model, credits, source, input/output tokens, context-window %
+  • Active sessions show a live (not-yet-final) indicator
 
-  🖥️ ACTIVE SESSIONS TABLE
-  • Session ID, Project, Model, Credits (Billions), Source (CLI/IDE)
-  • Status (Active | Final), Input/Output tokens
-  • Context Window % fullness for active models
+  INSTRUCTION FILES (.github/instructions/)
+  • Per-file token estimate + overhead cost (50-turn session model)
+  • Optimization opportunities
 
-  ⚙️ INSTRUCTION FILES
-  • Loaded .copilot/instructions/ files detected in workspace
-  • Token cost estimation (5 Sonnet turns per session default)
-  • File path, severity (info/warning/error), auto-include flag
+  EXPORT
+  • "Copilot Budget: Export Usage" -> JSON or CSV (chosen by file extension)
 
-  💾 EXPORT COMMANDS
-  • Copilot Budget: Export Usage → JSON (full report, all metrics)
-  • Copilot Budget: Export Usage → CSV (sessions, daily, consumers)
+  STATUS BAR
+  • Badge: used / allowed credits, colour-coded OK/WARNING/CRITICAL
+  • Tooltip: today, month, burn, projected, context %
 
-  📌 STATUS BAR INDICATOR
-  • Real-time badge: $(icon) 💰 Used / Allowed (Billions format)
-  • Colour-coded: $(check) OK | $(warning) WARNING | $(circle-filled) CRITICAL
-  • Click to open dashboard
-  • Hover tooltip: today, month, burn, forecast, context %
+  SETTINGS (copilotBudget.*)
+  • monthlyAllowance, pricingPath, refreshIntervalSec (seconds),
+    teamsWebhookUrl, alertThresholdWarn, alertThresholdCrit, alertBinaryPath,
+    workspacePath
 
-  🎯 CONFIGURATION (VS Code Settings)
-  • copilotBudget.monthlyAllowance (override 7,000 default)
-  • copilotBudget.pricingPath (custom pricing.json)
-  • copilotBudget.checkInterval (refresh interval, ms)
-  • copilotBudget.teamsWebhook (Microsoft Teams alert URL)
+  TEAMS ALERTS (opt-in)
+  • CRITICAL/WARNING Adaptive Card to a configured webhook
+  • Deduped: same threshold fires at most once per day (UTC)
+  • Use a Power Automate "Workflows" webhook (legacy O365 connector retired ~May 2026)
 
-  🔔 TEAMS ALERTS
-  • CRITICAL / WARNING alerts sent to configured Teams webhook
-  • Alert suppression (no duplicate fires within 1 hour, UTC)
-  • Message includes used %, burn rate, projected total
+  CROSS-PLATFORM
+  • macOS / Linux: ~/.copilot/session-state/ (JSONL)
+  • Windows:       %USERPROFILE%\.copilot\session-state\ (same schema)
 
-  📊 ANALYTICS (Phase 7)
-  • Per-model usage distribution (input/output tokens split)
-  • Daily/weekly/monthly series with anomaly flags
-  • Context-window utilization % by model
-  • Pricing configuration (Sonnet 300/1500, Opus 500/2500, Haiku 100/500 cr/M tokens)
-
-  🌐 CROSS-PLATFORM
-  • macOS: ~/.copilot/session-state/ (JSONL events)
-  • Linux: ~/.copilot/session-state/ (same JSONL schema)
-  • Windows: %APPDATA%/Copilot/session-state/ (coming soon)
-
-  🔐 SECURITY & PRIVACY
-  • All data local (zero network calls to monitor usage)
-  • No Copilot API calls (reads local session files only)
-  • IDE source detected via vscode.metadata.json marker
-  • Dedup prevents double-counting across CLI and IDE
-  • Teams webhook URL masked in error logs
+  SCOPE NOTE
+  • Captures GitHub Copilot **CLI** usage today. VS Code Copilot **Chat** is a
+    SEPARATE local source (chatSessions/transcripts under VS Code user data) and is
+    NOT captured yet — Phase 6 (see ADR-007). All cost figures are estimates.
 
 EOF
 }
@@ -143,9 +118,20 @@ if [[ -z "$VSIX_PATH" ]]; then
   require_cmd npm
   require_cmd npx
 
+  require_cmd node
+  # Packaging uses @vscode/vsce 3.x, which requires Node.js >= 22.
+  node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+  if [[ "$node_major" -lt 22 ]]; then
+    echo "Error: packaging the .vsix needs Node.js >= 22 (found v$(node -v 2>/dev/null | tr -d 'v'))." >&2
+    echo "       Upgrade Node, or pass a prebuilt VSIX with --vsix /path/to/file.vsix." >&2
+    exit 1
+  fi
+
   pushd "$EXT_DIR" >/dev/null
 
   if [[ $SKIP_NPM_INSTALL -eq 0 ]]; then
+    # The extension dir ships a .npmrc pointing at the public registry (ADR-003),
+    # so plain `npm install` avoids the AT&T Artifactory proxy hang.
     echo "Installing npm dependencies..."
     npm install
   fi

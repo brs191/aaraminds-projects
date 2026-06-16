@@ -188,6 +188,7 @@ async function readOneSession(uuid: string, sessionDir: string): Promise<Session
     endTime: new Date(0),
     isActive: false,
     totalNanoAIU: 0,
+    totalPremiumRequests: 0,
     tokens: { currentTokens: 0, systemTokens: 0, conversationTokens: 0, toolDefinitionsTokens: 0 },
     modelMetrics: [],
     isFinal: false,
@@ -264,6 +265,7 @@ interface StartEventData {
 // Shape of session.shutdown data.
 interface ShutdownEventData {
   totalNanoAiu?: number;
+  totalPremiumRequests?: number; // only on session.shutdown — premium request count
   sessionStartTime?: number;   // Unix epoch milliseconds — fallback for startTime
   currentModel?: string;
   currentTokens?: number;
@@ -293,34 +295,41 @@ async function parseEventsFile(sessionDir: string, session: Session): Promise<vo
   const fileStream = fs.createReadStream(eventsPath, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
 
-  for await (const line of rl) {
-    const trimmed = line.trim();
-    if (trimmed === '') {
-      continue;
-    }
+  try {
+    for await (const line of rl) {
+      const trimmed = line.trim();
+      if (trimmed === '') {
+        continue;
+      }
 
-    let envelope: EventEnvelope;
-    try {
-      envelope = JSON.parse(trimmed) as EventEnvelope;
-    } catch {
-      continue; // skip malformed lines — mirrors Go behaviour
-    }
+      let envelope: EventEnvelope;
+      try {
+        envelope = JSON.parse(trimmed) as EventEnvelope;
+      } catch {
+        continue; // skip malformed lines — mirrors Go behaviour
+      }
 
-    if (envelope.type === 'session.start') {
-      applyStartEvent(envelope.data as StartEventData, session);
-    } else if (envelope.type === 'session.shutdown') {
-      applyShutdownEvent(
-        envelope.data as ShutdownEventData,
-        envelope.timestamp ?? '',
-        session
-      );
-    } else {
-      // Any other event may carry a running billing/token snapshot. Apply it as the
-      // latest live reading so active sessions display in-progress spend instead of
-      // zeros. Events are appended chronologically (last-write-wins). A partial snapshot
-      // must never overwrite a final (shutdown) reading. Mirrors Go applySnapshotEvent.
-      applySnapshotEvent(envelope.data as ShutdownEventData, session);
+      if (envelope.type === 'session.start') {
+        applyStartEvent(envelope.data as StartEventData, session);
+      } else if (envelope.type === 'session.shutdown') {
+        applyShutdownEvent(
+          envelope.data as ShutdownEventData,
+          envelope.timestamp ?? '',
+          session
+        );
+      } else {
+        // Any other event may carry a running billing/token snapshot. Apply it as the
+        // latest live reading so active sessions display in-progress spend instead of
+        // zeros. Events are appended chronologically (last-write-wins). A partial snapshot
+        // must never overwrite a final (shutdown) reading. Mirrors Go applySnapshotEvent.
+        applySnapshotEvent(envelope.data as ShutdownEventData, session);
+      }
     }
+  } finally {
+    // Close the readline interface and destroy the stream on every path (EOF, error,
+    // or early throw) to avoid leaking file handles — mirrors readWorkspaceCWD.
+    rl.close();
+    fileStream.destroy();
   }
 }
 
@@ -410,6 +419,9 @@ function applyShutdownEvent(
   // Shutdown is authoritative: it always overwrites any prior running snapshot and
   // marks the session final so later (out-of-order) partials cannot clobber it.
   applyBillingFields(data, session);
+  // totalPremiumRequests is only carried by the shutdown event, so capture it here
+  // rather than in the shared applyBillingFields (snapshot events do not have it).
+  session.totalPremiumRequests = data.totalPremiumRequests ?? 0;
   session.isFinal = true;
 
   // endTime from the top-level event timestamp.

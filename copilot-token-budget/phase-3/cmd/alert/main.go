@@ -97,8 +97,10 @@ func main() {
 		os.Exit(0) // already alerted today — silent skip
 	}
 
-	// Build month-end forecast.
-	today := time.Now()
+	// Build month-end forecast. Use UTC throughout so daysElapsed and lastDay
+	// share a timezone with the analytics buckets (which bucket in UTC); mixing a
+	// local daysElapsed with a UTC lastDay skews daysRemaining near month boundaries.
+	today := time.Now().UTC()
 	daysElapsed := today.Day()
 	// time.Date with day=0 returns the last day of the previous month,
 	// so month+1, day=0 gives the last day of the current month.

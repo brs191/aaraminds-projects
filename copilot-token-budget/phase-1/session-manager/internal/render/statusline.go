@@ -97,11 +97,15 @@ func newestActive(sessions []session.Session) *session.Session {
 }
 
 // filterMonth returns sessions whose BillingTime falls in now's calendar month.
+// Both sides are normalized to UTC to match the analytics daily/monthly buckets
+// (which bucket BillingTime in UTC), so a session near a month boundary is
+// attributed to the same month the buckets use regardless of the host timezone.
 func filterMonth(sessions []session.Session, now time.Time) []session.Session {
+	nowUTC := now.UTC()
 	var out []session.Session
 	for _, s := range sessions {
-		bt := s.BillingTime()
-		if bt.Year() == now.Year() && bt.Month() == now.Month() {
+		bt := s.BillingTime().UTC()
+		if bt.Year() == nowUTC.Year() && bt.Month() == nowUTC.Month() {
 			out = append(out, s)
 		}
 	}

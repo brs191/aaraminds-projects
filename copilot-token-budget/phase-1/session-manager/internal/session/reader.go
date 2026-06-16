@@ -25,9 +25,13 @@ type Session struct {
 	EndTime      time.Time
 	IsActive     bool  // true when an inuse.*.lock file is present in the session dir
 	TotalNanoAIU int64 // from session.shutdown → data.totalNanoAiu, or latest running snapshot
-	PrimaryModel string
-	Tokens       TokenBreakdown
-	ModelMetrics []ModelMetric
+	// TotalPremiumRequests is the count of premium (paid-tier) requests this
+	// session made, from session.shutdown → data.totalPremiumRequests. It is
+	// only carried by the final/shutdown event; running snapshots leave it zero.
+	TotalPremiumRequests int64
+	PrimaryModel         string
+	Tokens               TokenBreakdown
+	ModelMetrics         []ModelMetric
 
 	// IsFinal reports whether the billing/token figures are authoritative.
 	// true  → a session.shutdown event has been applied (final, settled billing).
@@ -94,6 +98,36 @@ func (s Session) TotalOutputTokens() int64 {
 	var n int64
 	for _, m := range s.ModelMetrics {
 		n += m.OutputTokens
+	}
+	return n
+}
+
+// TotalCacheReadTokens returns the sum of prompt-cache read tokens across all
+// models used in the session.
+func (s Session) TotalCacheReadTokens() int64 {
+	var n int64
+	for _, m := range s.ModelMetrics {
+		n += m.CacheReadTokens
+	}
+	return n
+}
+
+// TotalCacheWriteTokens returns the sum of prompt-cache write tokens across all
+// models used in the session.
+func (s Session) TotalCacheWriteTokens() int64 {
+	var n int64
+	for _, m := range s.ModelMetrics {
+		n += m.CacheWriteTokens
+	}
+	return n
+}
+
+// TotalReasoningTokens returns the sum of extended-thinking (reasoning) tokens
+// across all models used in the session.
+func (s Session) TotalReasoningTokens() int64 {
+	var n int64
+	for _, m := range s.ModelMetrics {
+		n += m.ReasoningTokens
 	}
 	return n
 }
@@ -251,10 +285,13 @@ func ReadThisMonth() ([]Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now()
+	// Compare in UTC to match the analytics bucketing (which normalizes
+	// BillingTime to UTC). Using local time here would mis-attribute sessions
+	// near a month boundary relative to the buckets.
+	now := time.Now().UTC()
 	var result []Session
 	for _, s := range all {
-		bt := s.BillingTime()
+		bt := s.BillingTime().UTC()
 		if bt.Year() == now.Year() && bt.Month() == now.Month() {
 			result = append(result, s)
 		}
@@ -404,7 +441,8 @@ func applyStartEvent(raw json.RawMessage, s *Session) {
 // struct keeps the field set identical between the final and live code paths.
 type billingData struct {
 	TotalNanoAiu          int64                      `json:"totalNanoAiu"`
-	SessionStartTime      int64                      `json:"sessionStartTime"` // Unix ms fallback
+	TotalPremiumRequests  int64                      `json:"totalPremiumRequests"` // only on session.shutdown
+	SessionStartTime      int64                      `json:"sessionStartTime"`     // Unix ms fallback
 	CurrentModel          string                     `json:"currentModel"`
 	CurrentTokens         int64                      `json:"currentTokens"`
 	SystemTokens          int64                      `json:"systemTokens"`
@@ -474,6 +512,9 @@ func applyShutdownEvent(raw json.RawMessage, topTimestamp string, s *Session) {
 	}
 
 	applyBilling(data, s)
+	// totalPremiumRequests is only carried by the shutdown event, so capture it
+	// here rather than in the shared applyBilling (snapshot events do not have it).
+	s.TotalPremiumRequests = data.TotalPremiumRequests
 	s.IsFinal = true // shutdown billing is settled and authoritative
 
 	// EndTime from the shutdown event's top-level timestamp.

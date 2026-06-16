@@ -91,38 +91,30 @@ func TestGetModelCosts_RelativePathRejected(t *testing.T) {
 // ── Functional: home-directory path accepted ─────────────────────────────────
 
 func TestGetBudgetStatus_HomePathAccepted(t *testing.T) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot determine home dir")
-	}
-	// A valid home-rooted path must not return a validation error.
-	// It may return a read error if no session data exists — that is acceptable.
+	// Hermetic: point HOME at a fixture with two settled sessions so the handler
+	// never depends on the developer's real ~/.copilot.
+	home := useFixtureHome(t)
 	_, out, err := tools.GetBudgetStatus(nil, nil,
 		tools.GetBudgetInput{WorkspacePath: home})
 	if err != nil {
-		// Validation passed if the error is NOT about path validation.
-		if isPathValidationError(err) {
-			t.Errorf("unexpected path validation error for home dir: %v", err)
-		}
-		return // read errors (no session data) are acceptable
+		t.Fatalf("GetBudgetStatus: %v", err)
 	}
 	if out.Allowance <= 0 {
 		t.Errorf("expected positive allowance, got %d", out.Allowance)
 	}
+	// Fixture sessions carry no premium requests, so the field must be present
+	// and zero rather than absent.
+	if out.PremiumRequests != 0 {
+		t.Errorf("PremiumRequests = %d, want 0 (fixture sets none)", out.PremiumRequests)
+	}
 }
 
 func TestGetSessions_ReturnsSortedByCredits(t *testing.T) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot determine home dir")
-	}
+	home := useFixtureHome(t)
 	_, out, err := tools.GetSessions(nil, nil,
 		tools.GetSessionsInput{WorkspacePath: home})
 	if err != nil {
-		if isPathValidationError(err) {
-			t.Errorf("unexpected path validation error: %v", err)
-		}
-		return
+		t.Fatalf("GetSessions: %v", err)
 	}
 	for i := 1; i < len(out.Sessions); i++ {
 		if out.Sessions[i].Credits > out.Sessions[i-1].Credits {
@@ -130,25 +122,30 @@ func TestGetSessions_ReturnsSortedByCredits(t *testing.T) {
 				i, out.Sessions[i].Credits, out.Sessions[i-1].Credits)
 		}
 	}
+	// The fixture sessions are finalized, so IsFinal must surface as true.
+	for _, s := range out.Sessions {
+		if !s.IsFinal {
+			t.Errorf("session %q IsFinal = false, want true (fixture is settled)", s.Name)
+		}
+	}
 }
 
 func TestGetModelCosts_NoDuplicateModels(t *testing.T) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot determine home dir")
-	}
+	home := useFixtureHome(t)
 	_, out, err := tools.GetModelCosts(nil, nil,
 		tools.GetModelCostsInput{WorkspacePath: home})
 	if err != nil {
-		if isPathValidationError(err) {
-			t.Errorf("unexpected path validation error: %v", err)
-		}
-		return
+		t.Fatalf("GetModelCosts: %v", err)
 	}
 	// Map keys are unique by definition, but verify non-negative credits.
 	for model, cost := range out.Models {
 		if cost.TotalCreditsThisMonth < 0 {
 			t.Errorf("model %q has negative credits: %.4f", model, cost.TotalCreditsThisMonth)
+		}
+		// Fixture sessions carry no cache/reasoning tokens; verify the new fields
+		// are non-negative and present (zero) rather than missing.
+		if cost.CacheReadTokens < 0 || cost.CacheWriteTokens < 0 || cost.ReasoningTokens < 0 {
+			t.Errorf("model %q has negative cache/reasoning tokens: %+v", model, cost)
 		}
 	}
 }
@@ -221,10 +218,9 @@ func TestNoNetworkCalls(t *testing.T) {
 	http.DefaultTransport = &blockingTransport{t: t}
 	defer func() { http.DefaultTransport = original }()
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot determine home dir")
-	}
+	// Hermetic fixture HOME so the handlers read deterministic local data rather
+	// than the developer's real ~/.copilot.
+	home := useFixtureHome(t)
 	// Call all six handlers; if any makes an HTTP call, blockingTransport.RoundTrip
 	// calls t.Fatal.
 	tools.GetBudgetStatus(nil, nil, tools.GetBudgetInput{WorkspacePath: home})              //nolint
@@ -253,17 +249,19 @@ var reANSI = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 var reUsedCredits = regexp.MustCompile(`Used:\s+([\d.]+)\s+/`)
 
 // TestArithmeticParity verifies that get_budget_status returns the same credit
-// total as cmd/analyze for the same session data.  Both code paths call
-// budget.Calculate(nanoAIUs, 0) — this test catches any divergence in the
-// nanoAIU accumulation or unit-conversion logic introduced in the MCP layer.
+// total as cmd/analyze for the same session data. Both code paths now load the
+// pricing config and call budget.Calculate(nanoAIUs, cfg.AllowanceCredits) — the
+// MCP path used to hardcode 0 (the 7000 default), which silently matched only
+// when no pricing.json override was present. This test runs against a hermetic
+// fixture HOME so it catches divergence in nanoAIU accumulation, unit conversion,
+// OR allowance sourcing introduced in the MCP layer.
 func TestArithmeticParity(t *testing.T) {
 	if analyzeBinary == "" {
 		t.Skip("cmd/analyze binary not built (build failed in TestMain)")
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot determine home dir")
-	}
+	// useFixtureHome sets HOME via t.Setenv; the analyze subprocess inherits it,
+	// so both the CLI and the in-process MCP handler read the same session data.
+	home := useFixtureHome(t)
 
 	// Run cmd/analyze and parse its "Used:" credit line from stdout.
 	out, err := exec.Command(analyzeBinary).Output() // stderr = skipped sessions, ignored
@@ -295,6 +293,41 @@ func TestArithmeticParity(t *testing.T) {
 			mcpOut.Credits, cliCredits, diff, tolerance)
 	} else {
 		t.Logf("parity OK: MCP=%.4f CLI=%.4f diff=%.4f", mcpOut.Credits, cliCredits, diff)
+	}
+}
+
+// TestGetBudgetStatus_HonorsAllowanceOverride guards against the allowance-drift
+// regression: GetBudgetStatus previously called budget.Calculate(nano, 0), which
+// hardcodes the 7000 default and ignores any pricing.json override. It must load
+// pricing and pass cfg.AllowanceCredits. Here we write a pricing.json with a
+// non-default allowance into the fixture config dir and assert the handler
+// reflects it — this fails if the handler reverts to the hardcoded default.
+func TestGetBudgetStatus_HonorsAllowanceOverride(t *testing.T) {
+	home := useFixtureHome(t)
+
+	// platform.ConfigDir resolves via os.UserConfigDir, which honours
+	// XDG_CONFIG_HOME on Linux; pin it inside the fixture HOME so the override is
+	// hermetic. (On other OSes the default base also lands under HOME.)
+	const wantAllowance = 9001
+	cfgBase := filepath.Join(home, ".config")
+	t.Setenv("XDG_CONFIG_HOME", cfgBase)
+	cfgDir := filepath.Join(cfgBase, "copilot-token-budget")
+	if err := os.MkdirAll(cfgDir, 0o700); err != nil {
+		t.Fatalf("mkdir config dir: %v", err)
+	}
+	pricingJSON := fmt.Sprintf(`{"allowanceCredits": %d}`, wantAllowance)
+	if err := os.WriteFile(filepath.Join(cfgDir, "pricing.json"), []byte(pricingJSON), 0o644); err != nil {
+		t.Fatalf("write pricing.json: %v", err)
+	}
+
+	_, out, err := tools.GetBudgetStatus(nil, nil,
+		tools.GetBudgetInput{WorkspacePath: home})
+	if err != nil {
+		t.Fatalf("GetBudgetStatus: %v", err)
+	}
+	if out.Allowance != wantAllowance {
+		t.Errorf("Allowance = %d, want %d — handler is ignoring pricing.json (allowance drift)",
+			out.Allowance, wantAllowance)
 	}
 }
 

@@ -25,6 +25,12 @@ type ModelCost struct {
 	OutputRatePer1M       float64 `json:"outputRatePer1M"`
 	TotalCreditsThisMonth float64 `json:"totalCreditsThisMonth"`
 	SessionCount          int     `json:"sessionCount"`
+	// CacheReadTokens, CacheWriteTokens and ReasoningTokens are summed across all
+	// of this month's sessions that used the model. They surface prompt-caching
+	// and extended-thinking usage that was previously captured but never exposed.
+	CacheReadTokens  int64 `json:"cacheReadTokens"`
+	CacheWriteTokens int64 `json:"cacheWriteTokens"`
+	ReasoningTokens  int64 `json:"reasoningTokens"`
 }
 
 // GetModelCostsOutput maps model name → billing summary.
@@ -57,8 +63,11 @@ func GetModelCosts(
 	}
 
 	type stats struct {
-		totalNanoAIU int64
-		sessionCount int
+		totalNanoAIU     int64
+		sessionCount     int
+		cacheReadTokens  int64
+		cacheWriteTokens int64
+		reasoningTokens  int64
 	}
 	modelStats := make(map[string]*stats)
 
@@ -69,6 +78,9 @@ func GetModelCosts(
 			}
 			modelStats[m.Model].totalNanoAIU += m.NanoAIU
 			modelStats[m.Model].sessionCount++
+			modelStats[m.Model].cacheReadTokens += m.CacheReadTokens
+			modelStats[m.Model].cacheWriteTokens += m.CacheWriteTokens
+			modelStats[m.Model].reasoningTokens += m.ReasoningTokens
 		}
 	}
 
@@ -80,6 +92,9 @@ func GetModelCosts(
 			OutputRatePer1M:       rate.OutputPerMillion,
 			TotalCreditsThisMonth: budget.FromNanoAIU(st.totalNanoAIU),
 			SessionCount:          st.sessionCount,
+			CacheReadTokens:       st.cacheReadTokens,
+			CacheWriteTokens:      st.cacheWriteTokens,
+			ReasoningTokens:       st.reasoningTokens,
 		}
 	}
 

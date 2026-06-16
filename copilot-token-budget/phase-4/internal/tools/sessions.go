@@ -22,6 +22,10 @@ type SessionInfo struct {
 	Credits       float64 `json:"credits"`
 	ContextTokens int64   `json:"contextTokens"`
 	IsActive      bool    `json:"isActive"`
+	// IsFinal reports whether the figures are settled (a session.shutdown event
+	// was applied) versus a live/partial snapshot — mirroring the CLI "(live)"
+	// indicator so consumers can distinguish in-progress from finalized sessions.
+	IsFinal bool `json:"isFinal"`
 }
 
 // GetSessionsOutput wraps the session list for consistent JSON schema.
@@ -53,6 +57,7 @@ func GetSessions(
 			Credits:       budget.FromNanoAIU(s.TotalNanoAIU),
 			ContextTokens: s.Tokens.CurrentTokens,
 			IsActive:      s.IsActive,
+			IsFinal:       s.IsFinal,
 		})
 	}
 

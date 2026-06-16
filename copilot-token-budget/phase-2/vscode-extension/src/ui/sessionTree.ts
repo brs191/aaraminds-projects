@@ -44,6 +44,12 @@ export class BudgetTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
     this._onDidChangeTreeData.fire(undefined);
   }
 
+  // dispose releases the change-notification EventEmitter so it is cleaned up on
+  // deactivate. Registered in extension.ts via context.subscriptions.
+  dispose(): void {
+    this._onDidChangeTreeData.dispose();
+  }
+
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }

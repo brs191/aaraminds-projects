@@ -41,7 +41,7 @@ path/to/artifact(s)
 | [Phase 3](#phase-3--teams-alerts--forecasting)                    | ✅ Complete (Steps 3.1–3.5 ✅)                            | Teams alerts + forecasting                                                                                                                                                          |
 | [Phase 4](#phase-4--mcp-server)                                   | ✅ Complete (Steps 4.1–4.3 ✅)                            | MCP server — 4 tools, parity verified, 8/10 gates green                                                                                                                             |
 | [Phase 5](#phase-5--distribution--onboarding)                     | 🟡 Config-complete + locally validated (Steps 5.1–5.6 ✅) | Distribution + onboarding — GoReleaser (25 binaries) + CI/CD + JFrog OIDC + runbook; **live publish PENDING JFrog provisioning + first tag** (gates G51–G59 green, G60–G64 pending) |
-| [Phase 6](#phase-6--dual-source-capture-copilot-cli--vs-code-ide) | 🟢 Steps 6.0–6.2 ✅ complete; Step 6.3+ pending       | Capture **both** Copilot CLI **and** VS Code IDE Copilot usage (local, zero-network)                                                                                                |
+| [Phase 6](#phase-6--dual-source-capture-copilot-cli--vs-code-ide) | 🔲 Groundwork only — **REOPENED/NOT MET 2026-06-17**; IDE collector is a no-op stub | Capture **both** Copilot CLI **and** VS Code IDE Copilot usage. CLI captured today; **VS Code Chat is a separate local source (`…/chatSessions/`, `…/transcripts/`), NOT captured yet** (gates G65–G70 reopened) |
 | [Phase 7](#phase-7--usage-insight-v11)                            | ✅ Complete (Steps 7.1–7.6 ✅)                            | **v1.1 usage-insight** — analytics, export, statusline, 2 new MCP tools (six total), overridable pricing; SHIP                                                                      |
 
 ---
@@ -3174,9 +3174,15 @@ go build ./... && go test ./... && go test -race ./...
 
 #### Result
 
+⚠️ **CORRECTED 2026-06-17:** item 2 below was WRONG — VS Code Copilot Chat is a *separate* local
+source (`…/chatSessions/`, `…/transcripts/`), not `~/.copilot`, and there is no `vscode.metadata.json`
+IDE marker. The mis-pointed `ideCollector` has been neutralized to a **no-op stub**; IDE usage is
+**not captured today**. See the Phase 6 eval result below (gates G65–G70, REOPENED/NOT MET) and ADR-007
+correction. The log below is retained as a record of what was originally implemented.
+
 ✅ **Complete (2026-06-16).** Implemented:
 1. **Extended ModelMetric** with `CacheReadTokens`, `CacheWriteTokens`, `ReasoningTokens`
-2. **IDE Collector (ideCollector.Collect())** reads sessions from `~/.copilot/session-state/` with `vscode.metadata.json` marker detection
+2. **IDE Collector (ideCollector.Collect())** reads sessions from `~/.copilot/session-state/` with `vscode.metadata.json` marker detection *(now neutralized to a no-op stub — see correction above)*
 3. **Event-level dedup:** `{sessionId}:{eventId}` seen-set prevents exact duplicates
 4. **apiCallId dedup:** Groups events, keeps earliest (handles retries)
 5. **Tests:** 10 comprehensive tests including dedup, merge, race conditions
@@ -3396,14 +3402,21 @@ grep -E "G6[1-6]|dedup|zero network|per-source|graceful" evaluation/PHASE6_ACCEP
 
 #### Result
 
-✅ **Complete (2026-06-16).** Gates G61–G66 defined and validated locally:
+⚠️ **REOPENED / NOT MET (corrected 2026-06-17).** Gates were renumbered G65–G70 to avoid a
+collision with Phase 5's G60–G64, and the underlying claims below were **invalidated**: the IDE
+collector had been pointed at `~/.copilot/session-state/` + an unverified `vscode.metadata.json`
+marker, but **VS Code Copilot Chat is a separate local source** (`…/workspaceStorage/<ws>/chatSessions/`,
+`…/GitHub.copilot-chat/transcripts/`). The mis-pointed collector was neutralized to a **no-op stub**;
+the IDE source is **not captured today**. The PASS marks below are retained only as a record of what
+was originally claimed — treat them as **not valid**. See `evaluation/PHASE6_ACCEPTANCE.md`
+(REOPENED banner), `phase-0/findings/IDE_USAGE_FINDINGS.md` (correction) and ADR-007 (correction).
 
-- **G61:** IDE source discovered locally (vscode.metadata.json marker) — ✅ PASS
-- **G62:** Event-level dedup prevents double-counting ({sessionId}:{eventId}) — ✅ PASS
-- **G63:** apiCallId dedup groups retries, earliest-wins — ✅ PASS
-- **G64:** CLI + IDE combined total = CLI sum + IDE sum (zero overlap) — ✅ PASS
-- **G65:** Per-source totals render in Go CLI and TS dashboard — ✅ PASS
-- **G66:** Graceful degradation: IDE absence doesn't affect CLI — ✅ PASS
+- **G65:** IDE source discovered locally (vscode.metadata.json marker) — ✅ PASS *(now invalid — no such marker)*
+- **G66:** Event-level dedup prevents double-counting ({sessionId}:{eventId}) — ✅ PASS
+- **G67:** apiCallId dedup groups retries, earliest-wins — ✅ PASS
+- **G68:** CLI + IDE combined total = CLI sum + IDE sum (zero overlap) — ✅ PASS
+- **G69:** Per-source totals render in Go CLI and TS dashboard — ✅ PASS
+- **G70:** Graceful degradation: IDE absence doesn't affect CLI — ✅ PASS
 
 Document: `evaluation/PHASE6_ACCEPTANCE.md` (412 lines)
 
@@ -3418,7 +3431,7 @@ All gates are locally validated and documented with runnable tests.
 
 #### Deliverable
 
-- `evaluation/PHASE6_ACCEPTANCE.md` (412 lines, gates G61–G66)
+- `evaluation/PHASE6_ACCEPTANCE.md` (gates G65–G70; REOPENED / NOT MET 2026-06-17)
 
 #### Outcome
 

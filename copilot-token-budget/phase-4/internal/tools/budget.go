@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aaraminds/copilot-session-manager/internal/budget"
+	"github.com/aaraminds/copilot-session-manager/internal/pricing"
 	"github.com/aaraminds/copilot-session-manager/internal/session"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -26,6 +27,9 @@ type GetBudgetOutput struct {
 	// Forecast is the projected month-end total credits: credits used so far plus
 	// the linear projection of the current daily burn over the remaining days.
 	Forecast float64 `json:"forecast"`
+	// PremiumRequests is the total count of premium (paid-tier) requests made
+	// across this month's settled sessions, from session.shutdown.totalPremiumRequests.
+	PremiumRequests int64 `json:"premiumRequests"`
 }
 
 // GetBudgetStatus returns the current month's Copilot credit budget state plus
@@ -45,17 +49,33 @@ func GetBudgetStatus(
 		return nil, GetBudgetOutput{}, fmt.Errorf("read sessions: %w", err)
 	}
 
+	// Load the effective pricing config so the allowance matches the CLI exactly.
+	// Load never hard-fails on a missing/malformed file (it falls back to bundled
+	// defaults); an error here means the config dir itself is unresolvable.
+	cfg, err := pricing.Load()
+	if err != nil {
+		return nil, GetBudgetOutput{}, fmt.Errorf("load pricing: %w", err)
+	}
+
 	nanoAIUs := make([]int64, 0, len(sessions))
 	burns := make([]sessionForBurn, 0, len(sessions))
+	var premiumRequests int64
 	for _, s := range sessions {
+		premiumRequests += s.TotalPremiumRequests
 		if s.TotalNanoAIU > 0 {
 			nanoAIUs = append(nanoAIUs, s.TotalNanoAIU)
 			burns = append(burns, sessionForBurn{nanoAIU: s.TotalNanoAIU})
 		}
 	}
-	state := budget.Calculate(nanoAIUs, 0) // 0 → uses MonthlyAllowanceCredits default
+	// Pass the configured allowance so this path matches the CLI's
+	// budget.Calculate(nano, cfg.AllowanceCredits) rather than silently using the
+	// hardcoded default of 7000.
+	state := budget.Calculate(nanoAIUs, cfg.AllowanceCredits)
 
-	today := time.Now()
+	// Use UTC for the day-of-month arithmetic so daysElapsed and lastDay are in
+	// the same timezone as the analytics buckets (which bucket in UTC). Mixing a
+	// local daysElapsed with a UTC lastDay skews daysLeft near month boundaries.
+	today := time.Now().UTC()
 	daysElapsed := today.Day()
 	lastDay := time.Date(today.Year(), today.Month()+1, 0, 0, 0, 0, 0, time.UTC)
 	daysLeft := lastDay.Day() - daysElapsed
@@ -64,11 +84,12 @@ func GetBudgetStatus(
 	forecast := projectedMonthEndTotal(state.UsedCredits, dailyBurn, daysLeft)
 
 	return nil, GetBudgetOutput{
-		Credits:   state.UsedCredits,
-		Pct:       state.UsedPct,
-		Allowance: state.AllowedCredits,
-		Status:    string(state.Status),
-		DaysLeft:  daysLeft,
-		Forecast:  forecast,
+		Credits:         state.UsedCredits,
+		Pct:             state.UsedPct,
+		Allowance:       state.AllowedCredits,
+		Status:          string(state.Status),
+		DaysLeft:        daysLeft,
+		Forecast:        forecast,
+		PremiumRequests: premiumRequests,
 	}, nil
 }
