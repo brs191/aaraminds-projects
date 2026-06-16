@@ -70,12 +70,18 @@ def matches(engine_finding: dict[str, Any], expected: dict[str, Any]) -> bool:
     - type:     substring match (expected["type"] in engine_finding["type"])
     - severity: exact match (case-sensitive)
     - resource: exact match
+    - evidence: optional substring match (audit H-2)
     """
     if expected.get("type") and expected["type"] not in engine_finding.get("type", ""):
         return False
     if expected.get("severity") and expected["severity"] != engine_finding.get("severity", ""):
         return False
     if expected.get("resource") and expected["resource"] != engine_finding.get("resource", ""):
+        return False
+    # evidence: optional substring match. When a key supplies it, the engine's
+    # evidence must contain it — so a finding with the right type/severity/resource
+    # but WRONG evidence (path) is no longer a false pass (audit H-2).
+    if expected.get("evidence") and expected["evidence"] not in engine_finding.get("evidence", ""):
         return False
     return True
 

@@ -1,11 +1,28 @@
 {
   "fixture": "fixture-1-internet-exposure.json",
   "expected_findings": [
-    { "type": "orphaned public endpoint", "severity": "Low", "resource": "pip-orphan-01" },
-    { "type": "over-permissive NSG (reachable)", "severity": "High", "resource": "nic-vm-web-a" },
-    { "type": "over-permissive NSG (latent)", "severity": "Informational", "resource": "nic-vm-web-b" }
+    {
+      "type": "orphaned public endpoint",
+      "severity": "Low",
+      "resource": "pip-orphan-01"
+    },
+    {
+      "type": "over-permissive NSG (reachable)",
+      "severity": "High",
+      "resource": "nic-vm-web-a",
+      "evidence": "route 0.0.0.0/0->Internet + public IP"
+    },
+    {
+      "type": "over-permissive NSG (latent)",
+      "severity": "Informational",
+      "resource": "nic-vm-web-b",
+      "evidence": "no public IP"
+    }
   ],
   "trap_assertions": [
-    { "resource": "nic-vm-web-b", "must_not_have": "reachable High — VM has no public IP and route goes to VirtualAppliance" }
+    {
+      "resource": "nic-vm-web-b",
+      "must_not_have": "reachable High \u2014 VM has no public IP and route goes to VirtualAppliance"
+    }
   ]
 }
