@@ -21,20 +21,28 @@ These are the durable, native-format agents that orchestrate the engineering ski
 > (`azure-network-topology-visualization`, `azure-iac-policy-as-code`,
 > `azure-defender-signal-ingestion`) are installed and wired; the reviewer agent invokes the latter two.
 
-## Project-delivery agents — `~/projects/for-submission/*.agent.md`
+## Project-delivery agents (skills-pack) — **authored 2026-06-15**
 
-The playbook's `aara-project-architect`, `aara-project-builder`, `aara-project-reviewer`,
-`aara-project-debugger`, `aara-python-ai-developer`, `aara-ai-evaluation-engineer` are
-**project-delivery / orchestration** agents, not engineering-pack agents. The architect / planner /
-reviewer variants exist as `project-architect.agent.md`, `project-planner.agent.md`,
-`project-reviewer.agent.md` under `~/projects/for-submission/`. The builder / debugger /
-python-ai-developer / ai-evaluation-engineer variants are referenced by the playbook but are **not yet
-authored** anywhere — they are aspirational.
+The playbook's project-delivery / lifecycle agents now exist as native Claude agents in
+`skills-pack/.claude/agents/` and are wired:
 
-## Action
+| Agent | Role |
+|---|---|
+| `aara-project-architect` | system design, decomposition, ADRs, brownfield evolution → design docs |
+| `aara-project-planner` | outcome-defined phases, T-shirt estimates, critical path, risk register |
+| `aara-project-builder` | execute a playbook step/ticket: code + tests + green gate + Result log |
+| `aara-project-reviewer` | adversarial acceptance review → `PHASE_n_ACCEPTANCE_MEMO` (gates cited to file:line) |
+| `aara-project-debugger` | reproduce → root-cause → minimal fix + regression test |
+| `aara-python-ai-developer` | Python/LLM-orchestration (explainer, generator intent, reference engines, viz pipeline) |
+| `aara-ai-evaluation-engineer` | build/run eval gates (precision/recall, diagram-eval, twin-drift, triggering); prove teeth |
 
-1. ~~Activate `aara-topology-visualizer`~~ — **done (2026-06-15):** installed + wired; reviewer agent
-   updated to compose the two new skills. Engineering-pack agent coverage for the adoption roadmap is complete.
-2. Decide on the project-delivery agents: either (a) author the missing four and standardize all six
-   into one location, or (b) update `IMPLEMENTATION_PLAYBOOK.md` to reference only agents that exist.
-   Until then, treat playbook agent prompts as role descriptions, not guaranteed-present agents.
+> The `~/projects/for-submission/*.agent.md` files are the **GitHub Copilot-format** equivalents of the
+> architect/planner/reviewer (different platform: `model: gpt-5`, `handoffs:`). The Claude-format pack
+> agents above are the canonical ones the AaraMinds playbooks reference.
+
+## Action — complete
+
+1. ~~Activate `aara-topology-visualizer`~~ — **done:** installed + wired; reviewer composes the policy + Defender skills.
+2. ~~Author the project-delivery agents~~ — **done:** all 7 authored in Claude format + wired; every
+   playbook-referenced agent name now resolves. Optional follow-up: trim `IMPLEMENTATION_PLAYBOOK.md`
+   prompts to point at these canonical names where they drifted.
