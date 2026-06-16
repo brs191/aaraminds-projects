@@ -17,15 +17,15 @@ import (
 // Multiple changes must be applied as sequential ApplyDelta calls so callers
 // see the incremental security impact of each individual change.
 type TopologyDelta struct {
-	AddSubnet    *AddSubnetOp    `json:"addSubnet,omitempty"`
-	RemoveSubnet *RemoveSubnetOp `json:"removeSubnet,omitempty"`
-	AddNSGRule   *AddNSGRuleOp   `json:"addNsgRule,omitempty"`
-	RemoveNSGRule *RemoveNSGRuleOp `json:"removeNsgRule,omitempty"`
-	AddPeering   *AddPeeringOp   `json:"addPeering,omitempty"`
-	RemovePeering *RemovePeeringOp `json:"removePeering,omitempty"`
-	AddPublicIP  *AddPublicIPOp  `json:"addPublicIp,omitempty"`
+	AddSubnet      *AddSubnetOp      `json:"addSubnet,omitempty"`
+	RemoveSubnet   *RemoveSubnetOp   `json:"removeSubnet,omitempty"`
+	AddNSGRule     *AddNSGRuleOp     `json:"addNsgRule,omitempty"`
+	RemoveNSGRule  *RemoveNSGRuleOp  `json:"removeNsgRule,omitempty"`
+	AddPeering     *AddPeeringOp     `json:"addPeering,omitempty"`
+	RemovePeering  *RemovePeeringOp  `json:"removePeering,omitempty"`
+	AddPublicIP    *AddPublicIPOp    `json:"addPublicIp,omitempty"`
 	RemovePublicIP *RemovePublicIPOp `json:"removePublicIp,omitempty"`
-	ModifyRoute  *ModifyRouteOp  `json:"modifyRoute,omitempty"`
+	ModifyRoute    *ModifyRouteOp    `json:"modifyRoute,omitempty"`
 }
 
 // Validate returns a non-nil error if the delta is structurally invalid.
@@ -186,9 +186,9 @@ type RemoveSubnetOp struct {
 
 type AddNSGRuleOp struct {
 	// NSGName is the name of the existing NSG to add the rule to.
-	NSGName string      `json:"nsgName"`
+	NSGName string `json:"nsgName"`
 	// Rule is the SecRule to add; Rule.Name must be unique within the NSG.
-	Rule    graph.SecRule `json:"rule"`
+	Rule graph.SecRule `json:"rule"`
 }
 
 type RemoveNSGRuleOp struct {
@@ -197,8 +197,8 @@ type RemoveNSGRuleOp struct {
 }
 
 type AddPeeringOp struct {
-	LocalVNet             string `json:"localVnet"`
-	RemoteVNet            string `json:"remoteVnet"`
+	LocalVNet  string `json:"localVnet"`
+	RemoteVNet string `json:"remoteVnet"`
 	// State is "Connected" | "Initiated".
 	State                 string `json:"state"`
 	AllowForwardedTraffic bool   `json:"allowForwardedTraffic"`
@@ -212,8 +212,8 @@ type RemovePeeringOp struct {
 }
 
 type AddPublicIPOp struct {
-	NICName   string `json:"nicName"`
-	PIPName   string `json:"pipName"`
+	NICName string `json:"nicName"`
+	PIPName string `json:"pipName"`
 	// IPAddress is a simulated IP for the new PIP (e.g. "20.10.10.50").
 	IPAddress string `json:"ipAddress"`
 }
@@ -229,5 +229,5 @@ type ModifyRouteOp struct {
 	// NewNextHopType: "Internet" | "VirtualAppliance" | "None" | "VirtualNetworkGateway" | "VnetLocal"
 	NewNextHopType string `json:"newNextHopType"`
 	// NewNextHopIP is required when NewNextHopType == "VirtualAppliance".
-	NewNextHopIP   string `json:"newNextHopIp,omitempty"`
+	NewNextHopIP string `json:"newNextHopIp,omitempty"`
 }

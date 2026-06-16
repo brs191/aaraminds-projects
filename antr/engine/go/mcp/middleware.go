@@ -136,9 +136,9 @@ func withMiddleware(
 		// ── 5. Audit (analyze_risks, format_report only) ─────────────────────
 		if wantAudit && auditor != nil {
 			auditor.write(auditLine{
-				Tool:        toolName,
-				Sub:         subID,
-				DurationMS:  durationMS,
+				Tool:       toolName,
+				Sub:        subID,
+				DurationMS: durationMS,
 			})
 		}
 

@@ -69,15 +69,15 @@ type VNetSpec struct {
 
 // SubnetSpec describes one subnet to generate.
 type SubnetSpec struct {
-	Name                  string               `json:"name"`
-	AddressPrefix         string               `json:"addressPrefix"`
-	TierLabel             string               `json:"tierLabel"`
-	Sensitive             bool                 `json:"sensitive"`
-	NSGIntents            []string             `json:"nsgIntents"`
-	RouteToFirewall       bool                 `json:"routeToFirewall,omitempty"`
-	ServiceEndpoints      []string             `json:"serviceEndpoints,omitempty"`
-	Delegations           []string             `json:"delegations,omitempty"`
-	PrivateEndpointSubnet bool                 `json:"privateEndpointSubnet,omitempty"`
+	Name                  string                `json:"name"`
+	AddressPrefix         string                `json:"addressPrefix"`
+	TierLabel             string                `json:"tierLabel"`
+	Sensitive             bool                  `json:"sensitive"`
+	NSGIntents            []string              `json:"nsgIntents"`
+	RouteToFirewall       bool                  `json:"routeToFirewall,omitempty"`
+	ServiceEndpoints      []string              `json:"serviceEndpoints,omitempty"`
+	Delegations           []string              `json:"delegations,omitempty"`
+	PrivateEndpointSubnet bool                  `json:"privateEndpointSubnet,omitempty"`
 	PrivateEndpoints      []PrivateEndpointSpec `json:"privateEndpoints,omitempty"`
 }
 

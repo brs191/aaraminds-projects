@@ -60,7 +60,7 @@ type CostLineItem struct {
 	ResourceType string  `json:"resourceType"` // "PublicIP" | "VPNGateway" | "ExpressRouteGateway" | "AzureFirewall" | "PrivateEndpoint"
 	ChangeType   string  `json:"changeType"`   // "Add" | "Remove" | "Existing"
 	SKU          string  `json:"sku"`
-	MonthlyUSD   float64 `json:"monthlyUsd"`  // positive = cost added, negative = cost removed; 0 = informational
+	MonthlyUSD   float64 `json:"monthlyUsd"` // positive = cost added, negative = cost removed; 0 = informational
 	Region       string  `json:"region"`
 	PriceSource  string  `json:"priceSource"` // always "retail-prices-api"
 }

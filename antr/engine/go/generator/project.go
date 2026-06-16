@@ -247,11 +247,11 @@ func ProjectFixture(spec TopologySpec, baseline ProjectionBaseline) *graph.Fixtu
 		var gSubnets []graph.Subnet
 		for _, sn := range v.Subnets {
 			gs := graph.Subnet{
-				Name:             sn.Name,
-				AddressPrefix:    sn.AddressPrefix,
+				Name:                 sn.Name,
+				AddressPrefix:        sn.AddressPrefix,
 				NetworkSecurityGroup: fmt.Sprintf("nsg-%s", v.Name),
-				ServiceEndpoints: sn.ServiceEndpoints,
-				Delegations:      sn.Delegations,
+				ServiceEndpoints:     sn.ServiceEndpoints,
+				Delegations:          sn.Delegations,
 			}
 			if sn.RouteToFirewall {
 				gs.RouteTable = fmt.Sprintf("rt-%s", v.Name)
@@ -540,18 +540,18 @@ func projectPeerings(spec TopologySpec, vnetByName map[string]*graph.VNet) {
 			// Spoke gets a peering to hub
 			spoke := vnetByName[v.Name]
 			spoke.Peerings = append(spoke.Peerings, graph.Peering{
-				RemoteVnet:        spec.HubVNetName,
-				State:             "Connected",
+				RemoteVnet:            spec.HubVNetName,
+				State:                 "Connected",
 				AllowForwardedTraffic: true,
-				UseRemoteGateways: spec.GatewayType != "none",
+				UseRemoteGateways:     spec.GatewayType != "none",
 			})
 			// Hub gets a peering back to spoke
 			hub := vnetByName[spec.HubVNetName]
 			hub.Peerings = append(hub.Peerings, graph.Peering{
-				RemoteVnet:          v.Name,
-				State:               "Connected",
+				RemoteVnet:            v.Name,
+				State:                 "Connected",
 				AllowForwardedTraffic: true,
-				AllowGatewayTransit: spec.GatewayType != "none",
+				AllowGatewayTransit:   spec.GatewayType != "none",
 			})
 		}
 

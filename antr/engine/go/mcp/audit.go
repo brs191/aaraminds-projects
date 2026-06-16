@@ -21,14 +21,14 @@ import (
 
 // auditLine holds the data for a single structured audit log entry.
 type auditLine struct {
-	Tool        string
-	Sub         string
-	Findings    int
-	HighCrit    int
-	FetchMS     int64
-	AnalyzeMS   int64
-	RenderMS    int64
-	DurationMS  int64
+	Tool       string
+	Sub        string
+	Findings   int
+	HighCrit   int
+	FetchMS    int64
+	AnalyzeMS  int64
+	RenderMS   int64
+	DurationMS int64
 }
 
 // Auditor writes structured audit lines via slog.

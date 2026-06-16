@@ -151,10 +151,10 @@ func nicNoPIP() *graph.Fixture {
 func fxWithFirewall(skuTier string) *graph.Fixture {
 	fx := nicWithPIP()
 	fx.AzureFirewall = &graph.Firewall{
-		Name:     "fw-hub",
+		Name:      "fw-hub",
 		PrivateIP: "10.0.0.4",
 		PublicIP:  "20.99.99.99",
-		SKUTier:  skuTier,
+		SKUTier:   skuTier,
 	}
 	return fx
 }

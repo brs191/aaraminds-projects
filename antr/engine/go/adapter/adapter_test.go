@@ -169,9 +169,9 @@ func TestMultiValueExpansion(t *testing.T) {
 
 	// Verify each combination is present.
 	want := map[string]bool{
-		"0.0.0.0/0:22":   false,
-		"0.0.0.0/0:3389": false,
-		"10.0.0.0/8:22":  false,
+		"0.0.0.0/0:22":    false,
+		"0.0.0.0/0:3389":  false,
+		"10.0.0.0/8:22":   false,
 		"10.0.0.0/8:3389": false,
 	}
 	for _, r := range rules {
@@ -221,8 +221,8 @@ func TestAVNMMultiValueExpansion(t *testing.T) {
 	want := map[string]bool{
 		"192.168.0.0/16:443":  false,
 		"192.168.0.0/16:8443": false,
-		"172.16.0.0/12:443":  false,
-		"172.16.0.0/12:8443": false,
+		"172.16.0.0/12:443":   false,
+		"172.16.0.0/12:8443":  false,
 	}
 	for _, r := range expanded {
 		key := r.SourceAddressPrefix + ":" + r.DestinationPortRange

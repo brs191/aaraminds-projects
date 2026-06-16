@@ -29,7 +29,7 @@ const (
 // priceResult holds one cached Retail Prices API lookup result.
 type priceResult struct {
 	monthlyUSD float64
-	sourceDate string    // "YYYY-MM-DD" from effectiveStartDate
+	sourceDate string // "YYYY-MM-DD" from effectiveStartDate
 	fetchedAt  time.Time
 }
 

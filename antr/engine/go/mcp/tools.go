@@ -98,7 +98,7 @@ func getTopologyHandler(fetcher TopologyFetcher) server.ToolHandlerFunc {
 
 // analyzeRisksResponse is the JSON envelope returned by analyze_risks.
 type analyzeRisksResponse struct {
-	Subscription string           `json:"subscription"`
+	Subscription string            `json:"subscription"`
 	Findings     []analyze.Finding `json:"findings"`
 	Summary      struct {
 		Critical      int `json:"critical"`
@@ -328,13 +328,13 @@ func (s *stubSpecProvider) GenerateSpec(
 
 // GenerationResult is the JSON envelope returned by generate_topology.
 type GenerationResult struct {
-	Spec       generator.TopologySpec  `json:"spec"`
-	Plan       *TerraformPlanSummary   `json:"plan,omitempty"`
-	Findings   []analyze.Finding       `json:"findings"`
-	PRURL      string                  `json:"prUrl"`
-	Iterations int                     `json:"iterations"`
-	GatePass   bool                    `json:"gatePass"`
-	Error      string                  `json:"error,omitempty"`
+	Spec       generator.TopologySpec `json:"spec"`
+	Plan       *TerraformPlanSummary  `json:"plan,omitempty"`
+	Findings   []analyze.Finding      `json:"findings"`
+	PRURL      string                 `json:"prUrl"`
+	Iterations int                    `json:"iterations"`
+	GatePass   bool                   `json:"gatePass"`
+	Error      string                 `json:"error,omitempty"`
 }
 
 // TerraformPlanSummary is a redacted view of TerraformPlan suitable for MCP responses.

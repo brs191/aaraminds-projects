@@ -478,7 +478,7 @@ func genPeering(spec TopologySpec, registry ModuleRegistry) string {
 }
 
 `, peerID, local.Name, remote.Name, local.Name, toIdentifier(remote.Name),
-				toIdentifier(local.Name), toIdentifier(remote.Name)))
+					toIdentifier(local.Name), toIdentifier(remote.Name)))
 			}
 		}
 

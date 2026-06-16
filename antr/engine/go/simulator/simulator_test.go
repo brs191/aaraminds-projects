@@ -159,7 +159,7 @@ func TestValidate_NoOp(t *testing.T) {
 
 func TestValidate_TwoOps(t *testing.T) {
 	err := simulator.TopologyDelta{
-		AddSubnet:  &simulator.AddSubnetOp{VNetName: "v", Name: "s", AddressPrefix: "10.0.0.0/24"},
+		AddSubnet:     &simulator.AddSubnetOp{VNetName: "v", Name: "s", AddressPrefix: "10.0.0.0/24"},
 		RemoveNSGRule: &simulator.RemoveNSGRuleOp{NSGName: "n", RuleName: "r"},
 	}.Validate()
 	if err == nil {
