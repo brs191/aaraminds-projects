@@ -3,6 +3,13 @@
 How to run the outcome of **each phase**. Everything here is local-first and zero-network
 (the only outbound call is the optional Teams webhook in Phase 3).
 
+> **Just want to install and use it?** End users (any OS) should follow
+> [`docs/onboarding-runbook.md`](docs/onboarding-runbook.md) — the ≤5-minute install guide with full
+> macOS / Linux / Windows steps. **This file** is the developer/source-build reference (run each phase
+> from the repo). Commands default to **bash** (macOS/Linux); **Windows** variants (PowerShell) are
+> given inline where they differ. On Windows, `run.sh` requires **Git Bash or WSL**; the IDE-discovery
+> step has a native PowerShell port (`phase-0/discover-ide-usage.ps1`).
+
 > **A note on two "workspace" concepts.** Credit/session data is *always* read from
 > `~/.copilot/session-state/` regardless of arguments. The optional `[workspace-root]` argument on
 > `analyze`/`dashboard`/`alert` only tells the tool where to scan `.github/instructions/**` for the
@@ -21,7 +28,7 @@ on Linux/macOS and `%AppData%\copilot-token-budget\` on Windows; session data is
 
 > The IDE-discovery script (`phase-0/discover-ide-usage.sh`) is OS-aware: it scans
 > `~/Library/Application Support/Code*` on macOS and `~/.config/Code*` + `~/.vscode-server` on Linux.
-> Phase 5 distribution will add `linux/amd64` + `linux/arm64` build targets alongside macOS/Windows.
+> Phase 5 distribution (GoReleaser) builds for `darwin/amd64+arm64`, `linux/amd64+arm64`, and `windows/amd64`.
 
 ## Prerequisites
 
@@ -29,10 +36,12 @@ on Linux/macOS and `%AppData%\copilot-token-budget\` on Windows; session data is
 |---|---|
 | **Go 1.21+** | builds phase-1 and phase-3 |
 | **Go 1.25+** | builds phase-4 (the MCP server) — hard requirement of `modelcontextprotocol/go-sdk v1.6.1`. `GOTOOLCHAIN=auto` (default) will auto-fetch it. |
-| **Node 18+** | phase-2 VS Code extension build |
-| GitHub Copilot CLI that has produced sessions under `~/.copilot/session-state/` | there is nothing to report without real session data |
+| **Node 18+** | to `npm run compile` / F5 the extension. **Node 22+** is required to `npm run package` the `.vsix` (`@vscode/vsce` 3.x). |
+| GitHub Copilot CLI that has produced sessions under `~/.copilot/session-state/` (`%USERPROFILE%\.copilot\session-state\` on Windows) | there is nothing to report without real session data |
+| Windows only: **Git Bash or WSL** | to run the `.sh` helper scripts (`run.sh`, `discover-ide-usage.sh`) |
 
-Repo root referenced below as `copilot-token-budget/`.
+Repo root referenced below as `copilot-token-budget/`. **Windows** users: in command blocks, use the
+PowerShell variant where shown; `~` maps to `%USERPROFILE%`, and built binaries take a `.exe` suffix.
 
 ---
 
@@ -46,6 +55,16 @@ Repo root referenced below as `copilot-token-budget/`.
 bash phase-0/discover-ide-usage.sh > phase-0/findings/ide-usage-report.txt
 cat phase-0/findings/ide-usage-report.txt   # read-only, zero-network, redacts PII
 ```
+
+**Windows (native PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File phase-0\discover-ide-usage.ps1 > ide-usage-report.txt
+Get-Content ide-usage-report.txt   # read-only, zero-network, redacts PII
+```
+
+It scans `%USERPROFILE%\.copilot` and `%APPDATA%\Code*` (incl. Insiders / VSCodium). Under **WSL/Git Bash**
+you can run the `.sh` version instead, which inspects the Linux-side VS Code dirs.
 
 ---
 
@@ -70,10 +89,24 @@ go run ./cmd/dashboard [workspace-root]
 Build static binaries instead of `go run`:
 
 ```bash
+# macOS / Linux
 cd phase-1/session-manager
-go build -o ~/bin/copilot-analyze   ./cmd/analyze
-go build -o ~/bin/copilot-dashboard ./cmd/dashboard
+go build -o ~/bin/copilot-analyze    ./cmd/analyze
+go build -o ~/bin/copilot-dashboard  ./cmd/dashboard
+go build -o ~/bin/copilot-statusline ./cmd/statusline
 ```
+
+```powershell
+# Windows (PowerShell) — note the .exe suffix and %USERPROFILE%\bin
+cd phase-1\session-manager
+go build -o "$env:USERPROFILE\bin\copilot-analyze.exe"    ./cmd/analyze
+go build -o "$env:USERPROFILE\bin\copilot-dashboard.exe"  ./cmd/dashboard
+go build -o "$env:USERPROFILE\bin\copilot-statusline.exe" ./cmd/statusline
+# add %USERPROFILE%\bin to PATH once:  setx PATH "$($env:PATH);$env:USERPROFILE\bin"
+```
+
+> On **Windows**, `./phase-1/run.sh` only works under Git Bash/WSL. Otherwise run `go run ./cmd/analyze`
+> and `go run ./cmd/dashboard` directly (PowerShell), which is what `run.sh` does.
 
 ---
 
@@ -121,12 +154,31 @@ COPILOT_BUDGET_TEAMS_WEBHOOK="https://<your-teams-webhook>" \
   go run ./cmd/alert <workspace-root>
 ```
 
+```powershell
+# Windows (PowerShell) — set the env var for this process, then run
+$env:COPILOT_BUDGET_TEAMS_WEBHOOK = "https://<your-teams-webhook>"
+go run ./cmd/alert <workspace-root>
+```
+
+> **Teams webhook:** the legacy O365 "Incoming Webhook" connector is retired (~May 2026). Create a
+> **Power Automate "Workflows"** webhook ("Post to a channel when a webhook request is received") — our
+> Adaptive Card payload works with it. Steps are in `docs/onboarding-runbook.md`.
+
 Exit codes: `0` = no alert needed / already sent today · `1` = alert fired (or dry-run printed) · `2` = error.
 
-**Run it on a schedule** (cron example, every 30 min during work hours):
+**Run it on a schedule:**
 
 ```bash
+# macOS / Linux — cron, every 30 min during work hours
 */30 9-18 * * 1-5  COPILOT_BUDGET_TEAMS_WEBHOOK="https://..." /path/to/copilot-alert /path/to/workspace
+```
+
+```powershell
+# Windows — Task Scheduler: a wrapper .ps1 that sets the env var then runs the binary,
+# scheduled via schtasks. Example wrapper (alert.ps1):
+#   $env:COPILOT_BUDGET_TEAMS_WEBHOOK = "https://..."
+#   & "$env:USERPROFILE\bin\copilot-alert.exe" "C:\path\to\workspace"
+schtasks /create /tn "CopilotBudgetAlert" /tr "powershell -File C:\path\to\alert.ps1" /sc minute /mo 30
 ```
 
 > The alert engine is also invoked automatically by the VS Code extension's refresh loop when
@@ -138,23 +190,30 @@ Exit codes: `0` = no alert needed / already sent today · `1` = alert fired (or 
 ## Phase 4 — MCP server (six tools)
 
 ```bash
+# macOS / Linux
 cd phase-4
-go build -ldflags "-X main.Version=v0.1.0" -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
+go build -ldflags "-X main.version=v0.1.0" -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
+```
+
+```powershell
+# Windows (PowerShell)
+cd phase-4
+go build -ldflags "-X main.version=v0.1.0" -o "$env:USERPROFILE\bin\copilot-budget-mcp.exe" ./cmd/mcp-server
 ```
 
 Register it in `.copilot/mcp.json` (already scaffolded at the repo root) — **use an absolute path**;
-`~` is not expanded by `execve`:
+`~` / `%USERPROFILE%` are NOT expanded by the process launcher, so write the full literal path:
 
-```json
-{
-  "mcpServers": {
-    "copilot-token-budget": {
-      "command": "/Users/<you>/bin/copilot-budget-mcp",
-      "args": [],
-      "env": {}
-    }
-  }
-}
+```jsonc
+// macOS / Linux
+{ "mcpServers": { "copilot-token-budget": {
+  "command": "/Users/<you>/bin/copilot-budget-mcp", "args": [], "env": {} } } }
+```
+
+```jsonc
+// Windows — full path + .exe, escaped backslashes
+{ "mcpServers": { "copilot-token-budget": {
+  "command": "C:\\Users\\<you>\\bin\\copilot-budget-mcp.exe", "args": [], "env": {} } } }
 ```
 
 Then, in a Copilot CLI session, the model can call: `get_budget_status`, `get_sessions`,
@@ -169,10 +228,37 @@ Smoke-test the binary directly:
 
 ---
 
-## Phase 5 — Distribution + onboarding · NOT STARTED
+## Phase 5 — Distribution + onboarding · CONFIG-COMPLETE (live publish pending)
 
-No runnable outcome yet. Planned: `goreleaser` cross-compiled binaries + `.vsix` published to JFrog
-Artifactory via GitHub Actions on tag push, plus an onboarding runbook. See `BUILD_PLAN.md` Phase 5.
+The release config is built and locally validated; the live publish path (JFrog upload + GitHub
+Release on a real tag) is pending JFrog provisioning + the first tag. See `evaluation/PHASE5_ACCEPTANCE.md`.
+
+**End-user install (any OS):** follow [`docs/onboarding-runbook.md`](docs/onboarding-runbook.md) — the
+≤5-minute guide with macOS / Linux / Windows steps (download from Artifactory, install the `.vsix`,
+register MCP, configure Teams).
+
+**Build the release artifacts locally** (requires GoReleaser v2):
+
+```bash
+goreleaser check                       # validate .goreleaser.yaml
+goreleaser build --snapshot --clean    # cross-compile 25 binaries (5 × 5 platforms) into dist/
+goreleaser release --snapshot --clean --skip=publish   # also produce archives + checksums.txt
+```
+
+Targets: `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`, `windows/amd64`
+(windows/arm64 intentionally excluded). Archives bundle README/USAGE/LICENSE/onboarding-runbook.
+
+**Package the extension `.vsix`** (needs Node 22):
+
+```bash
+cd phase-2/vscode-extension
+npm install --registry https://registry.npmjs.org
+npx @vscode/vsce package --no-dependencies
+```
+
+**CI/CD:** `.github/workflows/ci.yml` (build/test/lint on push/PR) and `.github/workflows/release.yml`
+(tag `v*.*.*` → GoReleaser + vsce + JFrog OIDC upload + GitHub Release). Required repo Variables
+(`JF_URL`, `JF_BINARY_REPO`, `JF_VSIX_REPO`) + OIDC setup are documented in `.github/workflows/README.md`.
 
 ---
 
@@ -202,7 +288,9 @@ go run ./cmd/analyze --csv  [workspace-root]   # per-session CSV (RFC-4180)
 ```bash
 go run ./cmd/statusline
 # example: 🤖 sonnet-4.6 | 💰 0 today / 4950/7000 (71%) | 🔥 309/day | 🧠 75%
-# embed in a shell prompt or WezTerm right-status by calling the built binary
+# macOS/Linux: embed the built binary in a shell prompt or WezTerm right-status
+# Windows (PowerShell): call copilot-statusline.exe from your prompt function, e.g.
+#   function prompt { (& "$env:USERPROFILE\bin\copilot-statusline.exe"); "PS $($pwd)> " }
 ```
 
 **Override pricing / allowance / context window** (no rebuild) — drop a `pricing.json` in the config dir.
