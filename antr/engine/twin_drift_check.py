@@ -68,7 +68,8 @@ def main():
     # Python twin. So the gate asserts PARITY ON THE SHARED FAMILIES and reports
     # Go-only families as informational, not divergence (V4-07 / twin-drift scoping).
     SHARED = {"over-permissive NSG (reachable)", "over-permissive NSG (latent)",
-              "orphaned public endpoint", "CIDR overlap", "missing tier segmentation"}
+              "orphaned public endpoint", "CIDR overlap", "missing tier segmentation",
+              "analysis incomplete"}
     drift = []
     go_only_total = 0
     for fx_path in fixtures:

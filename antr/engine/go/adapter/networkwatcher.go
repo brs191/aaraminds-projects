@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
@@ -61,11 +62,13 @@ func (a *adapter) fetchNetworkWatcher(
 		meta nicMeta
 		nw   nwLocation
 	}
+	incomplete := map[string]bool{}
 	var eligible_ []eligible
 	for _, m := range metas {
 		nw, ok := nwLocs[m.location]
 		if !ok {
 			log.Printf("WARN: no Network Watcher for location %s; skipping NIC %s", m.location, m.nic.Name)
+			incomplete[m.nic.Name] = true
 			continue
 		}
 		eligible_ = append(eligible_, eligible{m, nw})
@@ -103,6 +106,7 @@ func (a *adapter) fetchNetworkWatcher(
 		if r.err != nil {
 			log.Printf("ERROR: NW ESR call failed for NIC %s; omitting from results: %v", r.nicName, r.err)
 			errCount++
+			incomplete[r.nicName] = true
 		} else if r.nicName != "" {
 			effectiveRules[r.nicName] = r.rules
 		}
@@ -111,6 +115,7 @@ func (a *adapter) fetchNetworkWatcher(
 		if r.err != nil {
 			log.Printf("ERROR: NW ER call failed for NIC %s; omitting from results: %v", r.nicName, r.err)
 			errCount++
+			incomplete[r.nicName] = true
 		} else if r.nicName != "" {
 			effectiveRoutes[r.nicName] = r.routes
 		}
@@ -120,7 +125,12 @@ func (a *adapter) fetchNetworkWatcher(
 	log.Printf("INFO: NW enrichment complete; %d NICs processed in %dms; %d errors",
 		len(effectiveRules), elapsed, errCount)
 
-	return nwResult{effectiveRules, effectiveRoutes}, nil
+	var inc []string
+	for n := range incomplete {
+		inc = append(inc, n)
+	}
+	sort.Strings(inc)
+	return nwResult{effectiveRules, effectiveRoutes, inc}, nil
 }
 
 // fetchESR fetches Effective Security Rules for a single NIC with retry/backoff.

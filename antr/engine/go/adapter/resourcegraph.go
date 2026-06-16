@@ -303,19 +303,44 @@ func (a *adapter) fetchResourceGraph(ctx context.Context) (rgResult, error) {
 
 // ─── KQL runner ───────────────────────────────────────────────────────────────
 
-func (a *adapter) runKQL(ctx context.Context, client *armrg.Client, kql string) ([]map[string]interface{}, error) {
+// argQuerier is the subset of *armrg.Client.runKQL needs. Abstracted so the
+// pagination loop can be unit-tested without a live Azure Resource Graph.
+type argQuerier interface {
+	Resources(ctx context.Context, query armrg.QueryRequest, options *armrg.ClientResourcesOptions) (armrg.ClientResourcesResponse, error)
+}
+
+// runKQL executes a Resource Graph query and returns ALL rows, following the
+// SkipToken across pages. Resource Graph caps a single page at ~1000 rows;
+// without this loop a subscription with >1000 resources of a type would be
+// silently truncated and findings on the dropped resources never produced
+// (audit C-1). Each page accumulates into `all`; the loop ends when the service
+// returns no SkipToken.
+func (a *adapter) runKQL(ctx context.Context, client argQuerier, kql string) ([]map[string]interface{}, error) {
 	sub := a.subscriptionID
-	resp, err := client.Resources(ctx, armrg.QueryRequest{
-		Subscriptions: []*string{&sub},
-		Query:         ptr(kql),
-		Options: &armrg.QueryRequestOptions{
-			ResultFormat: ptr(armrg.ResultFormatObjectArray),
-		},
-	}, nil)
-	if err != nil {
-		return nil, err
+	var all []map[string]interface{}
+	var skipToken *string
+	for {
+		resp, err := client.Resources(ctx, armrg.QueryRequest{
+			Subscriptions: []*string{&sub},
+			Query:         ptr(kql),
+			Options: &armrg.QueryRequestOptions{
+				ResultFormat: ptr(armrg.ResultFormatObjectArray),
+				SkipToken:    skipToken,
+			},
+		}, nil)
+		if err != nil {
+			return nil, err
+		}
+		rows, terr := toRows(resp.Data)
+		if terr != nil {
+			return nil, terr
+		}
+		all = append(all, rows...)
+		if resp.SkipToken == nil || *resp.SkipToken == "" {
+			return all, nil
+		}
+		skipToken = resp.SkipToken
 	}
-	return toRows(resp.Data)
 }
 
 // ─── KQL queries ──────────────────────────────────────────────────────────────

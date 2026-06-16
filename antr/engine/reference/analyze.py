@@ -88,6 +88,11 @@ def analyze(fx):
     nics = {rid(n): n for n in rg.get("networkInterfaces", [])}
     findings = []
 
+    # Surface NICs whose Network Watcher enrichment failed (audit M-3).
+    for _name in nw.get("incompleteNics", []):
+        findings.append(finding("analysis incomplete", "Medium", _name,
+                                "Network Watcher enrichment failed \u2014 effective rules/routes unavailable; NIC not evaluated for internet exposure", False))
+
     def eff_for(nic, table):
         # Network Watcher tables are keyed by NIC id in a real multi-sub estate;
         # current single-sub fixtures key by name. Try id, fall back to name.

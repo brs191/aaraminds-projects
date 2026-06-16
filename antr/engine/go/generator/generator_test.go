@@ -868,3 +868,16 @@ func zoneNames(zones []graph.PrivateDnsZone) []string {
 	}
 	return names
 }
+
+// Audit H-3: generated infrastructure with a Medium-severity security finding
+// (here: two peered VNets with overlapping CIDR) must NOT be approved for auto-PR.
+func TestValidateBeforeEmit_MediumBlocks(t *testing.T) {
+	fx := &graph.Fixture{ResourceGraph: graph.ResourceGraph{VirtualNetworks: []graph.VNet{
+		{Name: "vnet-a", AddressSpace: []string{"10.50.0.0/16"}},
+		{Name: "vnet-b", AddressSpace: []string{"10.50.0.0/16"}},
+	}}}
+	res := ValidateBeforeEmit(TerraformPlan{FixtureProjection: fx})
+	if res.Approved {
+		t.Fatalf("Medium CIDR-overlap must block generation (audit H-3); findings=%v", res.Findings)
+	}
+}

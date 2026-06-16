@@ -82,6 +82,7 @@ func FetchFixture(ctx context.Context, cred azcore.TokenCredential, subscription
 		NetworkWatcher: graph.NetworkWatcher{
 			EffectiveSecurityRules: nwData.effectiveRules,
 			EffectiveRoutes:        nwData.effectiveRoutes,
+			IncompleteNICs:         nwData.incompleteNICs,
 		},
 		AVNM:          avnm,
 		AzureFirewall: fw,
@@ -102,6 +103,7 @@ type adapter struct {
 type nwResult struct {
 	effectiveRules  map[string][]graph.SecRule
 	effectiveRoutes map[string][]graph.Route
+	incompleteNICs  []string
 }
 
 // ─── NIC metadata (adapter-internal; not in graph.NIC) ────────────────────────

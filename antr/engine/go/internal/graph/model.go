@@ -147,6 +147,10 @@ type NIC struct {
 type NetworkWatcher struct {
 	EffectiveSecurityRules map[string][]SecRule `json:"effectiveSecurityRules"`
 	EffectiveRoutes        map[string][]Route   `json:"effectiveRoutes"`
+	// IncompleteNICs lists NICs whose Network Watcher enrichment failed or had no
+	// Network Watcher in their region. Analyze() surfaces these as an
+	// "analysis incomplete" finding so a NW failure is not a silent false negative (audit M-3).
+	IncompleteNICs []string `json:"incompleteNics,omitempty"`
 }
 
 type AVNM struct {

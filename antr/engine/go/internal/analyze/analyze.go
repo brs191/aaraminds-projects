@@ -114,6 +114,13 @@ func Analyze(fx *graph.Fixture) []Finding {
 		nics[rid(n.Name, n.ID)] = n
 	}
 
+	// Surface NICs whose Network Watcher enrichment failed — otherwise a NW error
+	// silently means "no findings for this NIC" (audit M-3).
+	for _, name := range fx.NetworkWatcher.IncompleteNICs {
+		findings = append(findings, Finding{"analysis incomplete", "Medium", name,
+			"Network Watcher enrichment failed — effective rules/routes unavailable; NIC not evaluated for internet exposure", false})
+	}
+
 	for name, nic := range nics {
 		// name is the rid (id||name); NW tables are id-keyed on a live multi-sub
 		// estate but name-keyed in current fixtures — try rid, fall back to name.

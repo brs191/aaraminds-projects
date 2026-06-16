@@ -83,3 +83,21 @@ func TestResourceID_DeterministicTotalOrder(t *testing.T) {
 		}
 	}
 }
+
+// Audit M-3: a NIC whose Network Watcher enrichment failed must surface as an
+// explicit "analysis incomplete" finding, not vanish silently.
+func TestAnalysisIncomplete_SurfacedAsFinding(t *testing.T) {
+	fx := &graph.Fixture{
+		ResourceGraph:  graph.ResourceGraph{NetworkInterfaces: []graph.NIC{{Name: "nic-a", Subnet: "v/s"}}},
+		NetworkWatcher: graph.NetworkWatcher{IncompleteNICs: []string{"nic-dark"}},
+	}
+	found := false
+	for _, f := range Analyze(fx) {
+		if f.Type == "analysis incomplete" && f.Resource == "nic-dark" && f.Severity == "Medium" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected Medium 'analysis incomplete' finding for nic-dark (audit M-3)")
+	}
+}

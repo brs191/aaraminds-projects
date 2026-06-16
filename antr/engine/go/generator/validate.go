@@ -9,7 +9,7 @@ import (
 // This enforces the §4.5 anti-bypass design: no callers can thread a plain bool.
 type ValidationResult struct {
 	Findings []analyze.Finding
-	Approved bool // true iff no Critical or High findings
+	Approved bool // true iff no Critical, High, OR Medium findings (generated infra: stricter bar, audit H-3)
 }
 
 // ValidateBeforeEmit runs Analyze() on plan.FixtureProjection and returns a
@@ -17,7 +17,7 @@ type ValidationResult struct {
 //
 // Gate logic:
 //
-//	Approved = len(findings where severity ∈ {"Critical","High"}) == 0
+//	Approved = len(findings where severity ∈ {"Critical","High","Medium"}) == 0  (generated infra)
 //
 // If plan.FixtureProjection == nil, returns a synthetic High finding and Approved=false.
 // PR creation must not be attempted when Approved==false.
@@ -39,7 +39,13 @@ func ValidateBeforeEmit(plan TerraformPlan) ValidationResult {
 
 	approved := true
 	for _, f := range findings {
-		if f.Severity == "Critical" || f.Severity == "High" {
+		// Generated infrastructure is held to a STRICTER bar than a review of an
+		// existing estate: we authored it, so it must not auto-PR with any
+		// Critical, High, OR Medium security finding — Medium includes
+		// WAF-disabled App Gateway / Front Door, public (non-private) AKS,
+		// cross-sub peering without a firewall, vWAN unsecured, and CIDR overlap
+		// (audit H-3). Low / Informational (latent, hygiene) do not block.
+		if f.Severity == "Critical" || f.Severity == "High" || f.Severity == "Medium" {
 			approved = false
 			break
 		}
