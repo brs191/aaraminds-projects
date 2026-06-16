@@ -10,15 +10,16 @@ These are the durable, native-format agents that orchestrate the engineering ski
 
 | Agent | Role |
 |---|---|
-| `aara-network-topology-reviewer` | reachability/severity review + cost/gen orchestration (produces the *report*) |
-| `aara-topology-visualizer` | **NEW** — produces the *diagram* (Phase 4); consumes the analyzer for severity |
+| `aara-network-topology-reviewer` | reachability/severity review + cost/gen orchestration (produces the *report*). Now also composes `azure-iac-policy-as-code` (policy gate) and `azure-defender-signal-ingestion` (consume Defender). |
+| `aara-topology-visualizer` | produces the *diagram* (Phase 4); consumes the analyzer for severity. **Activated + wired (2026-06-15).** |
 | `aara-mcp-server-builder` | builds the Go MCP engine |
 | `aara-senior-microservices-architect` | microservices architecture |
 | `aara-azure-cost-reviewer` | billing actuals / FinOps |
 
-> `aara-topology-visualizer` was authored in `skill-staging/agents/` (the `.claude/agents/` dir is
-> write-protected in-session). Move it into `skills-pack/.claude/agents/` and re-run the wiring to
-> activate, same as the visualization skill.
+> **Status (2026-06-15):** `aara-topology-visualizer` is now installed in
+> `skills-pack/.claude/agents/` and wired (`wire-skills.sh`). The three new skills
+> (`azure-network-topology-visualization`, `azure-iac-policy-as-code`,
+> `azure-defender-signal-ingestion`) are installed and wired; the reviewer agent invokes the latter two.
 
 ## Project-delivery agents — `~/projects/for-submission/*.agent.md`
 
@@ -32,7 +33,8 @@ authored** anywhere — they are aspirational.
 
 ## Action
 
-1. Activate `aara-topology-visualizer` (move + wire) — closes the Phase-4 agent gap.
+1. ~~Activate `aara-topology-visualizer`~~ — **done (2026-06-15):** installed + wired; reviewer agent
+   updated to compose the two new skills. Engineering-pack agent coverage for the adoption roadmap is complete.
 2. Decide on the project-delivery agents: either (a) author the missing four and standardize all six
    into one location, or (b) update `IMPLEMENTATION_PLAYBOOK.md` to reference only agents that exist.
    Until then, treat playbook agent prompts as role descriptions, not guaranteed-present agents.
