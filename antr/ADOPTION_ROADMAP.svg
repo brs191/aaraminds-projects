@@ -1,0 +1,143 @@
+<svg viewBox="0 0 1040 772" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t d">
+  <title id="t">antr Adoption Roadmap — one page</title>
+  <desc id="d">Five waves of ADOPT tickets. Concentrate on the wedge (deterministic, license-free, pre-deploy simulate, CI-gated artifacts); adopt commodity for everything else. Critical path: reframe, ship simulate_change, demo it, prove it versus incumbents.</desc>
+
+  <style>
+    svg { background:#ffffff; }
+    text { font-family: ui-sans-serif, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .h  { font-family: Georgia, "Times New Roman", serif; fill:#141413; }
+    .tx { fill:#1a1a18; }
+    .sx { fill:#6b6b6b; }
+    .id { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; fill:#6b6b6b; }
+    .card    { fill:#ffffff; stroke:#d6d6d1; }
+    .wave    { fill:#fafaf8; stroke:#e6e6e2; }
+    .accent  { stroke:#2f6fb0; }
+    .accentfill { fill:#2f6fb0; opacity:.08; }
+    .accenttx{ fill:#2f6fb0; }
+  </style>
+
+  <rect x="0" y="0" width="1040" height="772" fill="#ffffff"/>
+
+  <!-- header -->
+  <text x="34" y="40" class="h" font-size="25">antr — Adoption Roadmap</text>
+  <text x="34" y="62" class="sx" font-size="13">Concentrate engineering on the wedge; adopt commodity for everything else.</text>
+  <rect x="770" y="28" width="14" height="14" rx="3" class="accentfill"/>
+  <rect x="770" y="28" width="14" height="14" rx="3" fill="none" class="accent"/>
+  <text x="791" y="39" class="sx" font-size="11.5">accent = the wedge + critical path</text>
+
+  <!-- W0 -->
+  <g transform="translate(0,84)">
+    <rect x="34" y="0" width="168" height="92" rx="10" class="wave"/>
+    <text x="50" y="34" class="h" font-size="22">W0</text>
+    <text x="50" y="56" class="tx" font-size="13" font-weight="600">Reposition</text>
+    <text x="50" y="74" class="sx" font-size="11">free · now</text>
+    <g transform="translate(222,16)">
+      <rect x="0" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="14" y="22" class="id" font-size="10.5">ADOPT-01</text>
+      <text x="14" y="42" class="tx" font-size="13">Reframe the pitch</text>
+      <circle cx="225" cy="14" r="5" class="accentfill"/><circle cx="225" cy="14" r="5" fill="none" class="accent"/>
+      <rect x="256" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="270" y="22" class="id" font-size="10.5">ADOPT-02</text>
+      <text x="270" y="42" class="tx" font-size="13">“vs Defender / AVNM” page</text>
+    </g>
+  </g>
+
+  <!-- W1 — the wedge -->
+  <g transform="translate(0,202)">
+    <rect x="34" y="0" width="972" height="92" rx="10" class="accentfill"/>
+    <rect x="34" y="0" width="168" height="92" rx="10" class="wave"/>
+    <text x="50" y="34" class="h" font-size="22">W1</text>
+    <text x="50" y="56" class="accenttx" font-size="13" font-weight="700">The wedge</text>
+    <text x="50" y="74" class="sx" font-size="11">M–L · build</text>
+    <g transform="translate(222,16)">
+      <rect x="0" y="0" width="240" height="60" rx="8" class="card accent"/>
+      <text x="14" y="22" class="id" font-size="10.5">ADOPT-03</text>
+      <text x="14" y="42" class="tx" font-size="13" font-weight="600">Ship simulate_change</text>
+      <circle cx="225" cy="14" r="5" class="accentfill"/><circle cx="225" cy="14" r="5" fill="none" class="accent"/>
+      <rect x="256" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="270" y="22" class="id" font-size="10.5">ADOPT-04</text>
+      <text x="270" y="42" class="tx" font-size="13">V4-07-Go parity</text>
+      <rect x="512" y="0" width="240" height="60" rx="8" class="card accent"/>
+      <text x="526" y="22" class="id" font-size="10.5">ADOPT-05</text>
+      <text x="526" y="42" class="tx" font-size="13" font-weight="600">Simulate showcase</text>
+      <circle cx="737" cy="14" r="5" class="accentfill"/><circle cx="737" cy="14" r="5" fill="none" class="accent"/>
+    </g>
+  </g>
+
+  <!-- W2 -->
+  <g transform="translate(0,320)">
+    <rect x="34" y="0" width="168" height="92" rx="10" class="wave"/>
+    <text x="50" y="34" class="h" font-size="22">W2</text>
+    <text x="50" y="56" class="tx" font-size="13" font-weight="600">Adopt commodity</text>
+    <text x="50" y="74" class="sx" font-size="11">S–M · reclaim load</text>
+    <g transform="translate(222,16)" font-size="13">
+      <rect x="0" y="0" width="186" height="60" rx="8" class="card"/>
+      <text x="13" y="22" class="id" font-size="10.5">ADOPT-06</text><text x="13" y="42" class="tx">Fork CloudNetDraw</text>
+      <rect x="200" y="0" width="186" height="60" rx="8" class="card"/>
+      <text x="213" y="22" class="id" font-size="10.5">ADOPT-07</text><text x="213" y="42" class="tx">Adopt Infracost</text>
+      <rect x="400" y="0" width="186" height="60" rx="8" class="card"/>
+      <text x="413" y="22" class="id" font-size="10.5">ADOPT-08</text><text x="413" y="42" class="tx">Add OPA + Checkov</text>
+      <rect x="600" y="0" width="184" height="60" rx="8" class="card"/>
+      <text x="613" y="22" class="id" font-size="10.5">ADOPT-09</text><text x="613" y="42" class="tx">Adopt AVM / ALZ</text>
+    </g>
+  </g>
+
+  <!-- W3 -->
+  <g transform="translate(0,438)">
+    <rect x="34" y="0" width="168" height="92" rx="10" class="wave"/>
+    <text x="50" y="34" class="h" font-size="22">W3</text>
+    <text x="50" y="56" class="tx" font-size="13" font-weight="600">Consume + prove</text>
+    <text x="50" y="74" class="sx" font-size="11">M–L</text>
+    <g transform="translate(222,16)">
+      <rect x="0" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="14" y="22" class="id" font-size="10.5">ADOPT-10</text>
+      <text x="14" y="42" class="tx" font-size="13">Consume Defender</text>
+      <rect x="256" y="0" width="240" height="60" rx="8" class="card accent"/>
+      <text x="270" y="22" class="id" font-size="10.5">ADOPT-11</text>
+      <text x="270" y="42" class="tx" font-size="13" font-weight="600">Benchmark AVNM / Batfish</text>
+      <circle cx="481" cy="14" r="5" class="accentfill"/><circle cx="481" cy="14" r="5" fill="none" class="accent"/>
+      <rect x="512" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="526" y="22" class="id" font-size="10.5">ADOPT-12</text>
+      <text x="526" y="42" class="tx" font-size="13">Validate vs Wiz Code</text>
+    </g>
+  </g>
+
+  <!-- W4 -->
+  <g transform="translate(0,556)">
+    <rect x="34" y="0" width="168" height="92" rx="10" class="wave"/>
+    <text x="50" y="34" class="h" font-size="22">W4</text>
+    <text x="50" y="56" class="tx" font-size="13" font-weight="600">Surface yours</text>
+    <text x="50" y="74" class="sx" font-size="11">S–M</text>
+    <g transform="translate(222,16)">
+      <rect x="0" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="14" y="22" class="id" font-size="10.5">ADOPT-13</text>
+      <text x="14" y="42" class="tx" font-size="13">Surface testability</text>
+      <rect x="256" y="0" width="240" height="60" rx="8" class="card"/>
+      <text x="270" y="22" class="id" font-size="10.5">ADOPT-14</text>
+      <text x="270" y="42" class="tx" font-size="13">Expand MCP delivery</text>
+    </g>
+  </g>
+
+  <!-- critical path ribbon -->
+  <g transform="translate(34,672)">
+    <text x="0" y="14" class="accenttx" font-size="12" font-weight="700">CRITICAL PATH</text>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11.5" class="accenttx">
+      <text x="118" y="14">01 reframe</text>
+      <text x="216" y="14">→</text>
+      <text x="232" y="14">03 ship</text>
+      <text x="300" y="14">→</text>
+      <text x="316" y="14">05 demo</text>
+      <text x="392" y="14">→</text>
+      <text x="408" y="14">11 prove</text>
+    </g>
+    <text x="560" y="14" class="sx" font-size="11">reframe → ship simulate → demo it → prove the deltas vs incumbents</text>
+  </g>
+
+  <!-- do-NOT footer -->
+  <g transform="translate(34,706)">
+    <rect x="0" y="0" width="972" height="50" rx="10" class="wave"/>
+    <text x="16" y="21" class="tx" font-size="12" font-weight="600">Do NOT build →</text>
+    <text x="120" y="21" class="sx" font-size="12">bespoke pricing engine · generic compliance checks · hand-rolled renderer · proprietary module library · recompute Defender exposure</text>
+    <text x="16" y="40" class="sx" font-size="11">Skills + agents to run this are authored &amp; wired; the two Go items (V4-07-Go, Phase-2) have ready tickets — gating constraint is Go-toolchain time, not capability.</text>
+  </g>
+</svg>
