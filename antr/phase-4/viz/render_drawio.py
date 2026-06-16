@@ -56,7 +56,7 @@ class Cell:
         self.vertex, self.source, self.target = vertex, source, target
 
 
-def build(fx, level="mld"):
+def build(fx, level="mld", overlay=None):
     rg = fx.get("resourceGraph", {})
     vnets = rg.get("virtualNetworks", [])
     nics = rg.get("networkInterfaces", [])
@@ -65,7 +65,12 @@ def build(fx, level="mld"):
     ercs = rg.get("expressRouteCircuits", [])
     natgws = rg.get("natGateways", [])
     fw = fx.get("azureFirewall")
-    overlay = ov.compute_overlay(fx)
+    # Risk truth is computed by Analyze() on the WHOLE estate. A "view" (views.py)
+    # is a PROJECTION of the fixture for layout only; it passes the full-estate
+    # overlay here so node colours reflect the complete analysis, never a partial
+    # re-analysis of the projected subset. None => standalone render (compute here).
+    if overlay is None:
+        overlay = ov.compute_overlay(fx)
 
     vnet_names = {v["name"] for v in vnets}
     nics_by_vnet, nics_by_subnet = {}, {}
@@ -293,8 +298,8 @@ def to_xml(cells, edges, title="Azure Network Topology"):
     return "\n".join(out)
 
 
-def render(fx, level="mld"):
-    cells, edges, vertex_ids = build(fx, level)
+def render(fx, level="mld", overlay=None, title=None):
+    cells, edges, vertex_ids = build(fx, level, overlay)
     # invariant 1: ALL cell ids globally unique across vertices AND edges
     # (H-2 — draw.io corrupts on duplicate ids; the second audit showed edges
     #  were previously unguarded).
@@ -305,7 +310,9 @@ def render(fx, level="mld"):
     for e in edges:
         assert e.source in vertex_ids, "dangling edge source %s" % e.source
         assert e.target in vertex_ids, "dangling edge target %s" % e.target
-    return to_xml(cells, edges, "Azure Network Topology (%s)" % level.upper()), cells, edges
+    if title is None:
+        title = "Azure Network Topology (%s)" % level.upper()
+    return to_xml(cells, edges, title), cells, edges
 
 
 def main():

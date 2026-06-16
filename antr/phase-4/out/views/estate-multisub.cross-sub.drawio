@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Cross-subscription peering — multi-sub blast radius" id="phase4-topo">
+    <mxGraphModel dx="1422" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vnet:spoke-dev-vnet" value="spoke-dev-vnet&lt;br&gt;[sub-dev-01]&lt;br&gt;10.2.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:hub-vnet" value="↗ hub-vnet&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:remote-shared-vnet" value="↗ remote-shared-vnet&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="260" y="370" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend — severity&lt;/b&gt;&lt;br&gt;🔴 Critical&lt;br&gt;🟠 High&lt;br&gt;🟡 Medium&lt;br&gt;🔵 Info&lt;br&gt;🟢 Clean&lt;br&gt;&lt;br&gt;&lt;b&gt;Structural&lt;/b&gt;&lt;br&gt;⬜ grey = infrastructure (unscored)" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="40" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:1" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;dashed=1;" edge="1" parent="1" source="vnet:spoke-dev-vnet" target="ext:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:2" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-dev-vnet" target="ext:remote-shared-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

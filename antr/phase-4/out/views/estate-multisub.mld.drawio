@@ -1,0 +1,100 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="MLD — full detail (subnets + NICs)" id="phase4-topo">
+    <mxGraphModel dx="1422" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="internet" value="🌐 Internet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="fw:afw-hub" value="🔥 Firewall&lt;br&gt;afw-hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="280" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:vpngw-hub" value="🔗 VPN GW&lt;br&gt;vpngw-hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="540" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gw:ergw-hub" value="🔗 ER GW&lt;br&gt;ergw-hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="800" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="er:er-circuit-att" value="ExpressRoute&lt;br&gt;er-circuit-att" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="natgw:natgw-prod" value="🔗 NAT GW&lt;br&gt;natgw-prod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pip:pip-orphan-01" value="🔵 Public IP&lt;br&gt;pip-orphan-01&lt;br&gt;20.51.10.99" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1580" y="40" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:hub-vnet" value="hub-vnet&lt;br&gt;[sub-connectivity-01]&lt;br&gt;10.0.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="260" height="172" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:hub-vnet/AzureFirewallSubnet" value="AzureFirewallSubnet  (10.0.0.0/26)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:hub-vnet">
+          <mxGeometry x="20" y="70" width="220" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:hub-vnet/GatewaySubnet" value="GatewaySubnet  (10.0.1.0/27)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:hub-vnet">
+          <mxGeometry x="20" y="116" width="220" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-dev-vnet" value="spoke-dev-vnet&lt;br&gt;[sub-dev-01]&lt;br&gt;10.2.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="220" width="260" height="236" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:spoke-dev-vnet/web" value="web  (10.2.1.0/24)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:spoke-dev-vnet">
+          <mxGeometry x="20" y="70" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="nic:nic-dev-web" value="🟠 nic-dev-web&lt;br&gt;pip-dev-web" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="subnet:spoke-dev-vnet/web">
+          <mxGeometry x="10" y="26" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:spoke-dev-vnet/app" value="app  (10.2.2.0/24)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:spoke-dev-vnet">
+          <mxGeometry x="20" y="148" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="nic:nic-dev-clean" value="🟢 nic-dev-clean" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="subnet:spoke-dev-vnet/app">
+          <mxGeometry x="10" y="26" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet:spoke-prod-vnet" value="spoke-prod-vnet&lt;br&gt;[sub-prod-01]&lt;br&gt;10.1.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="220" width="260" height="236" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:spoke-prod-vnet/web" value="web  (10.1.1.0/24)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:spoke-prod-vnet">
+          <mxGeometry x="20" y="70" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="nic:nic-prod-web" value="🔴 nic-prod-web&lt;br&gt;pip-prod-web" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="subnet:spoke-prod-vnet/web">
+          <mxGeometry x="10" y="26" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet:spoke-prod-vnet/app" value="app  (10.1.2.0/24)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fafafa;strokeColor=#b3b3b3;" vertex="1" parent="vnet:spoke-prod-vnet">
+          <mxGeometry x="20" y="148" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="nic:nic-prod-app" value="🔵 nic-prod-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="subnet:spoke-prod-vnet/app">
+          <mxGeometry x="10" y="26" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ext:remote-shared-vnet" value="↗ remote-shared-vnet&lt;br&gt;(outside scope)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="516" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend — severity&lt;/b&gt;&lt;br&gt;🔴 Critical&lt;br&gt;🟠 High&lt;br&gt;🟡 Medium&lt;br&gt;🔵 Info&lt;br&gt;🟢 Clean&lt;br&gt;&lt;br&gt;&lt;b&gt;Structural&lt;/b&gt;&lt;br&gt;⬜ grey = infrastructure (unscored)" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1890" y="40" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:1" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-vnet" target="vnet:spoke-prod-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:2" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:hub-vnet" target="vnet:spoke-dev-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="peer:3" value="Connected" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1" source="vnet:spoke-dev-vnet" target="ext:remote-shared-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:4" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="nic:nic-prod-web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp:5" value="exposed" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;endArrow=block;" edge="1" parent="1" source="internet" target="nic:nic-dev-web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:6" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:vpngw-hub" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gwlink:7" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="gw:ergw-hub" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fwlink:8" value="" style="html=1;endArrow=none;" edge="1" parent="1" source="fw:afw-hub" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

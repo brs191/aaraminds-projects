@@ -7,6 +7,16 @@
 
 ## Verdict (lead)
 
+> **Sharpened 2026-06-17 — see `ADR-001-visualization-strategy.md`.** After hardening the
+> Azure adapter (discovery is now antr's own, trustworthy source of truth) and reading
+> CloudNetDraw's source (MIT; deterministic **except** it doesn't sort before emit; naive
+> discovery), the strategy is refined: **antr owns discovery AND risk and delegates only
+> LAYOUT geometry.** CloudNetDraw is demoted from "adopt as the base" to a layout-only,
+> adopt-and-patch *option*. The decisive near-term move — shipped now — is **view families**
+> (`viz/views.py`): HLD / MLD / risk / boundary / cross-sub / finding-centric projections over
+> one risk truth. The swap contract is pinned in `GRAPH_IR.md`. The original framing below is
+> retained for history.
+
 Stop hand-rolling the diagram renderer. Producing a readable, enterprise-grade Azure
 topology is a commoditised, solved problem — there is a purpose-built, MIT-licensed tool
 (**CloudNetDraw**) that already does discovery + hub-spoke layout + `.drawio` export across
@@ -14,8 +24,8 @@ topology is a commoditised, solved problem — there is a purpose-built, MIT-lic
 
 antr's defensible value is **not** the picture. It is the deterministic `Analyze()`
 reachability/severity engine, which no diagram tool has. Phase 4 therefore **separates the
-map from the risk**: adopt best-of-breed OSS for discovery + layout, and keep the antr engine
-as the **security overlay** painted on top of that map.
+map from the risk**: keep discovery + risk in antr, delegate layout geometry, and paint the
+antr engine severity as the **overlay** on top of the map.
 
 This phase exists because of a concrete, observed failure — see §1.
 

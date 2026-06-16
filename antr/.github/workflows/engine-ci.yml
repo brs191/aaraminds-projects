@@ -93,6 +93,10 @@ jobs:
               assert a == b, "non-deterministic render: %s" % p
           print("render determinism OK")
           PY
+      - name: view-families gate (projection faithfulness + view determinism)
+        run: |
+          python3 phase-4/viz/test_views.py \
+            phase-4/fixtures phase-1/eval/fixtures
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -7,8 +7,28 @@ ELK-D2 / publish pipeline **deferred** (live Azure + Go 1.25 required). See
 design `design/VISUALIZATION_MODEL.md`.
 
 Pipeline: `viz/overlay.py` (severity join) · `viz/render_drawio.py` (draw.io render) ·
-`viz/check_layout.py` (layout gate) · `viz/eval_diagram.py` (RC1–RC5 + structure + coverage gate) ·
+`viz/views.py` (view-family projections) · `viz/check_layout.py` (layout gate) ·
+`viz/eval_diagram.py` (RC1–RC5 + structure + coverage gate) · `viz/test_views.py` (view-family gate) ·
 `viz/synth_estate.py` (scale generator). Outputs in `out/`.
+
+## View families (2026-06-17 — `viz/views.py`)
+
+One canvas of a real estate is soup. antr now emits a **set of views**, each a deterministic
+projection over one whole-estate risk truth (overview-plus-detail), all painted from the same
+`Analyze()` overlay — a view can hide a resource but never change a verdict:
+
+| View | Scope |
+|---|---|
+| `hld` | VNets, hubs, spokes, gateways, firewall, peerings, boundary |
+| `mld` | Full detail: subnets + NICs |
+| `risk` | Only resources that carry a finding (+ their VNet/subnet) + boundary |
+| `boundary` | Internet-facing paths: boundary nodes + every internet-reachable NIC |
+| `cross-sub` | Only VNets in cross-subscription peerings (multi-sub blast radius) |
+| `finding/<n>` | One small k-hop diagram per Critical/High finding around its node |
+
+Run: `python3 viz/views.py <fixture.json> --out-dir out/views`. Gated by `viz/test_views.py`
+(projection faithfulness + byte-identical determinism, 26/26 corpus). The swap contract for the
+layout engine is pinned in `design/GRAPH_IR.md`; the strategy decision is `design/ADR-001-visualization-strategy.md`.
 
 ## Why this phase exists
 
@@ -22,13 +42,15 @@ edges and an Internet boundary. Four root causes (RC-1…RC-4) are documented in
 Separate **the map** (discovery + layout — adopt OSS) from **the risk** (reachability/severity
 — keep antr's `Analyze()` engine), and paint findings onto the map.
 
-## Key decision
+## Key decision (sharpened — see `design/ADR-001-visualization-strategy.md`)
 
 | Decision | Choice |
 |---|---|
-| Discovery + layout | Fork + vendor **CloudNetDraw** (MIT) — multi-subscription, hub-spoke, drawio |
-| Readability | **ELK** layout (via **D2**, Go-native) |
-| Risk engine | antr `Analyze()` — **unchanged**; computes all severity |
+| Discovery | **antr's own hardened adapter** is the single source of topology truth (not CloudNetDraw's) |
+| Layout | In-house deterministic `render_drawio` now; layout engine swappable behind `design/GRAPH_IR.md` |
+| Readability | **View families** (`viz/views.py`) now; ELK/Graphviz `dot` the preferred deterministic backend if swapped |
+| CloudNetDraw | **MIT**, verified; layout-only **adopt-and-patch** option (needs sort-before-emit determinism fix) — fallback, not base |
+| Risk engine | antr `Analyze()` — **unchanged**; computes all severity, once, on the full estate |
 | Ground-truth cross-check | Azure Network Watcher / Monitor **Network Insights Topology** |
 | Discovery auth | Managed Identity / OIDC, Reader scope — never `AZURE_CLIENT_SECRET` |
 | Attack-path graph (Cartography) | Deferred to Phase 5 |
