@@ -1,7 +1,25 @@
 # Azure Network Topology Reviewer
 
-A deterministic network topology analysis engine for Azure — reachability-based severity, exposed via
-an MCP server for AskAT&T workflows, CI/CD, and the Azure Cost Optimizer peer agent.
+**Deterministic, auditable, license-free Azure network-exposure analysis and pre-deploy change
+simulation — delivered to engineers and AI agents as CI-gated, diffable artifacts.** Built for the
+estate that isn't fully covered by paid Defender CSPM / Wiz.
+
+> Repositioned 2026-06-16 (ADOPT-01). The value isn't "we compute reachability" or "we colour risk on a
+> map" — Azure (AVNM Network Verifier), Defender, Wiz, and CloudNetDraw already do those. antr's wedge is
+> the *combination* no incumbent ships: **deterministic + license-free + pre-deploy `simulate_change` +
+> CI-gated artifacts + MCP-native delivery.** See `COMPETITIVE_ANALYSIS.md` and `BENCHMARK_vs_AVNM_Batfish.md`.
+
+## Where antr fits (vs Defender / AVNM Verifier / Wiz)
+
+| Use this when… | Tool |
+|---|---|
+| You need an **authoritative single-intent** answer on a *deployed* estate (and the subnet has a running VM) | **AVNM Network Verifier** (native, authoritative on AVNM admin rules) |
+| You have **paid Defender CSPM / Wiz** and want the full multi-cloud security graph + attack paths | **Defender / Wiz** — antr *consumes* these signals where licensed (`azure-defender-signal-ingestion`) |
+| You need **pre-deploy** reachability/severity *delta* of a change, an **estate-wide** exposure sweep with severity, **firewall-DNAT** depth, the **`None` black-hole** route, or analysis on **free-tier / empty subnets** — **deterministic, license-free, CI-gated, agent-consumable** | **antr** |
+
+The honest line: where Defender/Wiz are licensed, antr complements them (consume, don't recompute); where
+they're not, and for pre-deploy `simulate_change`, antr is the one that fits. Full evidence in
+`BENCHMARK_vs_AVNM_Batfish.md`.
 
 ## Status
 
@@ -9,7 +27,7 @@ an MCP server for AskAT&T workflows, CI/CD, and the Azure Cost Optimizer peer ag
 |---|---|---|
 | **Phase 0** | Analysis Engine Proven | ✅ ACCEPTED (2026-06-03) |
 | **Phase 1** | Azure Adapter + MCP v1 | ✅ ACCEPTED WITH CONDITIONS (2026-06-12) |
-| **Phase 2** | Cost-Aware Simulation | ⚠️ PARTIAL — Steps 2.1–2.4 done; 2.5–2.6 pending |
+| **Phase 2** | Cost-Aware Simulation | ✅ MCP-WIRED (2026-06-16) — `simulate_change` + `forecast_cost` tools live + tested; acceptance memo pending live cost cross-check |
 | **Phase 3** | Design Generation | ✅ ACCEPTED WITH CONDITIONS (2026-06-13) |
 | **Phase 4** | Enterprise Topology Visualization | ⚠️ IN-SESSION SCOPE COMPLETE (26/26 eval PASS, 3 audits); live discovery/Go-port/pipeline deferred |
 
@@ -26,9 +44,9 @@ engine/
     internal/graph/    — graph.Fixture type (the contract the Azure adapter produces)
     internal/analyze/  — Analyze() — deterministic 4-gate reachability + severity
     adapter/           — Azure adapter: Resource Graph + Network Watcher → graph.Fixture
-    mcp/               — MCP server: get_topology, analyze_risks, format_report, generate_topology
+    mcp/               — MCP server: get_topology, analyze_risks, format_report, generate_topology, simulate_change, forecast_cost
     renderer/          — markdown + drawio output (drawio peering edges: see Phase 4 RC-1…RC-4)
-    simulator/ forecast/ — Phase 2 simulate_change + forecast_cost engines (MCP wiring pending)
+    simulator/ forecast/ — Phase 2 simulate_change + forecast_cost engines (MCP-wired 2026-06-16)
     generator/         — Phase 3 Terraform projection + ValidateBeforeEmit + PR workflow
   reference/           — Python reference implementation (same fixtures, cross-check)
 ```

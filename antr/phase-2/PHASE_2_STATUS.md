@@ -1,6 +1,6 @@
 # Phase 2 Status — Cost-Aware Simulation (DE-AMBIGUATED)
 
-**Date:** 2026-06-15 · **Status:** ⚠️ **PARTIAL — engines built & tested; MCP wiring + acceptance pending.**
+**Date:** 2026-06-15 · **Status:** ⚠️ **MCP-WIRED (2026-06-16) — engines + `simulate_change`/`forecast_cost` tools done & tested; acceptance memo pending live cost cross-check.**
 
 This file exists to remove the ambiguity flagged in review: Phase 2 had code on disk but no
 status of record. Here is the precise state.
@@ -21,7 +21,7 @@ Both engines build and their unit tests pass (verified via the Go test suite; no
 
 | ID | Item | Why it blocks "Phase 2 accepted" |
 |---|---|---|
-| **PA-01 / Step 2.5** | Wire `simulate_change` + `forecast_cost` as MCP tools in `engine/go/mcp/tools.go` | The engines exist but are NOT exposed — grep for `simulate_change`/`forecast_cost` in `mcp/*.go` returns nothing. No caller can use them. |
+| ~~PA-01 / Step 2.5~~ **DONE 2026-06-16** | Wired `simulate_change` + `forecast_cost` as MCP tools in `engine/go/mcp/tools.go` (registered in server.go; 5 mcp tests) | ~~The engines exist but are NOT exposed — grep for `simulate_change`/`forecast_cost` in `mcp/*.go` returns nothing. No caller can use them. |
 | **PA-02 / Step 2.6** | Produce `phase-2/PHASE_2_ACCEPTANCE_MEMO.md` with gate evidence | No acceptance of record. |
 
 Cross-confirmed by the Phase-3 memo: *"simulate_change + forecast_cost in Phase 2 Steps 2.5–2.6 are

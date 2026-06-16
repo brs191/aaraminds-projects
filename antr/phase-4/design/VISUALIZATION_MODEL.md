@@ -156,7 +156,7 @@ C-6 is the only row antr owns — and it is the reason the tool should exist.
 | V4-04 | ELK/D2 vs. CloudNetDraw native layout — which is authoritative for final render | Readability step |
 | V4-05 | Network Watcher Topology 30h Resource Graph lag acceptable for cross-check cadence | Ground-truth use |
 | V4-06 | ~~License review~~ — **RESOLVED 2026-06-15.** Internal-AT&T-only use; software is never distributed externally. No copyleft trigger (MPL-2.0 / EPL are *distribution*-scoped, file-level weak copyleft); MIT/Apache impose attribution only. Remaining action is routine OSPO intake registration (PA-14), not a gate. | Not blocking |
-| V4-07 | Resource-id keying (same-named resources across subscriptions) — **RESOLVED in the Python reference + viz (2026-06-15):** key by `rid()` = ARM id ‖ name; golden 5/5 + `test_resource_id.py` pass. **Go portion (V4-07-Go) pending** the toolchain: add `ID` to NIC/PIP structs, populate in adapter, key `nics` map + NW lookups by id — verified by `engine-ci.yml` + `twin_drift_check.py`. | Go portion pending |
+| V4-07 | Resource-id keying (same-named resources across subscriptions) — **RESOLVED in the Python reference + viz (2026-06-15):** key by `rid()` = ARM id ‖ name; golden 5/5 + `test_resource_id.py` pass. **Go portion RESOLVED 2026-06-16** on go1.25.11: `ID` on NIC/PIP, rid keying + NW fallback, adapter projects/populates id, `resourceid_test.go`. twin-drift = 0 shared-family divergences across 36 fixtures. | RESOLVED |
 
 ---
 
