@@ -112,6 +112,62 @@ for root in "${CODE_ROOTS[@]}"; do
   fi
 done
 
+section "VS CODE — COPILOT CHAT SESSIONS  (the real IDE data source — run this on an IDE-only machine)"
+# VS Code Copilot Chat stores transcripts SEPARATELY from the Copilot CLI's ~/.copilot.
+# Candidate paths (vary by VS Code version):
+#   User/workspaceStorage/<ws>/chatSessions/*.json|*.jsonl        (VS Code >= 1.109)
+#   User/workspaceStorage/<ws>/GitHub.copilot-chat/transcripts/*.jsonl  (legacy < 1.109)
+#   User/globalStorage/emptyWindowChatSessions/*                  (untitled-window sessions)
+#   User/globalStorage/github.copilot-chat/                       (extension global state)
+chat_found=0
+sample_chat() {
+  local f="$1"
+  case "$f" in
+    *.jsonl) sample_jsonl "$f" ;;
+    *)
+      printf -- '--- %s  (%s)\n' "$f" "$(du -h "$f" 2>/dev/null | cut -f1)"
+      if command -v python3 >/dev/null 2>&1; then
+        printf '  top-level keys: '
+        python3 -c '
+import sys,json
+try:
+    d=json.load(open(sys.argv[1]))
+    print(", ".join(d.keys()) if isinstance(d,dict) else "(array len %d)"%len(d))
+except Exception as e:
+    print("(unparseable: %s)"%e)' "$f" 2>/dev/null
+        printf '  token/usage fields seen: '
+        grep -hoE '"(tokens?|inputTokens|outputTokens|promptTokens|completionTokens|totalTokens|usage|model|requestId|cost|premium)"' "$f" 2>/dev/null | sort -u | tr '\n' ' '
+        printf '\n  redacted head:\n'
+        head -c 1200 "$f" 2>/dev/null | redact
+        printf '\n'
+      fi ;;
+  esac
+}
+for root in "${CODE_ROOTS[@]}"; do
+  [ -d "$root" ] || continue
+  for pat in \
+      "${root}/User/workspaceStorage/*/chatSessions" \
+      "${root}/User/workspaceStorage/*/chatEditingSessions" \
+      "${root}/User/globalStorage/emptyWindowChatSessions" \
+      "${root}/User/globalStorage/github.copilot-chat"; do
+    for d in $pat; do
+      [ -d "$d" ] || continue
+      echo "--- found: ${d#${HOME_DIR}/}  ($(find "$d" -type f 2>/dev/null | wc -l | tr -d ' ') files)"
+      # sample the 3 most-recent session files
+      find "$d" -type f \( -name '*.json' -o -name '*.jsonl' \) 2>/dev/null | xargs ls -t 2>/dev/null | head -3 | while read -r f; do
+        chat_found=1; sample_chat "$f"
+      done
+    done
+  done
+  # legacy transcripts directory anywhere under workspaceStorage
+  find "${root}/User/workspaceStorage" -type d -ipath '*copilot-chat*/transcripts' 2>/dev/null | while read -r d; do
+    echo "--- found legacy transcripts: ${d#${HOME_DIR}/}"
+    find "$d" -name '*.jsonl' 2>/dev/null | xargs ls -t 2>/dev/null | head -3 | while read -r f; do sample_jsonl "$f"; done
+  done
+done
+echo "(If NOTHING appears above on an IDE-only machine, Copilot Chat may not persist token data locally —"
+echo " in which case IDE usage is only available via GitHub's billing/usage API, which is a NETWORK source.)"
+
 section "VS CODE — Copilot logs (diagnostic; check if any carry token/usage)"
 for root in "${CODE_ROOTS[@]}"; do
   LOGS="${root}/logs"

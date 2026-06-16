@@ -1,6 +1,13 @@
 // extension.ts — activation entry point for the Copilot Token Budget VS Code extension.
 // Wires all UI components, commands, refresh loop, and configuration listener.
 
+// formatCreditsDisplay renders raw credits with thousands separators and up to two
+// decimals — parity with the Go side (e.g. "8,554.03", "656.54"). Credits are already
+// credits (nanoAIU / 1e9), so there is no further scaling and no "B"/billions unit.
+function formatCreditsDisplay(credits: number): string {
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 import * as vscode from 'vscode';
 import { StatusBarManager } from './ui/statusBar';
 import { BudgetTreeProvider } from './ui/sessionTree';
@@ -302,8 +309,8 @@ function maybeShowAlert(state: BudgetState): void {
   }
 
   const msg = key === 'CRITICAL'
-    ? `⚠️ Copilot Budget CRITICAL: ${state.usedCredits.toFixed(0)} / ${state.allowedCredits} cr used (${state.usedPct.toFixed(1)}%). AT&T monthly allowance exceeded.`
-    : `Copilot Budget WARNING: ${state.usedCredits.toFixed(0)} / ${state.allowedCredits} cr used (${state.usedPct.toFixed(1)}%).`;
+    ? `⚠️ Copilot Budget CRITICAL: ${formatCreditsDisplay(state.usedCredits)} / ${formatCreditsDisplay(state.allowedCredits)} used (${state.usedPct.toFixed(1)}%). AT&T monthly allowance exceeded.`
+    : `Copilot Budget WARNING: ${formatCreditsDisplay(state.usedCredits)} / ${formatCreditsDisplay(state.allowedCredits)} used (${state.usedPct.toFixed(1)}%).`;
 
   if (key === 'CRITICAL') {
     void vscode.window.showWarningMessage(msg, 'Open Dashboard').then(choice => {

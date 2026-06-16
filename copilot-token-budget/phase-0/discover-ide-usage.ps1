@@ -94,6 +94,46 @@ foreach ($root in $CodeRoots) {
   }
 }
 
+Section "VS CODE — COPILOT CHAT SESSIONS (the real IDE data source — run this on an IDE-only machine)"
+# VS Code Copilot Chat stores transcripts SEPARATELY from the Copilot CLI's ~/.copilot.
+# Candidate paths: User\workspaceStorage\<ws>\chatSessions, ...\GitHub.copilot-chat\transcripts,
+# User\globalStorage\emptyWindowChatSessions, User\globalStorage\github.copilot-chat.
+function Sample-Chat([string]$f) {
+  if ($f -like '*.jsonl') { Sample-Jsonl $f; return }
+  "--- $f"
+  try {
+    $d = Get-Content -Raw -LiteralPath $f | ConvertFrom-Json
+    "  top-level keys: " + (($d.PSObject.Properties.Name) -join ', ')
+  } catch { "  (unparseable JSON)" }
+  $raw = Get-Content -Raw -LiteralPath $f
+  $hits = [regex]::Matches($raw, '"(tokens?|inputTokens|outputTokens|promptTokens|completionTokens|totalTokens|usage|model|requestId|cost|premium)"') | ForEach-Object { $_.Value } | Sort-Object -Unique
+  "  token/usage fields seen: " + ($hits -join ' ')
+  "  redacted head:"; "    " + (Redact ($raw.Substring(0, [math]::Min(1200, $raw.Length))))
+}
+$chatDirs = @()
+foreach ($root in $CodeRoots) {
+  if (-not (Test-Path $root)) { continue }
+  $chatDirs += Get-ChildItem (Join-Path $root 'User\workspaceStorage') -Directory -ErrorAction SilentlyContinue |
+    ForEach-Object { Join-Path $_.FullName 'chatSessions' } | Where-Object { Test-Path $_ }
+  $chatDirs += @(
+    (Join-Path $root 'User\globalStorage\emptyWindowChatSessions'),
+    (Join-Path $root 'User\globalStorage\github.copilot-chat')
+  ) | Where-Object { Test-Path $_ }
+  # legacy transcripts
+  $chatDirs += Get-ChildItem -Recurse -Directory (Join-Path $root 'User\workspaceStorage') -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match 'copilot-chat.*transcripts' } | ForEach-Object { $_.FullName }
+}
+if ($chatDirs.Count -eq 0) {
+  "(No Copilot Chat session directories found. On an IDE-only machine this means Chat may not persist"
+  " token data locally — IDE usage would then only be available via GitHub's billing/usage API (NETWORK).)"
+} else {
+  foreach ($d in ($chatDirs | Sort-Object -Unique)) {
+    $files = Get-ChildItem -File $d -Include *.json,*.jsonl -Recurse -ErrorAction SilentlyContinue
+    "--- found: $($d.Replace($HomeDir,'~'))  ($($files.Count) files)"
+    $files | Sort-Object LastWriteTime -Descending | Select-Object -First 3 | ForEach-Object { Sample-Chat $_.FullName }
+  }
+}
+
 Section "VS CODE — Copilot logs (diagnostic; check if any carry token/usage)"
 foreach ($root in $CodeRoots) {
   $logs = Join-Path $root 'logs'

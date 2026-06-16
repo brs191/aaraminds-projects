@@ -38,11 +38,12 @@ const cliCollector: Collector = {
   },
 };
 
-// ideCollector is a Phase 6 stub for VS Code IDE Copilot usage.
-//
-// TODO(Phase 6): parse VS Code IDE Copilot usage once the local schema is confirmed.
-// Returns no sessions until then — it deliberately invents no fields. Mirrors the Go
-// ideCollector stub.
+// ideCollector is intentionally a no-op stub. It previously read ~/.copilot/session-state
+// dirs carrying a vscode.metadata.json marker, but that source is mis-pointed: VS Code
+// Copilot Chat is a SEPARATE source (chatSessions/transcripts under VS Code user data,
+// NOT ~/.copilot) and needs a real rewrite. Mirrors the Go ideCollector revert.
+// TODO: VS Code Chat is a separate source — chatSessions/transcripts under VS Code user
+// data, not ~/.copilot; pending real implementation, see ADR-007.
 const ideCollector: Collector = {
   name(): SessionSource {
     return 'copilot-ide';
@@ -274,7 +275,16 @@ interface ShutdownEventData {
 
 interface ModelMetricsEntry {
   totalNanoAiu?: number;
-  usage?: { inputTokens?: number; outputTokens?: number };
+  // All token counts live under usage.* — matches the real schema and the Go side,
+  // which read inputTokens/outputTokens/cacheReadTokens/cacheWriteTokens/reasoningTokens
+  // from modelMetrics.<model>.usage, not the metrics entry's top level.
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheReadTokens?: number;   // phase 6: prompt caching reads
+    cacheWriteTokens?: number;  // phase 6: prompt caching writes
+    reasoningTokens?: number;   // phase 6: extended thinking tokens
+  };
 }
 
 // parseEventsFile reads events.jsonl line by line using readline (async, no readFileSync).
@@ -359,6 +369,9 @@ function applyBillingFields(data: ShutdownEventData, session: Session): void {
       inputTokens: entry.usage?.inputTokens ?? 0,
       outputTokens: entry.usage?.outputTokens ?? 0,
       nanoAIU,
+      cacheReadTokens: entry.usage?.cacheReadTokens ?? 0,
+      cacheWriteTokens: entry.usage?.cacheWriteTokens ?? 0,
+      reasoningTokens: entry.usage?.reasoningTokens ?? 0,
     });
 
     if (nanoAIU > bestNano) {
@@ -420,3 +433,4 @@ function parseTimestamp(s: string): Date | null {
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
+

@@ -457,7 +457,10 @@ func TestReadAll_SetsCLISource(t *testing.T) {
 	}
 }
 
-func TestIDECollector_ContributesNothing(t *testing.T) {
+func TestIDECollector_ReturnsIDESessions(t *testing.T) {
+	// Phase 6.2: ideCollector now reads actual IDE sessions marked with vscode.metadata.json.
+	// It may return 0 or more sessions depending on the user's system state.
+	// The contract is: all returned sessions must have Source: "copilot-ide".
 	c := ideCollector{}
 	if c.Name() != "copilot-ide" {
 		t.Errorf("Name = %q, want %q", c.Name(), "copilot-ide")
@@ -466,9 +469,13 @@ func TestIDECollector_ContributesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ideCollector.Collect: %v", err)
 	}
-	if len(got) != 0 {
-		t.Errorf("ideCollector returned %d sessions, want 0", len(got))
+	// Verify all returned sessions have the correct source.
+	for _, s := range got {
+		if s.Source != "copilot-ide" {
+			t.Errorf("Session %s has Source = %q, want %q", s.ID, s.Source, "copilot-ide")
+		}
 	}
+	t.Logf("ideCollector returned %d sessions, all with Source = copilot-ide", len(got))
 }
 
 func TestDedupByID(t *testing.T) {

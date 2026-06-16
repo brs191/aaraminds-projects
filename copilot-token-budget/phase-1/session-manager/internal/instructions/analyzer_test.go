@@ -204,3 +204,46 @@ func TestSeverity(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildOptimizationSummary_WorkspaceRootTotals(t *testing.T) {
+	files := []InstructionFile{
+		{Path: "/w/.github/instructions/heavy.md", Scope: "workspace-root", EstimatedToks: 6000},
+		{Path: "/w/.github/instructions/medium.md", Scope: "workspace-root", EstimatedToks: 1500},
+		{Path: "/w/service/.github/instructions/scoped.md", Scope: "project-scoped", EstimatedToks: 2500},
+	}
+
+	s := BuildOptimizationSummary(files)
+
+	if s.AlwaysLoadedTokens != 7500 {
+		t.Fatalf("AlwaysLoadedTokens=%d want 7500", s.AlwaysLoadedTokens)
+	}
+	// 6000 -> 1200 and 1500 -> 400
+	if s.TargetTokens != 1600 {
+		t.Fatalf("TargetTokens=%d want 1600", s.TargetTokens)
+	}
+	if s.ReducibleTokens != 5900 {
+		t.Fatalf("ReducibleTokens=%d want 5900", s.ReducibleTokens)
+	}
+}
+
+func TestBuildOptimizationSummary_OpportunitiesSorted(t *testing.T) {
+	files := []InstructionFile{
+		{Path: "/w/a.md", Scope: "workspace-root", EstimatedToks: 2200}, // reducible 1300
+		{Path: "/w/b.md", Scope: "workspace-root", EstimatedToks: 5200}, // reducible 4000
+		{Path: "/w/c.md", Scope: "workspace-root", EstimatedToks: 300},  // reducible 0
+	}
+
+	s := BuildOptimizationSummary(files)
+	if len(s.Opportunities) != 2 {
+		t.Fatalf("opportunities=%d want 2", len(s.Opportunities))
+	}
+	if s.Opportunities[0].Path != "/w/b.md" {
+		t.Fatalf("first opportunity path=%q want /w/b.md", s.Opportunities[0].Path)
+	}
+	if s.Opportunities[0].Priority != "high" {
+		t.Fatalf("priority=%q want high", s.Opportunities[0].Priority)
+	}
+	if s.Opportunities[1].Path != "/w/a.md" {
+		t.Fatalf("second opportunity path=%q want /w/a.md", s.Opportunities[1].Path)
+	}
+}

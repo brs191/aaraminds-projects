@@ -14,6 +14,9 @@ export interface ModelMetric {
   inputTokens: number;
   outputTokens: number;
   nanoAIU: number;
+  cacheReadTokens: number;      // phase 6: prompt caching reads
+  cacheWriteTokens: number;     // phase 6: prompt caching writes
+  reasoningTokens: number;      // phase 6: extended thinking tokens
 }
 
 // SessionSource identifies which collector produced a session.

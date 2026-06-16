@@ -10,3 +10,9 @@ package-lock.json
 .gitignore
 .DS_Store
 **/*.ts
+
+# Tests (never ship in the .vsix)
+src/**/*.test.ts
+out/**/*.test.js
+out/**/*.test.js.map
+**/test-reader.js

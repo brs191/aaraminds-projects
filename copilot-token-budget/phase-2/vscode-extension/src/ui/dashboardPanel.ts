@@ -1,11 +1,20 @@
 // ui/dashboardPanel.ts — singleton VS Code webview panel for the budget dashboard.
 // Uses VS Code CSS variables so it respects the user's light/dark theme automatically.
 
-import * as vscode from 'vscode';
-import { Session, BudgetState, InstructionFile } from '../types';
-import { computeForecast } from '../forecast/model';
-import { totalInputTokens, totalOutputTokens } from '../types';
-import { loadPricing, rateFor } from '../pricing/config';
+// formatCreditsDisplay renders raw credits with thousands separators and up to two
+// decimals — parity with the Go side (e.g. "8,554.03", "656.54"). Credits are already
+// credits (nanoAIU / 1e9), so there is no further scaling and no "B"/billions unit.
+function formatCreditsDisplay(credits: number): string {
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+import * as vscode from "vscode";
+import { Session, BudgetState, InstructionFile, SessionSource } from "../types";
+import { computeForecast } from "../forecast/model";
+import { totalInputTokens, totalOutputTokens } from "../types";
+import { loadPricing, rateFor } from "../pricing/config";
+import { estimateInstructionCostPerSession } from "../budget/tracker";
+import { buildOptimizationSummary } from "../instructions/analyzer";
 import {
   dailySeries,
   anomalousDays,
@@ -14,18 +23,18 @@ import {
   topProjects,
   contextWindowPct,
   Consumer,
-} from '../analytics/model';
+} from "../analytics/model";
 
 // Forecast figures surfaced in the dashboard's Forecast block.
 interface SerializedForecast {
-  dailyBurn: number;              // cr/day
+  dailyBurn: number; // cr/day
   projectedMonthEndTotal: number; // cr
   exceedsAllowance: boolean;
 }
 
 // One daily usage-trend point. anomalous flags days above mean + 2*stddev.
 interface TrendPoint {
-  key: string;       // "YYYY-MM-DD"
+  key: string; // "YYYY-MM-DD"
   credits: number;
   anomalous: boolean;
 }
@@ -39,16 +48,37 @@ interface SerializedConsumer {
   model: string;
 }
 
+interface SerializedOptimizationOpportunity {
+  name: string;
+  reducibleTokens: number;
+  currentTokens: number;
+  targetTokens: number;
+  recommendation: string;
+}
+
+interface SerializedOptimizationSummary {
+  alwaysLoadedTokens: number;
+  targetTokens: number;
+  reducibleTokens: number;
+  currentCreditsPerSession: number;
+  targetCreditsPerSession: number;
+  potentialCreditsPerSession: number;
+  opportunities: SerializedOptimizationOpportunity[];
+}
+
 // Message shape sent from the extension to the webview.
 interface DashboardMessage {
   sessions: SerializedSession[];
   budgetState: BudgetState;
   instructionFiles: InstructionFile[];
   forecast: SerializedForecast;
-  trend: TrendPoint[];            // last 14 daily buckets, anomalies flagged
+  trend: TrendPoint[]; // last 14 daily buckets, anomalies flagged
   topSessions: SerializedConsumer[];
   topModels: SerializedConsumer[];
   topProjects: SerializedConsumer[];
+  cliTotal: number; // NEW: total credits from CLI sessions
+  ideTotal: number; // NEW: total credits from IDE sessions
+  optimization: SerializedOptimizationSummary;
 }
 
 // Sessions must be serialized (Dates → ISO strings) before posting to the webview.
@@ -61,8 +91,9 @@ interface SerializedSession {
   inputTokensK: number;
   outputTokensK: number;
   systemTokens: number;
-  contextPct: number;   // context-window fullness for the primary model
+  contextPct: number; // context-window fullness for the primary model
   startTime: string;
+  source: SessionSource; // NEW: identify CLI vs IDE origin
 }
 
 export class DashboardPanel {
@@ -73,8 +104,8 @@ export class DashboardPanel {
   private constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.panel = vscode.window.createWebviewPanel(
-      'copilotBudgetDashboard',
-      'Copilot Budget Dashboard',
+      "copilotBudgetDashboard",
+      "Copilot Budget Dashboard",
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -82,14 +113,18 @@ export class DashboardPanel {
         // Defense-in-depth: the webview loads no local resources, so lock the roots
         // to the extension dir (paired with the CSP meta tag in buildHtml).
         localResourceRoots: [context.extensionUri],
-      }
+      },
     );
 
     this.panel.webview.html = buildHtml(this.panel.webview);
 
-    this.panel.onDidDispose(() => {
-      DashboardPanel.instance = undefined;
-    }, null, context.subscriptions);
+    this.panel.onDidDispose(
+      () => {
+        DashboardPanel.instance = undefined;
+      },
+      null,
+      context.subscriptions,
+    );
   }
 
   static createOrShow(context: vscode.ExtensionContext): DashboardPanel {
@@ -110,20 +145,43 @@ export class DashboardPanel {
   update(
     sessions: Session[],
     budgetState: BudgetState,
-    instructionFiles: InstructionFile[]
+    instructionFiles: InstructionFile[],
   ): void {
-    const f = computeForecast(budgetState.usedCredits, budgetState.allowedCredits);
+    const f = computeForecast(
+      budgetState.usedCredits,
+      budgetState.allowedCredits,
+    );
     const cfg = loadPricing();
+
+    // Compute source breakdown.
+    let cliTotal = 0;
+    let ideTotal = 0;
+    for (const s of sessions) {
+      const credits = s.totalNanoAIU / 1_000_000_000;
+      if (s.source === "copilot-cli") {
+        cliTotal += credits;
+      } else if (s.source === "copilot-ide") {
+        ideTotal += credits;
+      }
+    }
 
     // Usage trend: full daily series, anomalies flagged, then the last 14 days.
     const daily = dailySeries(sessions);
-    const anomalousKeys = new Set(anomalousDays(daily).map(b => b.key));
+    const anomalousKeys = new Set(anomalousDays(daily).map((b) => b.key));
     const trend: TrendPoint[] = daily
       .slice(Math.max(0, daily.length - 14))
-      .map(b => ({ key: b.key, credits: b.credits, anomalous: anomalousKeys.has(b.key) }));
+      .map((b) => ({
+        key: b.key,
+        credits: b.credits,
+        anomalous: anomalousKeys.has(b.key),
+      }));
+
+    const plan = buildOptimizationSummary(instructionFiles);
+    const current = estimateInstructionCostPerSession(plan.alwaysLoadedTokens);
+    const target = estimateInstructionCostPerSession(plan.targetTokens);
 
     const message: DashboardMessage = {
-      sessions: sessions.map(s => serialize(s, cfg)),
+      sessions: sessions.map((s) => serialize(s, cfg)),
       budgetState,
       instructionFiles,
       forecast: {
@@ -135,6 +193,26 @@ export class DashboardPanel {
       topSessions: topSessions(sessions, 5).map(serializeConsumer),
       topModels: topModels(sessions, 5).map(serializeConsumer),
       topProjects: topProjects(sessions, 5).map(serializeConsumer),
+      cliTotal, // NEW: source breakdown
+      ideTotal, // NEW: source breakdown
+      optimization: {
+        alwaysLoadedTokens: plan.alwaysLoadedTokens,
+        targetTokens: plan.targetTokens,
+        reducibleTokens: plan.reducibleTokens,
+        currentCreditsPerSession: current.credits,
+        targetCreditsPerSession: target.credits,
+        potentialCreditsPerSession: Math.max(
+          0,
+          current.credits - target.credits,
+        ),
+        opportunities: plan.opportunities.slice(0, 5).map((o) => ({
+          name: o.path.split(/[\\/]/).pop() || o.path,
+          reducibleTokens: o.reducibleTokens,
+          currentTokens: o.currentTokens,
+          targetTokens: o.targetTokens,
+          recommendation: o.recommendation,
+        })),
+      },
     };
     void this.panel.webview.postMessage(message);
   }
@@ -144,7 +222,10 @@ export class DashboardPanel {
   }
 }
 
-function serialize(s: Session, cfg: ReturnType<typeof loadPricing>): SerializedSession {
+function serialize(
+  s: Session,
+  cfg: ReturnType<typeof loadPricing>,
+): SerializedSession {
   return {
     id: s.id,
     projectName: s.projectName || s.workspaceDir || s.id.slice(0, 8),
@@ -156,6 +237,7 @@ function serialize(s: Session, cfg: ReturnType<typeof loadPricing>): SerializedS
     systemTokens: s.tokens.systemTokens,
     contextPct: contextWindowPct(s, cfg),
     startTime: s.startTime.toISOString(),
+    source: s.source, // NEW: identify CLI vs IDE origin
   };
 }
 
@@ -173,8 +255,9 @@ function serializeConsumer(c: Consumer): SerializedConsumer {
 
 // nonce returns a random base64-ish token for the CSP script-src allowlist.
 function makeNonce(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let out = '';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
   for (let i = 0; i < 32; i++) {
     out += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -193,7 +276,7 @@ function buildHtml(webview: vscode.Webview): string {
     `style-src 'unsafe-inline'; ` +
     `script-src 'nonce-${nonce}'; ` +
     `img-src ${webview.cspSource};`;
-  return /* html */`<!DOCTYPE html>
+  return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -301,6 +384,22 @@ function buildHtml(webview: vscode.Webview): string {
     </div>
   </div>
 
+<h2>Source Breakdown</h2>
+<div class="budget-grid">
+  <div class="stat-card">
+    <div class="stat-label">CLI Sessions</div>
+    <div id="cli-total" class="stat-value">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">IDE Sessions</div>
+    <div id="ide-total" class="stat-value">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total</div>
+    <div id="source-total" class="stat-value">—</div>
+  </div>
+</div>
+
   <h2>Forecast</h2>
   <div class="budget-grid">
     <div class="stat-card">
@@ -356,7 +455,7 @@ function buildHtml(webview: vscode.Webview): string {
         <th>Project</th><th>Model</th>
         <th>Input K</th><th>Output K</th>
         <th>Context %</th>
-        <th>Credits</th><th>Status</th>
+        <th>Credits</th><th>Source</th><th>Status</th>
       </tr>
     </thead>
     <tbody id="session-rows"></tbody>
@@ -368,6 +467,28 @@ function buildHtml(webview: vscode.Webview): string {
       <tr><th>File</th><th>~Tokens</th><th>Scope</th><th>Recommendation</th></tr>
     </thead>
     <tbody id="instr-rows"></tbody>
+  </table>
+
+  <h2>Token Optimization Plan</h2>
+  <div class="budget-grid">
+    <div class="stat-card">
+      <div class="stat-label">Always Loaded Tokens</div>
+      <div id="opt-always" class="stat-value">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Target Tokens</div>
+      <div id="opt-target" class="stat-value">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Savings / Session</div>
+      <div id="opt-savings" class="stat-value">—</div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Current</th><th>Target</th><th>Reduce</th><th>Action</th></tr>
+    </thead>
+    <tbody id="opt-rows"></tbody>
   </table>
 
   <p class="footer">AT&T Copilot Enterprise promo — 7,000 cr/month until 2026-09-01</p>
@@ -398,26 +519,33 @@ function buildHtml(webview: vscode.Webview): string {
 
     // Stat cards
     const usedEl = document.getElementById('used-credits');
-    usedEl.textContent = bs.usedCredits.toFixed(0) + ' cr';
+    usedEl.textContent = formatCreditsDisplay(bs.usedCredits);
     usedEl.className = 'stat-value ' + statusClass;
 
-    document.getElementById('allowed-credits').textContent = bs.allowedCredits + ' cr';
+    document.getElementById('allowed-credits').textContent = formatCreditsDisplay(bs.allowedCredits);
 
     const remEl = document.getElementById('remaining-credits');
-    remEl.textContent = bs.remainingCredits.toFixed(0) + ' cr';
+    remEl.textContent = formatCreditsDisplay(bs.remainingCredits);
     remEl.className = 'stat-value ' + (bs.remainingCredits < 0 ? 'critical' : 'ok');
+
+    // Source breakdown — CLI vs IDE credits.
+    const cliEl = document.getElementById('cli-total');
+    cliEl.textContent = formatCreditsDisplay(msg.cliTotal);
+    document.getElementById('ide-total').textContent = formatCreditsDisplay(msg.ideTotal);
+    const sourceTotal = msg.cliTotal + msg.ideTotal;
+    document.getElementById('source-total').textContent = formatCreditsDisplay(sourceTotal);
 
     // Forecast block — daily burn rate, projected month-end total, over/under allowance.
     const fc = msg.forecast;
     const overClass = fc.exceedsAllowance ? 'critical' : 'ok';
-    document.getElementById('forecast-burn').textContent = fc.dailyBurn.toFixed(1) + ' cr/day';
+    document.getElementById('forecast-burn').textContent = formatCreditsDisplay(fc.dailyBurn) + '/day';
     const totalEl = document.getElementById('forecast-total');
-    totalEl.textContent = fc.projectedMonthEndTotal.toFixed(0) + ' cr';
+    totalEl.textContent = formatCreditsDisplay(fc.projectedMonthEndTotal);
     totalEl.className = 'stat-value ' + overClass;
     const verdictEl = document.getElementById('forecast-verdict');
     verdictEl.textContent = fc.exceedsAllowance
-      ? 'OVER ' + (fc.projectedMonthEndTotal - bs.allowedCredits).toFixed(0) + ' cr'
-      : 'within ' + (bs.allowedCredits - fc.projectedMonthEndTotal).toFixed(0) + ' cr';
+      ? 'OVER ' + formatCreditsDisplay(fc.projectedMonthEndTotal - bs.allowedCredits)
+      : 'within ' + formatCreditsDisplay(bs.allowedCredits - fc.projectedMonthEndTotal);
     verdictEl.className = 'stat-value ' + overClass;
 
     // Session rows
@@ -425,6 +553,7 @@ function buildHtml(webview: vscode.Webview): string {
     tbody.innerHTML = msg.sessions.map(s => {
       const date = new Date(s.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const active = s.isActive ? '<span class="badge active">● ACTIVE</span>' : date;
+      const sourceLabel = s.source === 'copilot-cli' ? 'CLI' : 'IDE';
       return \`<tr>
         <td>\${esc(s.projectName)}</td>
         <td>\${esc(modelShort(s.primaryModel))}</td>
@@ -432,6 +561,7 @@ function buildHtml(webview: vscode.Webview): string {
         <td>\${s.outputTokensK}</td>
         <td>\${s.contextPct.toFixed(1)}%</td>
         <td>\${s.totalCredits.toFixed(2)}</td>
+        <td>\${sourceLabel}</td>
         <td>\${active}</td>
       </tr>\`;
     }).join('');
@@ -457,6 +587,38 @@ function buildHtml(webview: vscode.Webview): string {
         <td>\${esc(rec)}</td>
       </tr>\`;
     }).join('');
+
+    // Token optimization plan.
+    const opt = msg.optimization || {
+      alwaysLoadedTokens: 0,
+      targetTokens: 0,
+      reducibleTokens: 0,
+      currentCreditsPerSession: 0,
+      targetCreditsPerSession: 0,
+      potentialCreditsPerSession: 0,
+      opportunities: [],
+    };
+    document.getElementById('opt-always').textContent = String(opt.alwaysLoadedTokens || 0);
+    document.getElementById('opt-target').textContent = String(opt.targetTokens || 0);
+    const savingsEl = document.getElementById('opt-savings');
+    savingsEl.textContent = (opt.potentialCreditsPerSession || 0).toFixed(2) + ' cr';
+    savingsEl.className = 'stat-value ' + ((opt.potentialCreditsPerSession || 0) > 0 ? 'warning' : 'ok');
+
+    const optRows = document.getElementById('opt-rows');
+    const opportunities = opt.opportunities || [];
+    if (!opportunities.length) {
+      optRows.innerHTML = '<tr><td colspan="5">No optimization opportunities detected.</td></tr>';
+    } else {
+      optRows.innerHTML = opportunities.map(o =>
+        '<tr>' +
+          '<td>' + esc(o.name) + '</td>' +
+          '<td>' + o.currentTokens + '</td>' +
+          '<td>' + o.targetTokens + '</td>' +
+          '<td>-' + o.reducibleTokens + '</td>' +
+          '<td>' + esc(o.recommendation) + '</td>' +
+        '</tr>'
+      ).join('');
+    }
   }
 
   // renderTrend draws an inline SVG bar chart of daily credits. Anomalous days use a
@@ -485,7 +647,7 @@ function buildHtml(webview: vscode.Webview): string {
       const y = padT + (plotH - h);
       const cls = d.anomaly ? 'trend-bar anomaly' : 'trend-bar';
       const day = d.key.slice(8); // DD from YYYY-MM-DD
-      const title = esc(d.key) + ': ' + d.credits.toFixed(2) + ' cr' + (d.anomaly ? ' (anomalous)' : '');
+      const title = esc(d.key) + ': ' + formatCreditsDisplay(d.credits) + (d.anomaly ? ' (anomalous)' : '');
       bars += '<rect class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) +
               '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '">' +
               '<title>' + title + '</title></rect>';
@@ -525,6 +687,14 @@ function buildHtml(webview: vscode.Webview): string {
       return '<tr><td>' + esc(c.name) + '</td><td>' + esc(modelShort(c.model)) +
              '</td><td>' + c.credits.toFixed(2) + '</td></tr>';
     }).join('');
+  }
+
+  // formatCreditsDisplay must be defined HERE, in webview (browser) scope — the inline
+  // script runs in an isolated context and cannot see the extension-host module function
+  // of the same name. Renders raw credits with thousands separators, up to two decimals
+  // (parity with the Go side, e.g. "8,554.03"). No scaling, no "B" unit.
+  function formatCreditsDisplay(credits) {
+    return Number(credits).toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
 
   function modelShort(m) {

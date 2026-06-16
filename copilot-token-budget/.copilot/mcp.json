@@ -4,9 +4,8 @@
     "Build the binary first:",
     "  macOS/Linux: cd phase-4 && go build -ldflags '-X main.Version=v0.1.0' -o ~/bin/copilot-budget-mcp ./cmd/mcp-server",
     "  Windows:     cd phase-4 && go build -ldflags '-X main.Version=v0.1.0' -o %USERPROFILE%\\bin\\copilot-budget-mcp.exe .\\cmd\\mcp-server",
-    "Then set 'command' below to the FULL ABSOLUTE path to the binary on YOUR machine.",
-    "IMPORTANT: execve does NOT expand '~' — a leading tilde will fail to launch. Use an absolute path.",
-    "The placeholder below (/Users/YOUR_ATTUID/bin/copilot-budget-mcp) must be replaced with your real path.",
+    "Then set 'command' below to the full ABSOLUTE path to the binary on YOUR machine.",
+    "IMPORTANT: the process launcher does NOT expand '~' — a leading tilde will fail to launch. Use an absolute path.",
     "Windows note: use the .exe suffix and backslashes in the path, e.g.:",
     "  C:\\Users\\YOUR_ATTUID\\bin\\copilot-budget-mcp.exe"
   ],

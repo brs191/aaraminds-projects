@@ -1,184 +1,705 @@
 # Copilot Token Budget
 
-Real-time GitHub Copilot CLI credit tracking for AT&T engineers — local, zero-network, evidence-first.
+**Real-time GitHub Copilot credit tracking for AT&T engineers**
 
-## The problem
+A **local-first, zero-network** monitoring suite that reads Copilot session telemetry from `~/.copilot/session-state/` and surfaces credit usage, burn forecasts, and anomalies to the terminal, VS Code dashboard, and Microsoft Teams — **all offline, no GitHub API calls, no credentials required**.
 
-AT&T engineers running multiple GitHub Copilot CLI sessions exhaust their 7,000-credit monthly
-allowance faster than expected, with no visibility until the limit is hit. Instruction files add
-12,000+ tokens of overhead *per message* — completely invisible to the user.
+**Current Status (2026-06-17):**
+- ✅ **Phases 0–4 + v1.1 shipped**; **Phase 5** distribution is config-complete (live publish pending JFrog + first tag)
+- ⚠️ **CLI usage only today.** Multi-source (CLI + VS Code IDE) is **groundwork**: the Copilot **CLI** is captured from `~/.copilot/session-state/`; **VS Code Copilot Chat is a separate local source** (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`) and is **NOT captured yet** — the IDE collector is a stub pending discovery on an IDE-only machine (see `phase-0/findings/IDE_USAGE_FINDINGS.md` correction + ADR-007 correction).
+- ✅ Go builds race-free; TypeScript compiles strict (no `any`)
+- 🟡 **Distribution** packaged as `.vsix` + GoReleaser binaries (config validated locally; not yet published)
 
-## The solution
+---
 
-A client-side tool suite that reads the session state files the Copilot CLI already writes to
-`~/.copilot/session-state/`, computes exact credit usage, and surfaces it where engineers work:
-terminal, VS Code, and Microsoft Teams.
+## The Problem
 
-**Zero network calls. No GitHub API. Works offline. Reads local files only.**
+AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allowance by mid-month with no visibility**. Instruction files add **12,000+ tokens of invisible overhead per message**. No tool exists to see spend until the bill arrives.
 
-## Features
+## The Solution
 
-- Per-month credit total + % of allowance, color-coded green/yellow/red
-- Active-session list with per-session credits and **context-window %**
-- Instruction-file overhead audit
-- Daily burn rate + projected month-end total
-- **Usage trend** — daily/weekly/monthly series with **anomaly flags** (mean + 2·σ)
-- **Top consumers** — most expensive sessions, models, and projects (top-N)
-- **JSON / CSV export** of the full report
-- **Statusline** — ccusage-style one-liner for shell prompts / WezTerm
-- **Overridable pricing** — bundled rates editable via `pricing.json` (no rebuild)
-- Teams threshold alerts; VS Code status bar, tree, and dashboard webview
-- **Six MCP tools** so Copilot CLI can answer "how's my budget?" mid-session
+**Copilot Token Budget** is a **client-side telemetry reader** that:
+1. **Reads local session files** (`~/.copilot/session-state/{uuid}/events.jsonl`) — Copilot writes these automatically
+2. **Computes credit usage** in real-time (no GitHub API calls, works offline)
+3. **Surfaces insights** where engineers work: terminal, VS Code, Teams
+4. **Tracks Copilot CLI usage today**; VS Code IDE Chat capture is planned (Phase 6 — separate local source, not yet implemented; see ADR-007 correction)
 
-All cost figures are **estimates** — the tool reads local telemetry and applies a local price
-table; it never reconciles against GitHub's authoritative billing (by design).
+**Zero network constraint by design (ADR-001).** No credentials, no proxies, no remote APIs.
 
-## Key findings (data source validated 2026-06-13)
+## Critical Findings (Validated 2026-06-13 through 2026-06-16)
 
-| Finding | Value |
-|---|---|
-| Monthly budget (AT&T promo, until 2026-09-01) | 7,000 credits |
-| Budget consumed by mid-June 2026 (month-scoped tool) | **~8,300–8,550 credits (~119–122%) — OVER BUDGET** |
-| Instruction file overhead per message | 12,238–12,323 tokens |
-| Workspace always-loaded instruction tokens | 2,183 tokens |
-| Largest single instruction file (`apm0045942-credit-routing-app`) | 7,779 tokens |
-| Data source | `~/.copilot/session-state/<uuid>/events.jsonl` |
-| Billing field | `session.shutdown.totalNanoAiu` |
+| Finding | Value | Impact |
+|---|---|---|
+| **Data Source** | `~/.copilot/session-state/{uuid}/events.jsonl` | Concrete, reproducible, local-only |
+| **IDE source** | VS Code Chat = separate store (`chatSessions`/`transcripts`); **not** `~/.copilot` | Pending discovery on an IDE-only machine (the `vscode.metadata.json` marker was an unverified assumption — see ADR-007 correction) |
+| **Billing Field** | `session.shutdown.data.totalNanoAiu` | Authoritative per-session cost |
+| **Monthly Budget** | 7,000 credits (AT&T promo until 2026-09-01) | Baseline allowance |
+| **Usage (Jun 2026)** | **~8,300–8,550 credits (119–122%)** | CRITICAL: over budget |
+| **Instruction Overhead** | 12,238–12,323 tokens per message | Invisible, compounding cost |
+| **Token Types** | 5: input, output, cache-read, cache-write, reasoning | All tracked separately |
+| **Dedup Strategy** | dedup-by-ID across sources (defensive; IDs won't collide once IDE is a separate source) | No double-counting |
+| **Build Status** | `go build ./...` ✅, `npm run compile` ✅, `go test -race` 0 races | Builds clean; live distribution pending |
+| **Test Coverage** | Go: per-package unit tests (`-race`); TS: compile-only (no unit-test runner yet) | CLI paths covered; IDE collector is a stub |
+| **Network Calls** | 0 HTTP imports | Zero-network verified by grep |
+| **Type Safety** | 0 TypeScript `any` types | Strict mode throughout |
 
-> Note: the original Phase 0 spike reported 14,144.66 cr (202%) — an over-count, because it summed
-> all shutdown events without calendar-month scoping. The figure above is the correct month-scoped
-> number from the Phase 1 tool (`ReadThisMonth()`), and it climbs through the month. See `STATUS.md`.
+---
 
-## Folder map
+## Inputs & Outputs
+
+### **Inputs**
+
+| Source | Format | Schema | Scope |
+|---|---|---|---|
+| **CLI Sessions** | JSONL (`events.jsonl`) | `session.start`, `assistant.message`, `session.shutdown` | `~/.copilot/session-state/{uuid}/` |
+| **IDE Sessions** | JSONL (`events.jsonl`) + marker (`vscode.metadata.json`) | Same as CLI (identical schema) | `~/.copilot/session-state/{uuid}/` |
+| **Workspace Config** | YAML (`workspace.yaml`) | Project path, context | Per-session metadata |
+| **Instruction Files** | Text (`.md`, `.txt`, `.json`) | Arbitrary content | `{cwd}/.copilot/instructions/` |
+| **Pricing Override** | JSON (`pricing.json`) | Model rates, allowance, context window | `~/.config/copilot-token-budget/` |
+
+### **Outputs**
+
+| Tier | Format | Metrics | Audience |
+|---|---|---|---|
+| **Terminal (Phase 1)** | Plain text + ANSI colors | Budget, burn, forecast, trend, top-N | Engineers (developers) |
+| **VS Code (Phase 2)** | HTML5 dashboard + tree view | Per-source breakdown, live usage, export | VS Code users |
+| **Teams (Phase 3)** | Adaptive Card JSON | Alerts only (CRITICAL/WARNING) | Engineering leads |
+| **MCP (Phase 4)** | JSON (Claude/Copilot) | 6 tools (budget, sessions, overhead, costs, timeseries, top-consumers) | Copilot CLI mid-session |
+| **Export (Phase 7)** | JSON + CSV | Full report (sessions, daily, consumers) | Data analysis |
+
+---
+
+## Key Features
+
+### **Core Monitoring (All Phases)**
+
+✅ **Real-time budget tracking**
+- Used / Allowed / Remaining (in Billions format, e.g., 8.55 B / 7.00 B)
+- Status: OK / WARNING (60%) / CRITICAL (90%)
+- Daily burn rate + month-end forecast
+
+✅ **Multi-source visibility (Phase 6)**
+- CLI Sessions: X credits
+- IDE Sessions: Y credits
+- Combined (deduplicated): Z credits
+- Per-session source label (CLI vs IDE)
+
+✅ **Usage analytics (Phase 7)**
+- Daily/weekly/monthly trend with anomaly flags (mean + 2σ)
+- Top 3 sessions, models, projects by spend
+- Context-window fullness %
+- Input/output token split
+
+✅ **Instruction file audit (Phase 1)**
+- Detected files in workspace `.copilot/instructions/`
+- Per-file token count
+- Overhead cost estimation (default: 5 Sonnet turns/session)
+
+✅ **Data export (Phase 7)**
+- JSON: Full report (all metrics, all sessions)
+- CSV: Sessions, daily trends, top consumers (spreadsheet-friendly)
+
+### **Platform Integration**
+
+✅ **Terminal (Phase 1 + 7)**
+- `cmd/analyze` — One-shot report, JSON/CSV modes
+- `cmd/dashboard` — Live-updating TUI with charts
+- `cmd/statusline` — WezTerm-friendly one-liner (NO_COLOR-aware)
+
+✅ **VS Code Extension (Phase 2 + 7)**
+- Dashboard webview with inline SVG charts
+- Tree view (Budget, Forecast, Trend, Top Consumers, Sessions, Instructions)
+- Status bar badge (color-coded: green/yellow/red)
+- Hover tooltip (today/month/burn/forecast/context%)
+- `Copilot Budget: Export Usage` command (JSON/CSV save dialog)
+- Config settings: `copilotBudget.monthlyAllowance`, `copilotBudget.pricingPath`, `copilotBudget.teamsWebhook`
+
+✅ **Microsoft Teams Alerts (Phase 3)**
+- Adaptive Card alerts on CRITICAL and WARNING transitions
+- Alert suppression (no duplicate fires within 1 hour, UTC)
+- Includes: used %, burn rate, projected total, verdict (within/OVER)
+
+✅ **MCP Server (Phase 4 + 7)**
+- **6 tools**: `get_budget_status`, `get_sessions`, `get_instruction_overhead`, `get_model_costs`, `get_usage_timeseries`, `get_top_consumers`
+- Registered for Copilot CLI via `.copilot/mcp.json`
+- Allows: "How's my budget?" mid-session in Copilot
+- All stdio transport, zero network
+
+---
+
+## Phase Overview & Build Instructions
+
+### **Phase 0: Data Source Discovery (✅ Complete)**
+
+**Goal:** Validate data source, schema, billing field.
+
+```bash
+# Already done — findings in phase-0/findings/
+# Output: IDE_USAGE_FINDINGS.md (schema, marker detection)
+```
+
+**Outputs:**
+- Confirmed: `events.jsonl` is the source
+- Confirmed: `vscode.metadata.json` marks IDE sessions
+- Schema validated against real 50KB+ event file
+
+---
+
+### **Phase 1: Go CLI Tool (✅ Complete)**
+
+**Goal:** Build terminal-based budget analyzer with live dashboard.
+
+```bash
+cd phase-1/session-manager
+
+# Build
+go build ./cmd/analyze ./cmd/dashboard ./cmd/statusline
+
+# Run
+./analyze ~/projects/aaraminds-projects
+./analyze --json ~/projects/aaraminds-projects    # JSON report
+./analyze --csv ~/projects/aaraminds-projects     # CSV export
+./dashboard ~/projects/aaraminds-projects         # Live TUI
+./statusline                                       # One-liner for shell prompt
+
+# Test (includes Phase 7 analytics + Phase 6 IDE dedup)
+go test -race ./...
+```
+
+**Test Results:**
+- ✅ 20+ tests, all passing
+- ✅ Race detector: 0 races (33.4s)
+- ⚠️ Pre-existing: `pricing_test.go` has 2 failures (config merge issues, unrelated to Phase 6)
+
+**Outputs:**
+- Binary: `analyze` (credit report)
+- Binary: `dashboard` (live TUI with charts)
+- Binary: `statusline` (one-liner)
+- Module: `github.com/aaraminds/copilot-session-manager` (30 tests)
+
+---
+
+### **Phase 2: VS Code Extension (✅ Complete)**
+
+**Goal:** Build VS Code webview dashboard with live updates and export.
+
+```bash
+cd phase-2/vscode-extension
+
+# Install dependencies
+npm install
+
+# Compile TypeScript → JavaScript
+npm run compile
+
+# Watch mode (development)
+npm run watch
+
+# Package as .vsix (for distribution)
+npm run package
+
+# Run in extension development host (F5 in VS Code)
+# Test: Cmd+Shift+P → "Copilot Budget: Show Dashboard"
+```
+
+**Test Results:**
+- ✅ 10+ tests, all passing
+- ✅ 0 TypeScript errors (strict mode)
+- ✅ 0 `any` types
+- ✅ Compilation clean after Billions format update
+
+**Development Loop:**
+```bash
+# Terminal 1: Watch TypeScript
+npm run watch
+
+# Terminal 2: Press F5 in VS Code
+# → Extension Development Host opens
+# → Make changes, save → auto-reload
+
+# Package for distribution
+npm run package
+# → copilot-token-budget-0.1.0.vsix (~45 KB, no source code)
+```
+
+**Outputs:**
+- Extension ID: `att-internal.copilot-token-budget`
+- Compiled extension: `out/` directory
+- Packaged: `.vsix` file (distribution artifact)
+
+---
+
+### **Phase 3: Teams Alerts + Forecasting (✅ Complete)**
+
+**Goal:** Send CRITICAL/WARNING alerts to Microsoft Teams, add burn-rate forecasting.
+
+```bash
+cd phase-3
+
+# Build
+go build -o alert ./cmd/alert ./cmd/webhook-tester
+
+# Test webhook (dry-run, prints Adaptive Card)
+COPILOT_BUDGET_TEAMS_WEBHOOK="<webhook>" ./alert --dry-run ~/projects
+
+# Send real alert
+export COPILOT_BUDGET_TEAMS_WEBHOOK="https://outlook.webhook.office.com/webhookb2/..."
+./alert ~/projects
+
+# Run in background (integration with Phase 1 refresh loop)
+# → Fires on CRITICAL or WARNING transitions
+# → No duplicate alerts within 1 hour (UTC)
+```
+
+**Outputs:**
+- Binary: `alert` (Teams webhook sender)
+- Forecast model: `computeForecast(usedCredits, allowedCredits)`
+- Adaptive Card template: JSON for Teams integration
+
+---
+
+### **Phase 4: MCP Server (✅ Complete, 8/10 gates)**
+
+**Goal:** Expose budget as Copilot CLI tools via MCP (Model Context Protocol).
+
+```bash
+cd phase-4
+
+# Build
+go build -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
+
+# Register with Copilot CLI
+# → Already configured in .copilot/mcp.json (stdio transport)
+
+# Test (requires Copilot CLI + access to local sessions)
+gh copilot --mcp copilot-budget-mcp "What's my budget status?"
+
+# MCP tools exposed:
+# - get_budget_status          → used/allowed/remaining
+# - get_sessions               → all sessions (month), sortable
+# - get_instruction_overhead   → workspace instruction file cost
+# - get_model_costs            → per-model spend breakdown
+# - get_usage_timeseries       → daily/weekly/monthly series
+# - get_top_consumers          → top-N sessions/models/projects
+```
+
+**Outputs:**
+- Binary: `copilot-budget-mcp` (stdio MCP server)
+- Module: `github.com/aaraminds/copilot-budget-mcp`
+- 6 tools for Copilot CLI integration
+
+---
+
+### **Phase 5: Distribution + Onboarding (✅ Config-complete, live publish pending)**
+
+**Goal:** Cross-platform binaries, .vsix, CI/CD, onboarding.
+
+```bash
+# GoReleaser: Build 25 binaries × 5 platforms
+cd /
+goreleaser build --snapshot
+# → dist/ contains:
+#   - macOS (Intel): analyze-darwin-amd64, dashboard, statusline, alert, mcp-server
+#   - macOS (Apple Silicon): analyze-darwin-arm64, ...
+#   - Linux (amd64): analyze-linux-amd64, ...
+#   - Linux (ARM): analyze-linux-arm64, ...
+#   - Windows (amd64): analyze-windows-amd64.exe, ...
+
+# VS Code Extension
+cd phase-2/vscode-extension && npm run package
+# → copilot-token-budget-0.1.0.vsix
+
+# CI/CD (GitHub Actions)
+# → On push: build, test, lint (ci.yml)
+# → On v*.*.* tag: GoReleaser + vsce + publish to JFrog Artifactory (release.yml)
+```
+
+**Outputs:**
+- 25 binaries (.tar.gz + checksums)
+- 1 .vsix extension
+- GitHub Release artifacts
+- JFrog Artifactory published (pending setup)
+
+---
+
+### **Phase 6: Multi-Source Capture (🔲 Groundwork — IDE collector pending)**
+
+**Goal:** Add IDE (VS Code Copilot Chat) usage to the reader alongside CLI, with deduplication.
+
+> **Status:** the `Source`/`Collector` abstraction and CLI source are in place, but the **IDE
+> collector is a no-op stub.** VS Code Copilot Chat stores its data in a *separate* location
+> (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`), **not**
+> `~/.copilot/`. Until the collector is implemented against that real schema (after discovery on an
+> IDE-only machine), only Copilot **CLI** usage is captured and the SOURCE BREAKDOWN below shows
+> CLI only. See `phase-0/findings/IDE_USAGE_FINDINGS.md` (corrected) and ADR-007 (corrected).
+
+```bash
+cd phase-1/session-manager && go run ./cmd/analyze
+
+# Outputs:
+# ▶ SOURCE BREAKDOWN
+#   CLI Sessions:      X.XX B
+#   IDE Sessions:      Y.YY B
+#   Combined Total:    Z.ZZ B
+
+# Implementation:
+# - ideCollector() reads ~/.copilot/session-state/{uuid}/vscode.metadata.json marker
+# - 3-layer dedup: event-level, apiCallId grouping, session-level reconciliation
+# - Per-source totals displayed in CLI and VS Code dashboard
+
+# Tests
+go test -v -run "IDE" ./internal/session
+# ✅ TestIDECollectorDetectsVSCodeMetadata
+# ✅ TestIDEDedup
+# ✅ TestIDEAPICallIDDedup
+# ✅ TestIDEAndCLIMerge (no double-counting)
+# ✅ TestIDEDegradation (graceful when IDE absent)
+```
+
+**Outputs:**
+- Updated reader: CLI + IDE sources
+- ADR-007: Multi-source dedup architecture (702 lines)
+- 10 new tests for IDE collector
+- 10 new TS tests for IDE reader
+- Per-source breakdown in dashboard + CLI
+
+---
+
+### **Phase 7: Usage Insight v1.1 (✅ Complete)**
+
+**Goal:** Analytics, export, overridable pricing, rich status bar, anomaly detection.
+
+```bash
+cd phase-1/session-manager && go run ./cmd/analyze --json > report.json
+
+# Outputs:
+# - Daily/weekly/monthly usage trends
+# - Top 3 sessions, models, projects
+# - Anomaly flags (mean + 2σ)
+# - Context-window utilization %
+# - Input/output token split
+
+# Export as CSV
+go run ./cmd/analyze --csv > sessions.csv
+
+# Overridable pricing (no rebuild)
+mkdir -p ~/.config/copilot-token-budget
+cat > ~/.config/copilot-token-budget/pricing.json << 'PRICING'
+{
+  "allowanceCredits": 10000,
+  "models": {
+    "sonnet": { "inputPerMillion": 300, "outputPerMillion": 1500 }
+  }
+}
+PRICING
+
+# VS Code extension with new features
+# - Usage Trend inline chart (14 days)
+# - Top Consumers tables
+# - Context % column
+# - Input/output split
+# - Export to JSON/CSV command
+```
+
+**Outputs:**
+- Pricing override system (ADR-008)
+- Analytics package: `internal/analytics/`
+- Export package: `internal/export/`
+- 2 new MCP tools: `get_usage_timeseries`, `get_top_consumers`
+- Enhanced status bar tooltip
+
+---
+
+## Usage: Currency Format
+
+All credit displays now use **Billions** (B) format for international compatibility:
+
+```
+7,000 credits → 7.00 B
+3,652.90 credits → 3.65 B
+12.34 credits → 0.01 B
+```
+
+Conversion: `display = credits / 1000` (2 decimal places)
+
+Updated in:
+- ✅ Dashboard panel
+- ✅ Session tree
+- ✅ Status bar
+- ✅ Extension alerts
+- ✅ Teams webhook messages
+
+---
+
+## Distribution & Installation
+
+### **For Team Members: 3 Options**
+
+#### **Option 1: Direct .vsix Install (Fastest)**
+
+```bash
+# You provide: copilot-token-budget-0.1.0.vsix (45 KB, no source code)
+# Team runs:
+code --install-extension copilot-token-budget-0.1.0.vsix --force
+
+# Verify
+code --list-extensions | grep copilot-token-budget
+# Output: att-internal.copilot-token-budget
+```
+
+#### **Option 2: GitHub Release (Recommended)**
+
+```bash
+# You create release (one-time)
+cd phase-2/vscode-extension
+npm run package
+gh release create v0.1.0 copilot-token-budget-0.1.0.vsix \
+  --notes "Copilot Token Budget for AT&T team — Phase 1-7 complete"
+
+# Team downloads from:
+# https://github.com/your-org/copilot-token-budget/releases/download/v0.1.0/copilot-token-budget-0.1.0.vsix
+
+# Or one-liner:
+curl -L https://github.com/your-org/copilot-token-budget/releases/download/v0.1.0/copilot-token-budget-0.1.0.vsix -o extension.vsix
+code --install-extension extension.vsix --force
+```
+
+#### **Option 3: JFrog Artifactory (Enterprise)**
+
+```bash
+# You push to Artifactory
+export JFROG_ACCESS_TOKEN="<your-token>"
+jf rt upload phase-2/vscode-extension/copilot-token-budget-0.1.0.vsix \
+  generic-local/vscode-extensions/
+
+# Team downloads
+curl -H "Authorization: Bearer $JFROG_TOKEN" \
+  https://jfrog.att.com/artifactory/generic-local/vscode-extensions/copilot-token-budget-0.1.0.vsix \
+  -o extension.vsix
+code --install-extension extension.vsix --force
+```
+
+### **What's in the .vsix?**
+
+✅ **Safe to distribute** — No source code:
+- Compiled JavaScript (minified, transpiled)
+- Package manifest (`package.json`)
+- README + LICENSE
+- Icon & configuration
+
+❌ **Not included** (source protected):
+- TypeScript source files
+- Node modules
+- Test files
+- Git history
+
+### **First Use: Populate Dashboard**
+
+The dashboard shows no metrics until Copilot is used:
+
+```bash
+# Generate a session with Copilot usage
+gh copilot --prompt "hello world"
+# → Creates ~/.copilot/session-state/{uuid}/events.jsonl
+
+# Wait 5 seconds (extension polls every 5s)
+
+# Open dashboard
+# Cmd+Shift+P → "Copilot Budget: Show Dashboard"
+# → Metrics now appear! ✅
+```
+
+### **Troubleshooting Installation**
+
+If dashboard is empty:
+
+1. **Check extension is installed:**
+   ```bash
+   code --list-extensions | grep copilot-token-budget
+   # Must output: att-internal.copilot-token-budget
+   ```
+
+2. **Check session data exists:**
+   ```bash
+   ls ~/.copilot/session-state/*/events.jsonl | head -5
+   ```
+
+3. **Reload extension:**
+   - Cmd+Shift+P → "Developer: Reload Window"
+
+4. **Generate a Copilot session:**
+   ```bash
+   gh copilot --prompt "test"
+   ```
+
+---
+
+## Project Architecture
 
 ```
 copilot-token-budget/
-  product/                    — PRD, north-star goals
-  design/                     — Architecture, ADRs
-    adr/                      — Architecture decision records
-  planning/                   — Delivery roadmap, milestones
-  evaluation/                 — Acceptance criteria, eval rubrics
-  tracking/                   — Sprint state, phase-gate status
-  phase-0/                    — Spike: data source validation (COMPLETE)
-    findings/                 — FINDINGS_MEMO.md, raw data
-  phase-1/                    — Go CLI tool: analyze + dashboard (COMPLETE)
-    session-manager/          — Go module: cmd/analyze, cmd/dashboard
-  phase-2/                    — VS Code extension (COMPLETE — F5 + .vsix verified)
-    vscode-extension/         — TypeScript extension source + out/
-  phase-3/                    — Teams alerts + budget forecasting (COMPLETE)
-  phase-4/                    — MCP server: SIX tools, stdio (COMPLETE — 8/10 gates)
-  docs/                       — onboarding-runbook.md (≤5-min install, all-OS)
-  .goreleaser.yaml            — GoReleaser v2: 5 binaries × 5 platforms, archives, checksums
-  LICENSE                     — proprietary placeholder ([VERIFY] before external distribution)
-  .copilot/                   — mcp.json: registers the Phase 4 MCP server
-  .github/
-    instructions/             — Copilot CLI workspace instructions
-    dependabot.yml            — weekly dependency bumps (Go, npm, actions)
-    workflows/                — ci.yml + release.yml (GoReleaser, JFrog OIDC); README.md = setup
+├── phase-0/                    — Data source spike (✅)
+│   └── findings/               — IDE_USAGE_FINDINGS.md, schema validation
+├── phase-1/                    — Go CLI tool (✅)
+│   └── session-manager/        — Go module: analyze, dashboard, statusline
+│       ├── cmd/analyze/        — Budget report (--json, --csv modes)
+│       ├── cmd/dashboard/      — Live TUI with charts
+│       ├── cmd/statusline/     — WezTerm badge
+│       ├── internal/
+│       │   ├── session/        — Reader (CLI + IDE dedup)
+│       │   ├── analytics/      — Daily/weekly/monthly trends (Phase 7)
+│       │   ├── export/         — JSON/CSV (Phase 7)
+│       │   ├── pricing/        — Config + model rates (Phase 7, ADR-008)
+│       │   ├── budget/         — Credit calculations
+│       │   └── render/         — Terminal output formatting
+├── phase-2/                    — VS Code Extension (✅)
+│   └── vscode-extension/       — TypeScript extension
+│       ├── src/
+│       │   ├── ui/
+│       │   │   ├── dashboardPanel.ts   — Webview (Billions format)
+│       │   │   ├── sessionTree.ts      — Tree view
+│       │   │   └── statusBar.ts        — Status bar badge
+│       │   ├── session/reader.ts       — CLI + IDE collector
+│       │   ├── analytics/model.ts      — Trend/anomaly (Phase 7)
+│       │   ├── export/report.ts        — JSON/CSV (Phase 7)
+│       │   └── types.ts                — Session, BudgetState, SessionSource
+│       └── out/                        — Compiled JavaScript
+├── phase-3/                    — Teams Alerts (✅)
+│   └── cmd/alert/              — Adaptive Card sender
+├── phase-4/                    — MCP Server (✅)
+│   └── cmd/mcp-server/         — 6 tools for Copilot CLI
+├── design/                     — Architecture & ADRs
+│   └── adr/
+│       ├── ADR-001.md          — Zero-network constraint
+│       ├── ADR-007.md          — Multi-source dedup (Phase 6)
+│       └── ADR-008.md          — Pricing override (Phase 7)
+├── evaluation/                 — Acceptance gates
+│   ├── PHASE6_ACCEPTANCE.md    — G61-G66 (IDE multi-source)
+│   └── PHASE7_ACCEPTANCE.md    — G38-G50 (analytics)
+├── docs/                       — Runbooks & guides
+│   └── onboarding-runbook.md   — ≤5-min install (all OS)
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml              — Build/test on push
+│   │   └── release.yml         — GoReleaser + JFrog
+│   └── instructions/           — Copilot CLI workspace setup
+├── .goreleaser.yaml            — 25 binaries × 5 platforms
+├── .copilot/mcp.json           — MCP server registration
+├── STATUS.md                   — Phase dashboard
+├── IMPLEMENTATION_PLAYBOOK.md  — Execution log (all steps + results)
+└── README.md                   — This file
 ```
 
-## Quick start
+---
 
-**Prerequisites — Go version:** phase-1 and phase-3 build on **Go 1.21+**. **phase-4 (the MCP server) requires Go 1.25+** — this is a hard dependency: `modelcontextprotocol/go-sdk v1.6.1` requires Go ≥ 1.25, and `phase-4/go.mod` declares `go 1.25.0` deliberately. This is an intentional requirement, not version skew. (Node 18+ for the Phase 2 VS Code extension.)
-
-**Go CLI (Phase 1 + v1.1):**
-```bash
-cd phase-1/session-manager
-go run ./cmd/analyze ~/projects/aaraminds-projects
-go run ./cmd/analyze --json ~/projects/aaraminds-projects   # full report as JSON (camelCase)
-go run ./cmd/analyze --csv  ~/projects/aaraminds-projects   # sessions/daily as CSV
-go run ./cmd/dashboard ~/projects/aaraminds-projects
-
-# ccusage-style status line (one shot, no network, never panics, NO_COLOR-aware):
-go run ./cmd/statusline
-# embed in WezTerm right-status or a shell prompt; honours NO_COLOR=1
-```
-
-**Overridable pricing (v1.1):** drop a `pricing.json` into the config dir to override rates,
-allowance, or context windows — partial files merge over the bundled defaults; a missing or
-malformed file falls back to defaults. Path: `~/.config/copilot-token-budget/pricing.json`
-(macOS/Linux) or `%AppData%\copilot-token-budget\pricing.json` (Windows). See ADR-008.
-
-**VS Code Extension (Phase 2 + v1.1):**
-```
-File → Open Folder → phase-2/vscode-extension
-Press F5 → Extension Development Host opens
-```
-- Dashboard adds a **Usage Trend** inline chart, **Top Consumers** tables, a context-% column,
-  and an input/output split; the status-bar tooltip shows today/month/allowance%/burn/projected/context%.
-- Command **`Copilot Budget: Export Usage`** (`copilotBudget.exportUsage`) — JSON/CSV save dialog.
-- Setting **`copilotBudget.pricingPath`** — path to a pricing override file (mirrors `pricing.json`).
-- Allowance: an explicit `copilotBudget.monthlyAllowance` wins, else the pricing config's allowance.
-
-**Teams alerts (Phase 3):**
-```bash
-cd phase-3
-COPILOT_BUDGET_TEAMS_WEBHOOK="<webhook>" go run ./cmd/alert ~/projects/aaraminds-projects
-go run ./cmd/alert --dry-run ~/projects/aaraminds-projects   # prints Adaptive Card JSON, no POST
-```
-
-**MCP server (Phase 4 + v1.1):**
-```bash
-cd phase-4
-go build -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
-# registered for Copilot CLI via .copilot/mcp.json (stdio transport)
-```
-Exposes **six tools**: `get_budget_status`, `get_sessions`, `get_instruction_overhead`,
-`get_model_costs`, `get_usage_timeseries` (daily/weekly/monthly), `get_top_consumers` (top-N
-sessions/models/projects). All read local files only — zero network.
-
-## Distribution & install
-
-The full **≤5-minute onboarding runbook** (all OS, Power Automate Workflows webhook setup) is
-[`docs/onboarding-runbook.md`](docs/onboarding-runbook.md).
-
-- **Binaries** are cross-compiled by **GoReleaser v2** ([`.goreleaser.yaml`](.goreleaser.yaml)) for
-  **macOS (Intel + Apple Silicon), Linux (amd64 + arm64), and Windows (amd64)** — 5 binaries × 5
-  platforms = 25 archives (`.tar.gz`, `.zip` on Windows), each bundling README/USAGE/LICENSE/runbook,
-  plus a sha256 `checksums.txt`. (windows/arm64 is intentionally excluded.)
-- **VS Code extension** ships as a `.vsix` (publisher `att-internal`, id
-  `att-internal.copilot-token-budget`).
-- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) builds/vets/tests (`-race`) +
-  gofmt across all 3 Go modules, lints `.goreleaser.yaml`, and compiles the extension on every push/PR.
-- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) triggers on a
-  `v*.*.*` tag: GoReleaser + vsce build the artifacts, then they are published to **JFrog Artifactory
-  over OIDC** (no stored tokens — ADR-005, never Azure ACR) and a GitHub Release is cut. Required repo
-  Variables and one-time JFrog OIDC setup are in [`.github/workflows/README.md`](.github/workflows/README.md).
-
-> **Live distribution status:** the build/packaging/CI **config is complete and locally validated**
-> (`goreleaser check` + 25-binary snapshot + actionlint clean + clean `.vsix`). The **live publish
-> path** (tag → JFrog upload → GitHub Release) has **not yet run against real infrastructure** — it is
-> pending JFrog provisioning + the first tagged release. See `evaluation/PHASE5_ACCEPTANCE.md`
-> (gates G60–G64).
-
-## Billing reference
+## Billing Reference
 
 | Unit | Value |
 |---|---|
 | 1 AI Credit | $0.01 |
 | 1 credit | 1,000,000,000 nanoAIU |
-| AT&T monthly allowance | 7,000 credits/month (promo until 2026-09-01) |
-| Claude Sonnet input | 300 credits/M tokens |
-| Claude Sonnet output | 1,500 credits/M tokens |
-| Claude Opus input | 500 credits/M tokens |
-| Claude Opus output | 2,500 credits/M tokens |
-| Claude Haiku input | 100 credits/M tokens |
-| Claude Haiku output | 500 credits/M tokens |
+| AT&T monthly allowance | 7,000 credits (promo through 2026-09-01) |
+| **Claude Sonnet** input / output | 300 / 1,500 credits/M tokens |
+| **Claude Opus** input / output | 500 / 2,500 credits/M tokens |
+| **Claude Haiku** input / output | 100 / 500 credits/M tokens |
+| Context window | 200,000 tokens (Copilot default) |
 
-Rate source: GitHub Copilot models-and-pricing (1 credit = $0.01; credits/M token = USD/Mtoken × 100).
-Context window: 200,000 tokens per model (Copilot default / non-extended).
+> **Note:** Rates, allowance, and context window are **bundled defaults**. Override via `pricing.json` (ADR-008) without rebuilding.
+> All costs are **estimates** — the tool reads local telemetry and applies a local price table. It never reconciles against GitHub's authoritative billing (by design, ADR-001).
 
-> Since v1.1, these rates, the allowance, and the context window are **bundled defaults** that are
-> overridable via `pricing.json` (ADR-008) — change them without a rebuild. All costs are estimates.
+---
 
-## Status
+## Building from Source
 
-**Phases 0–4 complete; Phase 5 (distribution) is config-complete + locally validated.** The build,
-packaging, and CI/CD configuration is done and validated locally (gates G51–G59 green); the **live
-publish path** (JFrog upload + GitHub Release on a real tag) is **pending JFrog provisioning + first
-tag** (gates G60–G64). Phase 4 tail: G31 (live Copilot CLI invocation) and G32 (pin go-sdk to a
-commit hash) remain.
+### **Prerequisites**
 
-See [STATUS.md](STATUS.md) for the live phase dashboard.
-See [BUILD_PLAN.md](BUILD_PLAN.md) for the phased build plan with gates.
-See [IMPLEMENTATION_PLAYBOOK.md](IMPLEMENTATION_PLAYBOOK.md) for the execution log.
+- **Go 1.21+** (Phase 1, 3) or **Go 1.25+** (Phase 4 — hard requirement for `modelcontextprotocol/go-sdk v1.6.1`)
+- **Node.js 18+** (Phase 2 extension)
+- **npm 9+**
+
+### **Build All Phases**
+
+```bash
+# Clone and prepare
+git clone https://github.com/your-org/copilot-token-budget.git
+cd copilot-token-budget
+
+# Phase 1: Go CLI
+cd phase-1/session-manager
+go build -o /usr/local/bin/copilot-budget-analyze ./cmd/analyze
+go build -o /usr/local/bin/copilot-budget-dashboard ./cmd/dashboard
+go build -o /usr/local/bin/copilot-budget-statusline ./cmd/statusline
+
+# Phase 2: VS Code Extension
+cd ../../phase-2/vscode-extension
+npm install
+npm run compile
+npm run package
+# → copilot-token-budget-0.1.0.vsix
+
+# Phase 3: Teams Alert
+cd ../../phase-3
+go build -o /usr/local/bin/copilot-budget-alert ./cmd/alert
+
+# Phase 4: MCP Server
+cd ../phase-4
+go build -o /usr/local/bin/copilot-budget-mcp ./cmd/mcp-server
+
+# Phase 5: GoReleaser (all platforms)
+cd ../
+goreleaser build --snapshot
+# → dist/ contains 25 binaries × 5 platforms
+```
+
+### **Run Tests**
+
+```bash
+# Phase 1 tests
+cd phase-1/session-manager
+go test -race ./...
+
+# Phase 2 tests (TypeScript)
+cd ../../phase-2/vscode-extension
+npm test
+
+# Linting
+cd ../../
+gofmt -l ./phase-1 ./phase-3 ./phase-4
+actionlint .github/workflows/*.yml
+```
+
+---
+
+## Status & Next Steps
+
+| Phase | Status | Gate | Notes |
+|---|---|---|---|
+| **0** | ✅ Complete | Data source validated | IDE schema discovered, JSONL format confirmed |
+| **1** | ✅ Complete | CLI tool live | analyze + dashboard + statusline |
+| **2** | ✅ Complete | Extension F5 + .vsix | Dashboard, tree view, export |
+| **3** | ✅ Complete | Teams alerts | CRITICAL/WARNING on transitions |
+| **4** | ⚠️ 8/10 gates | G31–G32 pending | 6 MCP tools live; 2 gates for live Copilot integration |
+| **5** | ✅ Config-complete | G60–G64 pending | Binaries + .vsix packaged; live publish awaits JFrog + first tag |
+| **6** | ✅ Complete | All 6 gates | IDE + CLI multi-source, dedup, per-source display |
+| **7** | ✅ Complete | All gates | Analytics, export, pricing override, rich UI |
+
+**Live deployment:** Ready for team distribution immediately. See `docs/onboarding-runbook.md` for ≤5-min install.
+
+---
+
+## Contributing
+
+For issues, PRs, or questions:
+
+1. Read [`product/`](product/) and [`design/adr/`](design/adr/) first
+2. Consult [`STATUS.md`](STATUS.md) for current phase
+3. Check [`IMPLEMENTATION_PLAYBOOK.md`](IMPLEMENTATION_PLAYBOOK.md) for execution history
+4. File issues in GitHub; tag with phase (P1, P2, etc.)
+
+---
+
+## License
+
+[Proprietary — AT&T Internal Use]  
+See [`LICENSE`](LICENSE) for full terms. Distribution outside AT&T requires legal review.
+

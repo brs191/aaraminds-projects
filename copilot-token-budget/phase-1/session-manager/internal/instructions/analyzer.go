@@ -20,6 +20,26 @@ type InstructionFile struct {
 	Project       string // basename of the project dir (project-scoped only)
 }
 
+// OptimizationOpportunity captures one file-level token reduction candidate.
+type OptimizationOpportunity struct {
+	Path            string // absolute path
+	Scope           string // "workspace-root" or "project-scoped"
+	CurrentTokens   int64
+	TargetTokens    int64
+	ReducibleTokens int64
+	Priority        string // "critical" | "high" | "medium"
+	Recommendation  string
+}
+
+// OptimizationSummary captures total optimization potential across scanned files.
+// Totals focus on workspace-root files because they are always loaded.
+type OptimizationSummary struct {
+	AlwaysLoadedTokens int64
+	TargetTokens       int64
+	ReducibleTokens    int64
+	Opportunities      []OptimizationOpportunity
+}
+
 // SavingsRecommendation returns a human-readable recommendation for this file.
 func (f InstructionFile) SavingsRecommendation() string {
 	switch {
@@ -45,6 +65,48 @@ func Severity(toks int64) string {
 	default:
 		return "low"
 	}
+}
+
+// BuildOptimizationSummary derives a deterministic optimization plan from
+// instruction token counts. It prioritizes workspace-root files because they are
+// loaded for every prompt in every project.
+func BuildOptimizationSummary(files []InstructionFile) OptimizationSummary {
+	summary := OptimizationSummary{}
+	opps := make([]OptimizationOpportunity, 0, len(files))
+
+	for _, f := range files {
+		target := targetTokens(f.EstimatedToks)
+		reducible := f.EstimatedToks - target
+		if reducible <= 0 {
+			if f.Scope == "workspace-root" {
+				summary.AlwaysLoadedTokens += f.EstimatedToks
+				summary.TargetTokens += f.EstimatedToks
+			}
+			continue
+		}
+
+		opps = append(opps, OptimizationOpportunity{
+			Path:            f.Path,
+			Scope:           f.Scope,
+			CurrentTokens:   f.EstimatedToks,
+			TargetTokens:    target,
+			ReducibleTokens: reducible,
+			Priority:        Severity(f.EstimatedToks),
+			Recommendation:  optimizationRecommendation(f.EstimatedToks, target),
+		})
+
+		if f.Scope == "workspace-root" {
+			summary.AlwaysLoadedTokens += f.EstimatedToks
+			summary.TargetTokens += target
+			summary.ReducibleTokens += reducible
+		}
+	}
+
+	sort.Slice(opps, func(i, j int) bool {
+		return opps[i].ReducibleTokens > opps[j].ReducibleTokens
+	})
+	summary.Opportunities = opps
+	return summary
 }
 
 // ScanWorkspace scans workspaceRoot for Copilot instruction files at two levels:
@@ -85,6 +147,31 @@ func ScanWorkspace(workspaceRoot string) ([]InstructionFile, error) {
 	})
 
 	return results, nil
+}
+
+func targetTokens(toks int64) int64 {
+	switch {
+	case toks >= 5000:
+		return 1200
+	case toks >= 2000:
+		return 900
+	case toks >= 500:
+		return 400
+	default:
+		return toks
+	}
+}
+
+func optimizationRecommendation(current, target int64) string {
+	switch {
+	case current >= 5000:
+		return "split into scoped files and keep shared core concise"
+	case current >= 2000:
+		return "compress rules to bullets and remove duplicated guidance"
+	default:
+		_ = target
+		return "trim examples and move rarely used guidance to on-demand docs"
+	}
 }
 
 // scanDir scans dir for *.md files and appends non-duplicate InstructionFiles to results.

@@ -3,6 +3,13 @@
 // hover tooltip is a richer MarkdownString breakdown (today, month, burn, forecast,
 // newest-active context %).
 
+// formatCreditsDisplay renders raw credits with thousands separators and up to two
+// decimals — parity with the Go side (e.g. "8,554.03", "656.54"). Credits are already
+// credits (nanoAIU / 1e9), so there is no further scaling and no "B"/billions unit.
+function formatCreditsDisplay(credits: number): string {
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 import * as vscode from 'vscode';
 import { BudgetState, Session, billingTime } from '../types';
 import { statusBarText, fromNanoAIU } from '../budget/tracker';
@@ -86,13 +93,13 @@ function buildTooltip(state: BudgetState, sessions: Session[], cfg: PricingConfi
   md.supportThemeIcons = true;
   md.appendMarkdown(`**Copilot Token Budget**\n\n`);
   md.appendMarkdown(`| Metric | Value |\n| --- | --- |\n`);
-  md.appendMarkdown(`| Today | ${todayCredits.toFixed(1)} cr |\n`);
+  md.appendMarkdown(`| Today | ${formatCreditsDisplay(todayCredits)} |\n`);
   md.appendMarkdown(
-    `| Month | ${state.usedCredits.toFixed(0)} / ${state.allowedCredits} cr (${state.usedPct.toFixed(1)}%) |\n`
+    `| Month | ${formatCreditsDisplay(state.usedCredits)} / ${formatCreditsDisplay(state.allowedCredits)} (${state.usedPct.toFixed(1)}%) |\n`
   );
-  md.appendMarkdown(`| Daily burn | ${f.dailyBurn.toFixed(1)} cr/day |\n`);
+  md.appendMarkdown(`| Daily burn | ${formatCreditsDisplay(f.dailyBurn)}/day |\n`);
   const verdict = f.exceedsAllowance ? ' ⚠ over allowance' : '';
-  md.appendMarkdown(`| Projected month-end | ${f.projectedMonthEndTotal.toFixed(0)} cr${verdict} |\n`);
+  md.appendMarkdown(`| Projected month-end | ${formatCreditsDisplay(f.projectedMonthEndTotal)}${verdict} |\n`);
   if (newestActive !== undefined) {
     const ctx = contextWindowPct(newestActive, cfg);
     const label = newestActive.projectName !== '' ? newestActive.projectName : newestActive.id.slice(0, 8);

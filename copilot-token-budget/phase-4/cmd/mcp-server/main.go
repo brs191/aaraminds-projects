@@ -85,7 +85,7 @@ func main() {
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "get_instruction_overhead",
-			Description: "Audit .github/instructions/ files in a workspace. Returns token counts, severity ratings, and estimated credit cost per 50-turn session.",
+			Description: "Audit .github/instructions/ files in a workspace. Returns token counts, severity ratings, estimated credit cost per 50-turn session, and an optimization plan with target tokens and potential savings.",
 		},
 		tools.GetInstructionOverhead,
 	)

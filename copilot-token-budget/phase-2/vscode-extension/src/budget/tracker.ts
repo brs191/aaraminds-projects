@@ -4,6 +4,13 @@
 
 import { Session, BudgetState } from '../types';
 
+// formatCreditsDisplay renders raw credits with thousands separators and up to two
+// decimals — parity with the Go side (e.g. "8,554.03", "656.54"). Credits are already
+// credits (nanoAIU / 1e9), so there is no further scaling and no "B"/billions unit.
+function formatCreditsDisplay(credits: number): string {
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 // Billing unit conversions — mirrors Go named constants exactly.
 export const NANO_AIU_PER_CREDIT = 1_000_000_000;
 export const DOLLARS_PER_CREDIT  = 0.01;
@@ -60,8 +67,7 @@ export function statusBarText(state: BudgetState): string {
     : state.status === 'WARNING'
       ? '$(warning) '
       : '$(check) ';
-  const used = Math.round(state.usedCredits);
-  return `${icon}💰 ${used}/${state.allowedCredits} cr`;
+  return `${icon}💰 ${formatCreditsDisplay(state.usedCredits)} / ${formatCreditsDisplay(state.allowedCredits)}`;
 }
 
 // statusFor maps a usage percentage to a BudgetState status value.

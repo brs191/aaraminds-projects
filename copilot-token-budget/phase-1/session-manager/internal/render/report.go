@@ -214,20 +214,44 @@ func printSection4(files []instructions.InstructionFile, workspaceRoot string) {
 	printInstructionGroup("Always loaded (workspace-root)", wsRoot, workspaceRoot)
 	printInstructionGroup("Project-scoped", projScoped, workspaceRoot)
 
-	var totalAlwaysLoadedToks int64
-	for _, f := range wsRoot {
-		totalAlwaysLoadedToks += f.EstimatedToks
-	}
-	if totalAlwaysLoadedToks > 0 {
-		cr, usd := budget.EstimateInstructionCostPerSession(totalAlwaysLoadedToks)
+	summary := instructions.BuildOptimizationSummary(files)
+	if summary.AlwaysLoadedTokens > 0 {
+		cr, usd := budget.EstimateInstructionCostPerSession(summary.AlwaysLoadedTokens)
 		fmt.Printf("\n  %sAlways-loaded overhead:%s ~%d tokens → %s%.2f cr / $%.2f%s per 50-turn session\n",
-			ansiBold, ansiReset, totalAlwaysLoadedToks, ansiYellow, cr, usd, ansiReset,
+			ansiBold, ansiReset, summary.AlwaysLoadedTokens, ansiYellow, cr, usd, ansiReset,
 		)
-		if totalAlwaysLoadedToks > 1000 {
-			savings, savingsUSD := budget.EstimateInstructionCostPerSession(totalAlwaysLoadedToks - 1000)
-			fmt.Printf("  %sSavings opportunity:%s trim to 1K tokens → save ~%.2f cr / $%.2f per session\n",
-				ansiBold, ansiReset, cr-savings, usd-savingsUSD,
+		if summary.ReducibleTokens > 0 {
+			targetCr, targetUSD := budget.EstimateInstructionCostPerSession(summary.TargetTokens)
+			fmt.Printf("  %sOptimization target:%s ~%d tokens → %.2f cr / $%.2f per session\n",
+				ansiBold, ansiReset, summary.TargetTokens, targetCr, targetUSD,
 			)
+			fmt.Printf("  %sPotential savings:%s reduce ~%d tokens → save ~%.2f cr / $%.2f per session\n",
+				ansiBold, ansiReset, summary.ReducibleTokens, cr-targetCr, usd-targetUSD,
+			)
+
+			fmt.Printf("\n  %sTop optimization opportunities:%s\n", ansiBold, ansiReset)
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			fmt.Fprintf(w, "  %sFile\tScope\tCurrent\tTarget\tReduce\tAction%s\n", ansiBold, ansiReset)
+			fmt.Fprintf(w, "  %s%s%s\n", ansiDim, strings.Repeat("─", 92), ansiReset)
+			limit := 3
+			if len(summary.Opportunities) < limit {
+				limit = len(summary.Opportunities)
+			}
+			for i := 0; i < limit; i++ {
+				o := summary.Opportunities[i]
+				rel, err := filepath.Rel(workspaceRoot, o.Path)
+				if err != nil {
+					rel = o.Path
+				}
+				fmt.Fprintf(w, "  %s\t%s\t%d\t%d\t%s-%d%s\t%s\n",
+					rel, o.Scope, o.CurrentTokens, o.TargetTokens,
+					tokenColor(o.ReducibleTokens), o.ReducibleTokens, ansiReset,
+					o.Recommendation,
+				)
+			}
+			if err := w.Flush(); err != nil {
+				fmt.Fprintf(os.Stderr, "render: flush error (section 4 optimization): %v\n", err)
+			}
 		}
 	}
 }

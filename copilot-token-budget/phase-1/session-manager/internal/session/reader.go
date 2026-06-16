@@ -55,10 +55,13 @@ type TokenBreakdown struct {
 
 // ModelMetric is the per-model billing summary for one session.
 type ModelMetric struct {
-	Model        string
-	InputTokens  int64
-	OutputTokens int64
-	NanoAIU      int64
+	Model            string
+	InputTokens      int64
+	OutputTokens     int64
+	NanoAIU          int64
+	CacheReadTokens  int64 // phase 6: prompt caching reads
+	CacheWriteTokens int64 // phase 6: prompt caching writes
+	ReasoningTokens  int64 // phase 6: extended thinking tokens
 }
 
 // BillingTime returns the time used to attribute a session to a calendar month.
@@ -124,17 +127,20 @@ func (cliCollector) Collect() ([]Session, error) {
 	return readAll(stateDir)
 }
 
-// ideCollector is a Phase 6 stub for VS Code IDE Copilot usage.
+// ideCollector is the registration slot for the future VS Code Copilot Chat
+// reader. It is currently a no-op stub: it produces no sessions.
 type ideCollector struct{}
 
 // Name implements Collector.
 func (ideCollector) Name() string { return "copilot-ide" }
 
-// Collect implements Collector.
-//
-// TODO(Phase 6 / Step 6.0): parse VS Code IDE Copilot usage once the local schema
-// is confirmed (see design/adr/ADR-007). Returns no sessions until then.
-func (ideCollector) Collect() ([]Session, error) { return nil, nil }
+// Collect implements Collector as a no-op.
+// TODO(Phase 6): VS Code Copilot Chat is a SEPARATE source (chatSessions/transcripts
+// under VS Code user data), NOT ~/.copilot. Returns nothing until implemented against
+// the real Chat schema — see ADR-007 (corrected).
+func (ideCollector) Collect() ([]Session, error) {
+	return nil, nil
+}
 
 // collectors is the ordered set of sources ReadAll merges. CLI first so that, all
 // else equal, a CLI record is encountered before an IDE record for the same id.
@@ -433,18 +439,24 @@ func applyBilling(data billingData, s *Session) {
 		var m struct {
 			TotalNanoAiu int64 `json:"totalNanoAiu"`
 			Usage        struct {
-				InputTokens  int64 `json:"inputTokens"`
-				OutputTokens int64 `json:"outputTokens"`
+				InputTokens      int64 `json:"inputTokens"`
+				OutputTokens     int64 `json:"outputTokens"`
+				CacheReadTokens  int64 `json:"cacheReadTokens"`
+				CacheWriteTokens int64 `json:"cacheWriteTokens"`
+				ReasoningTokens  int64 `json:"reasoningTokens"`
 			} `json:"usage"`
 		}
 		if err := json.Unmarshal(mRaw, &m); err != nil {
 			continue
 		}
 		s.ModelMetrics = append(s.ModelMetrics, ModelMetric{
-			Model:        modelName,
-			InputTokens:  m.Usage.InputTokens,
-			OutputTokens: m.Usage.OutputTokens,
-			NanoAIU:      m.TotalNanoAiu,
+			Model:            modelName,
+			InputTokens:      m.Usage.InputTokens,
+			OutputTokens:     m.Usage.OutputTokens,
+			NanoAIU:          m.TotalNanoAiu,
+			CacheReadTokens:  m.Usage.CacheReadTokens,
+			CacheWriteTokens: m.Usage.CacheWriteTokens,
+			ReasoningTokens:  m.Usage.ReasoningTokens,
 		})
 		if m.TotalNanoAiu > bestNano {
 			bestNano = m.TotalNanoAiu

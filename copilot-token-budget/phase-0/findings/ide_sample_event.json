@@ -1,0 +1,58 @@
+{
+  "type": "session.shutdown",
+  "data": {
+    "shutdownType": "routine",
+    "totalPremiumRequests": 22,
+    "tokenDetails": {
+      "input": {
+        "tokenCount": 4412
+      },
+      "cache_read": {
+        "tokenCount": 28052107
+      },
+      "cache_write": {
+        "tokenCount": 1289434
+      },
+      "output": {
+        "tokenCount": 194290
+      }
+    },
+    "modelMetrics": {
+      "claude-sonnet-4.6": {
+        "requests": {
+          "count": 269,
+          "cost": 22
+        },
+        "usage": {
+          "inputTokens": 28711713,
+          "outputTokens": 175714,
+          "cacheReadTokens": 28009533,
+          "cacheWriteTokens": 697780,
+          "reasoningTokens": 14618
+        },
+        "totalNanoAiu": 1617859560000,
+        "tokenDetails": {
+          "input": {
+            "tokenCount": 4412
+          },
+          "cache_read": {
+            "tokenCount": 28052107
+          },
+          "cache_write": {
+            "tokenCount": 1289434
+          },
+          "output": {
+            "tokenCount": 194290
+          }
+        }
+      }
+    },
+    "currentModel": "claude-sonnet-4.6",
+    "currentTokens": 194290,
+    "sessionStartTime": 1780912458478,
+    "totalApiDurationMs": 54582
+  },
+  "id": "session-shutdown-event-uuid",
+  "timestamp": "2026-06-13T08:43:04.730Z",
+  "parentId": "67806ef5-ded8-433e-9a61-efd2c67b1371"
+}
