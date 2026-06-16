@@ -1,0 +1,33 @@
+# Dependabot keeps Actions, Go modules, and the npm extension current.
+# Weekly cadence across all ecosystems. Action SHAs/tags are bumped here so the
+# major-tag pins in the workflows can later be tightened to SHAs without drift.
+version: 2
+
+updates:
+  # ---- GitHub Actions (workflows live at repo root .github/workflows) ----
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # ---- Go modules (one entry per go.mod) ----
+  - package-ecosystem: gomod
+    directory: /phase-1/session-manager
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /phase-3
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /phase-4
+    schedule:
+      interval: weekly
+
+  # ---- npm (VS Code extension) ----
+  - package-ecosystem: npm
+    directory: /phase-2/vscode-extension
+    schedule:
+      interval: weekly

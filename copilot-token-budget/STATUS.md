@@ -14,7 +14,7 @@
 | Phase 2 | VS Code extension | ✅ **COMPLETE** | Steps 2.1–2.6 ✅ · F5 + .vsix verified 2026-06-14 |
 | Phase 3 | Teams alerts + forecasting | ✅ **COMPLETE** | Steps 3.1–3.5 ✅ · review clean · gates G10–G22 defined |
 | Phase 4 | MCP server | ✅ **COMPLETE** | Steps 4.1–4.3 ✅ · 8/10 gates green · G31–G32 pending |
-| Phase 5 | Distribution + onboarding | 🔲 **NOT STARTED** | Steps 5.1–5.6 |
+| Phase 5 | Distribution + onboarding | 🟡 **CONFIG-COMPLETE** | Steps 5.1–5.6 ✅ · gates G51–G59 green · live publish (G60–G64) pending JFrog + first tag |
 
 > Built 2026-06-13 → 2026-06-14 with agent routing for every step.
 > See `IMPLEMENTATION_PLAYBOOK.md` for all prompts, results, and gate criteria.
@@ -153,11 +153,28 @@ Copilot CLI can answer "how's my budget?" mid-session via MCP tool call.
 
 ---
 
-## Phase 5 — Distribution + onboarding · 🔲 NOT STARTED
+## 2026-06-16 — Phase 5 distribution · 🟡 CONFIG-COMPLETE + LOCALLY VALIDATED (live publish pending)
 
 Goal: any AT&T engineer installs the tool in ≤ 5 minutes from JFrog Artifactory.
 
-Steps 5.1–5.6 (all 🔲): Windows compatibility audit → CI/CD + JFrog distribution → `.vsix` distribution hardening → onboarding runbook → final code review → Phase 5 eval criteria.
+**Honest framing:** the build/packaging/CI **configuration** is complete and validated **locally**.
+The **live distribution path** (tag → JFrog OIDC upload → GitHub Release → real-OS install) has
+**never run against real infrastructure**. It stays PENDING the first tag + JFrog provisioning.
+
+Steps 5.1–5.6 all ✅ (config + local validation):
+
+- **5.1 ✅ Cross-platform build** — `.goreleaser.yaml` (v2); `goreleaser build --snapshot` produces **25 binaries** (5 binaries × 5 platforms: darwin/amd64+arm64, linux/amd64+arm64, windows/amd64). windows/arm64 intentionally excluded.
+- **5.2 ✅ CI/CD** — `.github/workflows/release.yml` (tag `v*.*.*`: build-go via GoReleaser, build-vsix via vsce/Node 22, publish via JFrog OIDC + GitHub Release) and `ci.yml` (Go matrix build/vet/test -race/gofmt + goreleaser check + extension compile). `.github/dependabot.yml` weekly. **actionlint clean** on both. JFrog over **OIDC, no stored tokens** (ADR-005, JFrog not Azure ACR).
+- **5.3 ✅ `.vsix` hardened** — package.json metadata, `LICENSE` (proprietary placeholder, `[VERIFY]`), `.vscodeignore`, extension README. Clean `.vsix` verified: only compiled `out/` JS + manifest + README + LICENSE; **no src/.ts/.map/node_modules**. Marketplace id `att-internal.copilot-token-budget`.
+- **5.4 ✅ Runbook** — `docs/onboarding-runbook.md` (≤5-min, all-OS, Power Automate Workflows webhook). Now also bundled inside every release archive.
+- **5.5 ✅ Final review** — `goreleaser check` clean; 25 binaries confirmed; actionlint clean; least-privilege workflow `permissions:` (top-level deny-all / minimal, per-job elevated); only `secrets.GITHUB_TOKEN`; no hardcoded tokens/URLs; ADR-005 (no ACR) confirmed; all 3 Go modules build/vet/test -race/gofmt green; `--version` ldflags embedding verified.
+- **5.6 ✅ Eval** — `evaluation/PHASE5_ACCEPTANCE.md`, gates **G51–G64** (G51–G59 automated/green, G60–G64 manual/live/pending).
+
+**PENDING (live publish path — not run):**
+- JFrog Artifactory repo provisioning + `github-oidc` integration (G61).
+- First tagged release to exercise `release.yml` end-to-end (G60, G62).
+- Runbook E2E timing + native macOS/Windows execution (G63, G64).
+- `LICENSE` is still a placeholder — replace with the approved corporate license before external distribution.
 
 > ⚠️ Raise the **JFrog Artifactory provisioning ticket now** if not already open — 1–2 week IT lead time.
 
@@ -165,5 +182,6 @@ Steps 5.1–5.6 (all 🔲): Windows compatibility audit → CI/CD + JFrog distri
 
 ## Next action
 
-Execute **Step 5.1 — Windows compatibility audit** using `aara-project-builder` — prompt in `IMPLEMENTATION_PLAYBOOK.md`.
-Also close out Phase 4 tail: **G31** (live Copilot CLI tool invocation) and **G32** (commit-hash pin) before final distribution.
+Provision the JFrog Artifactory repos + `github-oidc` integration (see `.github/workflows/README.md`),
+then cut the **first tag** to exercise the live publish path (gates G60–G64 in `evaluation/PHASE5_ACCEPTANCE.md`).
+Also close the Phase 4 tail: **G31** (live Copilot CLI tool invocation) and **G32** (commit-hash pin).

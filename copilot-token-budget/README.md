@@ -67,11 +67,14 @@ copilot-token-budget/
     vscode-extension/         — TypeScript extension source + out/
   phase-3/                    — Teams alerts + budget forecasting (COMPLETE)
   phase-4/                    — MCP server: SIX tools, stdio (COMPLETE — 8/10 gates)
-  phase-5/                    — Distribution + onboarding (NOT STARTED)
+  docs/                       — onboarding-runbook.md (≤5-min install, all-OS)
+  .goreleaser.yaml            — GoReleaser v2: 5 binaries × 5 platforms, archives, checksums
+  LICENSE                     — proprietary placeholder ([VERIFY] before external distribution)
   .copilot/                   — mcp.json: registers the Phase 4 MCP server
   .github/
     instructions/             — Copilot CLI workspace instructions
-    workflows/                — CI/CD (JFrog deploy)
+    dependabot.yml            — weekly dependency bumps (Go, npm, actions)
+    workflows/                — ci.yml + release.yml (GoReleaser, JFrog OIDC); README.md = setup
 ```
 
 ## Quick start
@@ -124,6 +127,30 @@ Exposes **six tools**: `get_budget_status`, `get_sessions`, `get_instruction_ove
 `get_model_costs`, `get_usage_timeseries` (daily/weekly/monthly), `get_top_consumers` (top-N
 sessions/models/projects). All read local files only — zero network.
 
+## Distribution & install
+
+The full **≤5-minute onboarding runbook** (all OS, Power Automate Workflows webhook setup) is
+[`docs/onboarding-runbook.md`](docs/onboarding-runbook.md).
+
+- **Binaries** are cross-compiled by **GoReleaser v2** ([`.goreleaser.yaml`](.goreleaser.yaml)) for
+  **macOS (Intel + Apple Silicon), Linux (amd64 + arm64), and Windows (amd64)** — 5 binaries × 5
+  platforms = 25 archives (`.tar.gz`, `.zip` on Windows), each bundling README/USAGE/LICENSE/runbook,
+  plus a sha256 `checksums.txt`. (windows/arm64 is intentionally excluded.)
+- **VS Code extension** ships as a `.vsix` (publisher `att-internal`, id
+  `att-internal.copilot-token-budget`).
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) builds/vets/tests (`-race`) +
+  gofmt across all 3 Go modules, lints `.goreleaser.yaml`, and compiles the extension on every push/PR.
+- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) triggers on a
+  `v*.*.*` tag: GoReleaser + vsce build the artifacts, then they are published to **JFrog Artifactory
+  over OIDC** (no stored tokens — ADR-005, never Azure ACR) and a GitHub Release is cut. Required repo
+  Variables and one-time JFrog OIDC setup are in [`.github/workflows/README.md`](.github/workflows/README.md).
+
+> **Live distribution status:** the build/packaging/CI **config is complete and locally validated**
+> (`goreleaser check` + 25-binary snapshot + actionlint clean + clean `.vsix`). The **live publish
+> path** (tag → JFrog upload → GitHub Release) has **not yet run against real infrastructure** — it is
+> pending JFrog provisioning + the first tagged release. See `evaluation/PHASE5_ACCEPTANCE.md`
+> (gates G60–G64).
+
 ## Billing reference
 
 | Unit | Value |
@@ -146,8 +173,11 @@ Context window: 200,000 tokens per model (Copilot default / non-extended).
 
 ## Status
 
-**Phases 0–4 complete; Phase 5 (distribution) is next.** Phase 4 closed with 8/10 automated gates green —
-G31 (live Copilot CLI invocation) and G32 (pin go-sdk to a commit hash) remain before final distribution.
+**Phases 0–4 complete; Phase 5 (distribution) is config-complete + locally validated.** The build,
+packaging, and CI/CD configuration is done and validated locally (gates G51–G59 green); the **live
+publish path** (JFrog upload + GitHub Release on a real tag) is **pending JFrog provisioning + first
+tag** (gates G60–G64). Phase 4 tail: G31 (live Copilot CLI invocation) and G32 (pin go-sdk to a
+commit hash) remain.
 
 See [STATUS.md](STATUS.md) for the live phase dashboard.
 See [BUILD_PLAN.md](BUILD_PLAN.md) for the phased build plan with gates.

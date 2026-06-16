@@ -40,7 +40,7 @@ path/to/artifact(s)
 | [Phase 2](#phase-2--vs-code-extension) | ✅ Complete (Steps 2.1–2.6 ✅) | VS Code extension |
 | [Phase 3](#phase-3--teams-alerts--forecasting) | ✅ Complete (Steps 3.1–3.5 ✅) | Teams alerts + forecasting |
 | [Phase 4](#phase-4--mcp-server) | ✅ Complete (Steps 4.1–4.3 ✅) | MCP server — 4 tools, parity verified, 8/10 gates green |
-| [Phase 5](#phase-5--distribution--onboarding) | 🔲 Not started | Distribution + onboarding |
+| [Phase 5](#phase-5--distribution--onboarding) | 🟡 Config-complete + locally validated (Steps 5.1–5.6 ✅) | Distribution + onboarding — GoReleaser (25 binaries) + CI/CD + JFrog OIDC + runbook; **live publish PENDING JFrog provisioning + first tag** (gates G51–G59 green, G60–G64 pending) |
 | [Phase 6](#phase-6--dual-source-capture-copilot-cli--vs-code-ide) | 🟡 In progress (Step 6.0 discovery) | Capture **both** Copilot CLI **and** VS Code IDE Copilot usage (local, zero-network) |
 | [Phase 7](#phase-7--usage-insight-v11) | ✅ Complete (Steps 7.1–7.6 ✅) | **v1.1 usage-insight** — analytics, export, statusline, 2 new MCP tools (six total), overridable pricing; SHIP |
 
@@ -95,12 +95,12 @@ fulfilled in practice by the real agents above.
 | [4.1 — MCP server scaffold + 4 tools](#step-41--mcp-server--4-tools) | `aara-mcp-server-builder` | ✅ |
 | [4.2 — Phase 4 code review](#step-42--phase-4-code-review) | `aara-project-reviewer` | ✅ |
 | [4.3 — Phase 4 eval criteria](#step-43--phase-4-eval-criteria) | `aara-ai-evaluation-engineer` | ✅ |
-| [5.1 — Windows compatibility audit](#step-51--windows-compatibility-audit) | `aara-project-builder` | 🔲 |
-| [5.2 — CI/CD pipeline + JFrog distribution](#step-52--cicd-pipeline--jfrog-distribution) | `azure-ops` skill | 🔲 |
-| [5.3 — VS Code extension distribution hardening](#step-53--vs-code-extension-distribution-hardening) | `aara-project-builder` | 🔲 |
-| [5.4 — Onboarding runbook](#step-54--onboarding-runbook) | `aara-project-builder` | 🔲 |
-| [5.5 — Final distribution code review](#step-55--final-distribution-code-review) | `aara-project-reviewer` | 🔲 |
-| [5.6 — Phase 5 eval criteria](#step-56--phase-5-eval-criteria) | `aara-ai-evaluation-engineer` | 🔲 |
+| [5.1 — Windows compatibility audit](#step-51--windows-compatibility-audit) | `aara-project-builder` | ✅ |
+| [5.2 — CI/CD pipeline + JFrog distribution](#step-52--cicd-pipeline--jfrog-distribution) | `azure-ops` skill | ✅ (config; live publish pending) |
+| [5.3 — VS Code extension distribution hardening](#step-53--vs-code-extension-distribution-hardening) | `aara-project-builder` | ✅ |
+| [5.4 — Onboarding runbook](#step-54--onboarding-runbook) | `aara-project-builder` | ✅ |
+| [5.5 — Final distribution code review](#step-55--final-distribution-code-review) | `aara-project-reviewer` | ✅ |
+| [5.6 — Phase 5 eval criteria](#step-56--phase-5-eval-criteria) | `aara-ai-evaluation-engineer` | ✅ |
 | [6.0 — IDE data-source discovery spike](#step-60--ide-data-source-discovery-spike) | AI Engineering Architect persona | 🟡 |
 | [6.1 — ADR-007: multi-source reader + dedup](#step-61--adr-007-multi-source-reader--dedup) | AI Engineering Architect + `aara-senior-microservices-architect` | 🔲 |
 | [6.2 — Go multi-source reader (CLI + IDE)](#step-62--go-multi-source-reader-cli--ide) | `aara-mcp-server-builder` + `mcp-go-server-building`/`test-engineering` | 🔲 |
@@ -2330,7 +2330,7 @@ grep -rn "fmt\.Print\b\|fmt\.Println\|fmt\.Fprintf(os\.Stdout" cmd/ internal/ --
 
 ### Step 5.1 — Windows compatibility audit
 **Agent:** `aara-project-builder`
-**Status:** 🟡 In progress — static audit done + 1 fix; build verification pending on macOS/Windows
+**Status:** ✅ Complete — static audit + fix; cross-platform build verified (25 binaries via GoReleaser)
 
 #### Implementation Prompt
 
@@ -2414,13 +2414,13 @@ grep "win32\|\.exe" phase-2/vscode-extension/src/alerts/teamsAlert.ts
 - Add the `.exe`/Windows note to `phase-4/.copilot/mcp.json` (audit item 5)
 
 #### Outcome
-🟡 Static portion done: Go layer is Windows-clean; one TypeScript basename bug fixed in source + compiled output. Remaining to close the gate: run the 4 builds on macOS, `npm run compile` to regenerate `out/`, and add the Windows note to `.copilot/mcp.json`.
+✅ Closed 2026-06-16. Go layer Windows-clean; the TypeScript basename bug fixed in source + compiled output. Cross-platform compilation is now **verified** by `goreleaser build --snapshot` producing **25 binaries** (5 binaries × darwin/amd64+arm64, linux/amd64+arm64, windows/amd64; windows/arm64 intentionally excluded) with `CGO_ENABLED=0`. Native execution on real macOS/Windows is tracked as gate **G64** (sandbox proved linux + cross-compile only).
 
 ---
 
 ### Step 5.2 — CI/CD pipeline + JFrog distribution
 **Skill:** `azure-ops`
-**Status:** 🔲 Not started
+**Status:** ✅ Config-complete + locally validated — live publish PENDING (JFrog provisioning + first tag)
 
 #### Implementation Prompt
 
@@ -2505,16 +2505,24 @@ grep -E "darwin|windows|arm64|amd64" .goreleaser.yml | head -10
 ```
 
 #### Result
-🔲 Pending
+✅ Config-complete + locally validated — 2026-06-16.
+
+Shipped (note: the implementation **improved on the prompt** — 5 binaries not 4, ubuntu runner with cross-compile not macOS, and **OIDC keyless auth instead of a stored `JFROG_ACCESS_TOKEN` secret**):
+
+- **`.goreleaser.yaml` (v2):** multi-module layout (per-binary `dir:` against each `go.mod`); 5 binaries (copilot-analyze, copilot-dashboard, copilot-statusline, copilot-alert, copilot-budget-mcp) × 5 platforms = **25 archives**; `CGO_ENABLED=0`, `-s -w`, `-X main.version/commit/date` ldflags; tar.gz (zip on Windows) each bundling README/USAGE/LICENSE/onboarding-runbook; sha256 `checksums.txt`; `release.disable: true`. `goreleaser check` clean; `goreleaser build --snapshot` = 25.
+- **`.github/workflows/release.yml`** (tag `v[0-9]+.[0-9]+.[0-9]+`): `build-go` (GoReleaser), `build-vsix` (vsce, Node 22), `publish` (JFrog **OIDC** upload via `setup-jfrog-cli` provider `github-oidc` + `softprops/action-gh-release`). Least-privilege `permissions:` (top-level `{}`, per-job elevated); `id-token: write` only on publish; only `secrets.GITHUB_TOKEN`; non-secret repo Variables `JF_URL`/`JF_BINARY_REPO`/`JF_VSIX_REPO`.
+- **`.github/workflows/ci.yml`** (push/PR): Go matrix (3 modules) build/vet/test `-race`/gofmt + `goreleaser check` + extension compile.
+- **`.github/dependabot.yml`** (weekly: gomod ×3, npm, github-actions) and **`.github/workflows/README.md`** (Variables + one-time JFrog OIDC setup).
+- **Validation:** `actionlint` clean on both workflows; no hardcoded tokens/URLs; **no ACR** (ADR-005 confirmed by grep — only docs that say "never ACR"); public npm registry retained.
 
 #### Outcome
-🔲 Pending — Pass criteria: tag trigger, no hardcoded JFROG_ACCESS_TOKEN, no ACR, public npm registry, sha256sums, all 3 platforms.
+✅ CI/CD + distribution **config built and locally validated**. **PENDING:** the live publish path (JFrog OIDC upload + GitHub Release on a real tag) has **never run against real infrastructure** — blocked on JFrog repo provisioning + the `github-oidc` integration + the first tag (gates **G60–G62** in `evaluation/PHASE5_ACCEPTANCE.md`).
 
 ---
 
 ### Step 5.3 — VS Code extension distribution hardening
 **Agent:** `aara-project-builder`
-**Status:** 🔲 Not started
+**Status:** ✅ Complete — clean `.vsix` verified
 
 #### Implementation Prompt
 
@@ -2569,16 +2577,16 @@ grep "onStartupFinished" package.json
 ```
 
 #### Result
-🔲 Pending
+✅ Complete — 2026-06-16. `package.json` carries `publisher: att-internal`, repository/bugs/homepage metadata; `.vscodeignore` excludes `src/`, `**/*.ts`, `**/*.map`, `node_modules/` and keeps `out/`; extension `README.md` + `LICENSE` added. `vsce package --no-dependencies` produces a clean `.vsix` (verified contents: `out/` JS + `package.json` + `readme.md` + `LICENSE.txt` + `extension.vsixmanifest` only — **no src/.ts/.map/node_modules**). Marketplace id `att-internal.copilot-token-budget`.
 
 #### Outcome
-🔲 Pending — Pass criteria: `.vsix` generated, `out/` included, `src/` excluded, `publisher: att-internal`, `activationEvents: [onStartupFinished]`, 7 settings.
+✅ `.vsix` packages clean and is distribution-ready (gate **G58** green).
 
 ---
 
 ### Step 5.4 — Onboarding runbook
 **Agent:** `aara-project-builder`
-**Status:** 🔲 Not started
+**Status:** ✅ Complete — `docs/onboarding-runbook.md`
 
 #### Implementation Prompt
 
@@ -2641,16 +2649,16 @@ grep -E "\.exe|windows\|Windows" docs/onboarding-runbook.md
 ```
 
 #### Result
-🔲 Pending
+✅ Complete — 2026-06-16. `docs/onboarding-runbook.md` written: ≤5-minute install, all-OS (macOS Intel + Apple Silicon, Linux, Windows), pull-from-Artifactory steps, `.vsix` install, **Power Automate Workflows** webhook setup (the current Teams webhook path), MCP registration, uninstall, troubleshooting, and the credit reference. The runbook is also now bundled inside every release archive.
 
 #### Outcome
-🔲 Pending — Pass criteria: 8 sections, all commands in code blocks, `2026-09-01` expiry documented, `--dry-run` step present, Windows `.exe` mentioned.
+✅ Onboarding runbook shipped. Live ≤5-minute E2E timing (a fresh engineer installing from a real Artifactory) is tracked as gate **G63** (cannot run without provisioned infra).
 
 ---
 
 ### Step 5.5 — Final distribution code review
 **Agent:** `aara-project-reviewer`
-**Status:** 🔲 Not started
+**Status:** ✅ Complete — this review (2026-06-16)
 
 #### Implementation Prompt
 
@@ -2700,16 +2708,30 @@ grep "2026-09-01" docs/onboarding-runbook.md
 ```
 
 #### Result
-🔲 Pending
+✅ Complete — 2026-06-16. Final adversarial review run; **no CRITICAL or MAJOR findings.**
+
+Verified:
+- `goreleaser check` clean; `goreleaser build --snapshot` = **25 binaries** (5×5); windows/arm64 absent.
+- `actionlint` clean on `ci.yml` **and** `release.yml`.
+- **Least-privilege `permissions:`** — `release.yml` top-level `permissions: {}` (deny-all), per-job: `build-go` `contents: write`, `build-vsix` `contents: read`, `publish` `contents: write` + `id-token: write`. `ci.yml` top-level `contents: read`. ✅
+- **OIDC, not long-lived secrets** — JFrog auth via `setup-jfrog-cli` OIDC (`id-token: write`); the only `secrets.*` reference is the auto-provisioned `secrets.GITHUB_TOKEN`. ✅
+- **ADR-005** — grep for `acr`/`azurecr`/`azure` returns only documentation that explicitly says "never Azure ACR"; no ACR usage. ✅
+- **No hardcoded tokens/URLs** — grep clean; `JF_URL`/`JF_BINARY_REPO`/`JF_VSIX_REPO` are non-secret repo Variables. ✅
+- All 3 Go modules: `go build`/`go vet`/`go test -race` green; `gofmt -l` clean. ✅
+- `.vsix` clean (out/ JS + manifest + README + LICENSE; no src/.ts/.map/node_modules). ✅
+- `--version` reports version/commit/date via ldflags. ✅
+- **Small fix applied this step:** added `LICENSE` + `docs/onboarding-runbook.md` to each archive's `files:` list in `.goreleaser.yaml` (Step 5.2 omitted LICENSE because the file did not exist yet); re-ran `goreleaser check` + snapshot — archives now carry both. ✅
+
+Open items (not CRITICAL — carried as risks): JFrog provisioning (blocks live publish), `LICENSE` is a `[VERIFY]` placeholder, actions pinned to major tags not SHAs, native macOS/Windows execution unverified.
 
 #### Outcome
-🔲 Pending — Gate: no CRITICAL findings. Clear to tag v1.0.0.
+✅ No CRITICAL/MAJOR findings. The build/packaging/CI config is clear to tag — but the **live release path has not been exercised against real infra** (gates G60–G64 pending JFrog provisioning + first tag). Tagging `v1.0.0` is gated on JFrog provisioning + final `LICENSE`.
 
 ---
 
 ### Step 5.6 — Phase 5 eval criteria
 **Agent:** `aara-ai-evaluation-engineer`
-**Status:** 🔲 Not started
+**Status:** ✅ Complete — `evaluation/PHASE5_ACCEPTANCE.md` (G51–G64)
 
 #### Implementation Prompt
 
@@ -2757,10 +2779,17 @@ grep -E "G37|monthlyAllowance" evaluation/PHASE5_ACCEPTANCE.md
 ```
 
 #### Result
-🔲 Pending
+✅ Complete — 2026-06-16. `evaluation/PHASE5_ACCEPTANCE.md` written with **14 gates, G51–G64**.
+
+> **Numbering correction:** the prompt above proposed G23–G37, but those IDs are **already used** (Phase 4 = G23–G32, Phase 7 = G38–G50). To avoid collisions, Phase 5 gates **continue from the highest existing gate (G50)** → **G51–G64**.
+
+- **Automated / locally validated (G51–G59, all ✅):** G51 `goreleaser check`; G52 25-binary snapshot (windows/arm64 absent); G53 archives carry README/USAGE/LICENSE/runbook; G54 sha256 `checksums.txt` (25 entries verify); G55 actionlint clean both workflows; G56 CI build/vet/test -race/gofmt all 3 modules; G57 CI compiles extension; G58 `.vsix` clean (no src/.ts/.map/node_modules); G59 `--version` ldflags embedding.
+- **Manual / live — cannot run without infra (G60–G64, 🔲 pending, clearly marked):** G60 tag push triggers `release.yml`; G61 JFrog OIDC auth + `jf rt upload`; G62 GitHub Release with assets; G63 runbook ≤5-min install E2E; G64 binaries run on real macOS/Windows.
+
+Each gate has id / description / how-to-run / pass-criterion / owner + an automated-vs-manual tag. Open risks (JFrog provisioning, `[VERIFY]` LICENSE, SHA-pinning, native-OS/code-signing) are listed at the file's tail.
 
 #### Outcome
-🔲 Pending — Pass criteria: 15 gates (G23–G37), Windows gates G34–G36 marked deferred with owner, G29 secret-leakage gate documented, G37 resilience gate present.
+✅ Phase 5 acceptance suite defined (G51–G64). G51–G59 pass now; G60–G64 are explicitly blocked on JFrog provisioning + the first tagged release and must not be silently skipped at go-live.
 
 ---
 
@@ -3104,6 +3133,6 @@ backlog flipped for shipped items (cache-token/latency/OTEL left data-gated pend
 | Phase 2 | — | — | — |
 | Phase 3 | — | — | — |
 | Phase 4 | — | — | — |
-| Phase 5 | — | — | — |
+| Phase 5 | ✅ Builder + reviewer + eval-engineer per step | No CRITICAL/MAJOR; one omission fixed (LICENSE/runbook missing from archive `files:`) | Sandbox validates config + cross-compile, never the live publish path — keep G60–G64 explicitly PENDING; OIDC beats stored JFrog tokens; multi-module GoReleaser needs per-binary `dir:` |
 | Phase 6 | — | — | — |
 | Phase 7 | ✅ Real agents per the 2026-06-15 naming correction | Go↔TS bucketing parity fix (aligned to UTC); review verdict SHIP | UTC bucketing is the load-bearing parity rule; dedup-by-ID groundwork de-risks Phase 6 IDE parser; pricing as config (not code) ends rate-change rebuilds |

@@ -128,6 +128,8 @@ archives:
     files:
       - README.md
       - USAGE.md
+      - LICENSE
+      - docs/onboarding-runbook.md
 
   - id: copilot-dashboard
     ids: [copilot-dashboard]
@@ -139,6 +141,8 @@ archives:
     files:
       - README.md
       - USAGE.md
+      - LICENSE
+      - docs/onboarding-runbook.md
 
   - id: copilot-statusline
     ids: [copilot-statusline]
@@ -150,6 +154,8 @@ archives:
     files:
       - README.md
       - USAGE.md
+      - LICENSE
+      - docs/onboarding-runbook.md
 
   - id: copilot-alert
     ids: [copilot-alert]
@@ -161,6 +167,8 @@ archives:
     files:
       - README.md
       - USAGE.md
+      - LICENSE
+      - docs/onboarding-runbook.md
 
   - id: copilot-budget-mcp
     ids: [copilot-budget-mcp]
@@ -172,6 +180,8 @@ archives:
     files:
       - README.md
       - USAGE.md
+      - LICENSE
+      - docs/onboarding-runbook.md
 
 checksum:
   name_template: "checksums.txt"

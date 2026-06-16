@@ -4,19 +4,19 @@
   "description": "Local credit tracker for GitHub Copilot CLI — AT&T Enterprise edition.",
   "publisher": "att-internal",
   "version": "0.1.0",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "https://github.att.com/aaraminds/copilot-token-budget.git"
+    "url": "https://github.com/aaraminds/copilot-token-budget"
   },
   "bugs": {
-    "url": "https://github.att.com/aaraminds/copilot-token-budget/issues"
+    "url": "https://github.com/aaraminds/copilot-token-budget/issues"
   },
-  "homepage": "https://github.att.com/aaraminds/copilot-token-budget#readme",
+  "homepage": "https://github.com/aaraminds/copilot-token-budget#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
+  "categories": ["Other", "Visualization"],
   "keywords": ["copilot", "token", "budget", "credits", "AT&T"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension",
@@ -117,6 +117,6 @@
     "typescript": "~5.4.0",
     "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
-    "@vscode/vsce": "^2.15.0"
+    "@vscode/vsce": "^3.2.0"
   }
 }

@@ -1,6 +1,6 @@
 # Copilot Token Budget — Architecture
 
-**Status:** Phases 1–4 implemented; v1.1 usage-insight increment (Phase 7) shipped. Phases 5–6 pending.
+**Status:** Phases 1–4 implemented; v1.1 usage-insight increment (Phase 7) shipped. Phase 5 distribution config-complete + locally validated (live publish pending JFrog + first tag); Phase 6 pending.
 **Last updated:** 2026-06-16
 
 ---
@@ -191,6 +191,68 @@ The TS extension reads its pricing override from the explicit setting `copilotBu
 | VS Code extension | Usage Trend inline-SVG chart; Top Consumers tables; context-% column; input/output split; richer status-bar tooltip (today/month/allowance%/burn/projected/context%); new command `copilotBudget.exportUsage` (JSON/CSV save dialog); setting `copilotBudget.pricingPath` |
 
 All v1.1 figures are **estimates** (ADR-001 / ADR-008). Acceptance gates: `evaluation/PHASE7_ACCEPTANCE.md`.
+
+---
+
+## CI/CD and distribution (Phase 5)
+
+> **Status:** build/packaging/CI **config complete and locally validated**; the **live publish path
+> has not run against real infrastructure**. It is pending JFrog provisioning + the first tagged
+> release. Acceptance gates: `evaluation/PHASE5_ACCEPTANCE.md` (G51–G59 automated/green; G60–G64
+> manual/live/pending).
+
+### Build & packaging — GoReleaser v2
+
+This is a **multi-module** repo (each phase has its own `go.mod`; no root module). `.goreleaser.yaml`
+gives every binary its own `builds:` entry with `dir:` pointing at the module root, so `go build`
+runs against the right `go.mod`. `gomod.proxy` stays off (enabling it would force a single-module
+proxy build and break the separate modules).
+
+```
+5 binaries  × 5 platforms = 25 archives
+  copilot-analyze        darwin/amd64   darwin/arm64
+  copilot-dashboard      linux/amd64    linux/arm64
+  copilot-statusline     windows/amd64        (windows/arm64 excluded)
+  copilot-alert
+  copilot-budget-mcp
+```
+
+Each binary is built `CGO_ENABLED=0` with `-s -w` and version metadata injected via
+`-X main.version/commit/date` ldflags (every main exposes `--version`). Archives are `.tar.gz`
+(`.zip` on Windows), each bundling `README.md`, `USAGE.md`, `LICENSE`, and
+`docs/onboarding-runbook.md`; a sha256 `checksums.txt` covers all 25. `release.disable: true` —
+GoReleaser builds + archives only; a CI job owns the GitHub Release.
+
+The VS Code extension is packaged separately into a `.vsix` via `@vscode/vsce` (publisher
+`att-internal`, id `att-internal.copilot-token-budget`); `.vscodeignore` keeps it to compiled
+`out/` JS + manifest + README + LICENSE (no `src/`, `.ts`, sourcemaps, or `node_modules`).
+
+### Pipelines — GitHub Actions
+
+| Workflow | Trigger | Jobs |
+|---|---|---|
+| `ci.yml` | push / PR to `main` | `go` (matrix over the 3 modules: build/vet/test `-race`/gofmt), `goreleaser-check`, `extension` (compile) |
+| `release.yml` | tag `v[0-9]+.[0-9]+.[0-9]+` | `build-go` (GoReleaser), `build-vsix` (vsce, Node 22), `publish` (JFrog OIDC upload + GitHub Release) |
+
+**Security posture:** `permissions:` are least-privilege — top-level deny-all/read-only, each job
+opts into the minimum it needs (`contents: write` only where a release is cut; `id-token: write`
+only on `publish`). Authentication is **keyless**: JFrog uses **OIDC** (no stored access token), and
+the GitHub Release uses the auto-provisioned `secrets.GITHUB_TOKEN`. No hardcoded tokens or URLs;
+`JF_URL`/`JF_BINARY_REPO`/`JF_VSIX_REPO` are non-secret repo Variables. `dependabot.yml` keeps Go,
+npm, and Actions dependencies current weekly. Both workflows are `actionlint`-clean.
+
+### Artifact registry — JFrog Artifactory (ADR-005)
+
+Artifacts are published to **JFrog Artifactory**, the AT&T standard — **never Azure ACR**
+([ADR-005](adr/ADR-005-jfrog-registry.md)). `release.yml`'s `publish` job exchanges the GitHub OIDC
+token for a short-lived JFrog token (`setup-jfrog-cli`, provider `github-oidc`), then
+`jf rt upload`s the archives + `checksums.txt` under `binaries/<tag>/` and the `.vsix` under
+`vsix/<tag>/`, and finally cuts the GitHub Release with everything attached. One-time JFrog OIDC
+setup is documented in `.github/workflows/README.md`.
+
+Engineers install per `docs/onboarding-runbook.md` (≤5-minute, all-OS): pull the platform archive
+from Artifactory, install the `.vsix`, configure the Power Automate Workflows webhook, and the
+status-bar badge appears.
 
 ---
 

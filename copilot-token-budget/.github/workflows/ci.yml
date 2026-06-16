@@ -1,0 +1,93 @@
+# Continuous integration for the Copilot Token Budget monorepo.
+#
+# Runs on every push and PR to main. Three concerns:
+#   go              — build/vet/test (race) + gofmt gate across the 3 Go modules
+#   goreleaser-check — lint the .goreleaser.yaml release config
+#   extension       — compile the VS Code extension
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Read-only by default; nothing in CI writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: go (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - phase-1/session-manager
+          - phase-3
+          - phase-4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # phase-4 needs >= 1.25; the others build fine on it.
+          go-version: '1.25'
+
+      - name: Build
+        working-directory: ${{ matrix.module }}
+        run: go build ./...
+
+      - name: Vet
+        working-directory: ${{ matrix.module }}
+        run: go vet ./...
+
+      - name: Test (race)
+        working-directory: ${{ matrix.module }}
+        run: go test ./... -race
+
+      - name: gofmt gate
+        working-directory: ${{ matrix.module }}
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::The following files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+  goreleaser-check:
+    name: goreleaser-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          args: check
+
+  extension:
+    name: extension
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install and compile
+        run: |
+          cd phase-2/vscode-extension
+          npm install --registry https://registry.npmjs.org
+          npm run compile

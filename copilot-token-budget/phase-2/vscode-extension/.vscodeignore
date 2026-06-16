@@ -5,3 +5,8 @@ node_modules/
 **/*.map
 .github/
 .npmrc
+*.vsix
+package-lock.json
+.gitignore
+.DS_Store
+**/*.ts

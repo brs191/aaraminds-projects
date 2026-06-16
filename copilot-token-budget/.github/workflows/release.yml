@@ -1,0 +1,177 @@
+# Release pipeline for the Copilot Token Budget monorepo.
+#
+# Triggered by a semver tag (vMAJOR.MINOR.PATCH). Three jobs:
+#   build-go    — GoReleaser builds 5 binaries x 5 platforms, archives + checksums into dist/
+#   build-vsix  — packages the VS Code extension into a .vsix
+#   publish     — uploads everything to JFrog Artifactory (ADR-005, never Azure ACR) over OIDC,
+#                 then cuts the GitHub Release.
+#
+# Secrets policy: no hardcoded tokens. JFrog auth is OIDC (id-token: write); the GitHub Release
+# uses the auto-provisioned secrets.GITHUB_TOKEN only.
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+# Deny by default; each job opts into the least privilege it needs.
+permissions: {}
+
+jobs:
+  build-go:
+    name: build-go (goreleaser)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # GoReleaser needs full history + tags to derive version/changelog.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          # phase-4 requires >= 1.25; the 1.21 modules build fine on 1.25 too.
+          go-version: '1.25'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          # release.disable: true is set in .goreleaser.yaml, so this builds +
+          # archives + checksums into dist/ WITHOUT creating a GitHub release.
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  build-vsix:
+    name: build-vsix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # @vscode/vsce requires Node >= 22.
+          node-version: '22'
+
+      - name: Build and package extension
+        run: |
+          cd phase-2/vscode-extension
+          npm install --registry https://registry.npmjs.org
+          npm run compile
+          npx @vscode/vsce package --no-dependencies \
+            -o ../../dist-vsix/copilot-token-budget-${{ github.ref_name }}.vsix
+
+      - name: Upload vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: dist-vsix/*.vsix
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish (JFrog + GitHub Release)
+    runs-on: ubuntu-latest
+    needs:
+      - build-go
+      - build-vsix
+    permissions:
+      contents: write       # softprops/action-gh-release creates the release
+      id-token: write        # JFrog OIDC exchange (and provenance, if enabled)
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Download vsix artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: dist-vsix
+
+      # ---- JFrog Artifactory upload (ADR-005) over OIDC ----
+      # Configure the OIDC provider 'github-oidc' in the JFrog Platform
+      # (Administration > General > Manage Integrations > OIDC) and bind it to
+      # this repo. No JF access token is stored anywhere.
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+        with:
+          oidc-provider-name: github-oidc
+
+      - name: Verify JFrog auth
+        run: jf rt ping
+
+      - name: Upload Go binaries to Artifactory
+        run: |
+          jf rt upload "dist/*.tar.gz" \
+            "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/" --flat=true
+          jf rt upload "dist/*.zip" \
+            "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/" --flat=true
+          jf rt upload "dist/checksums.txt" \
+            "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/" --flat=true
+
+      - name: Upload VSIX to Artifactory
+        run: |
+          jf rt upload "dist-vsix/*.vsix" \
+            "${{ vars.JF_VSIX_REPO }}/vsix/${{ github.ref_name }}/" --flat=true
+
+      # ---- GitHub Release ----
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            ## Copilot Token Budget ${{ github.ref_name }}
+
+            Automated release built by GoReleaser and published to JFrog Artifactory.
+
+            ### Artifacts
+            - Go binaries (darwin/linux amd64+arm64, windows amd64): `*.tar.gz` / `*.zip`
+            - `checksums.txt` (sha256) for all archives
+            - VS Code extension: `copilot-token-budget-${{ github.ref_name }}.vsix`
+
+            All artifacts are also mirrored to JFrog Artifactory under
+            `binaries/${{ github.ref_name }}/` and `vsix/${{ github.ref_name }}/`.
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+            dist-vsix/*.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- OPTIONAL: build provenance attestation ----
+      # Disabled by default. To enable, set `if: true` below. CAVEATS:
+      #   * Requires job permissions `id-token: write` (already granted above)
+      #     and `attestations: write` (add it to this job's permissions block).
+      #   * For PRIVATE repos, attestations require GitHub Enterprise Cloud.
+      # - name: Attest build provenance
+      #   if: false
+      #   uses: actions/attest-build-provenance@v4
+      #   with:
+      #     subject-path: |
+      #       dist/*.tar.gz
+      #       dist/*.zip
+      #       dist-vsix/*.vsix
