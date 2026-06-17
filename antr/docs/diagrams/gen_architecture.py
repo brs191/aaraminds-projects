@@ -9,7 +9,12 @@ Brand cues replicated from the LinkedIn-newsletter assets:
   - top-right mini-flow of glowing hexagon nodes
   - real Aara Minds logo badge bottom-right
 
-Run:  python3 gen_architecture.py  ->  architecture.svg
+Run:
+    python3 gen_architecture.py                 # -> architecture.svg (the master)
+    # rasterize with a real SVG engine (gradients/filters/patterns). ImageMagick
+    # mangles radial-gradient opacity + blur filters; use resvg / a browser / draw.io:
+    #   npm i @resvg/resvg-js  &&  node render.js architecture.svg architecture.png 3200
+The SVG also renders pixel-perfect in any browser or diagrams.net.
 """
 import base64
 import os
@@ -162,19 +167,16 @@ for i, (g, lbl) in enumerate(mf):
 # ---------------------------------------------------------------- stage cards
 STAGES = [
     ("01", "teal", "DISCOVER", "READ-ONLY", "Azure  →  Graph IR.", "discover", "WHAT IT READS",
-     ["Resource Graph (paginated KQL):", "VNets · NSGs · NICs · routes · peerings",
-      "Network Watcher effective rules / routes,", "AVNM, Firewall, App-GW/AKS/FD/APIM/vWAN.",
-      "Managed Identity / OIDC · never a secret."]),
+     ["Resource Graph (paginated KQL): VNets,", "NSGs · NICs · routes · peerings.",
+      "Network Watcher · AVNM · Firewall · app-layer.", "Managed Identity / OIDC · never a secret."]),
     ("02", "purple", "ANALYZE", "DETERMINISTIC", "Same input  →  same output.", "analyze", "THE ENGINE",
      ["4-gate reachability:", "AVNM → NSG → routes → public IP.",
-      "Go engine  ≡  Python reference twin,", "twin-drift = 0 divergences.",
-      "14 finding families · severity + evidence."]),
+      "Go engine  ≡  Python twin · 0 drift.", "14 finding families · severity + evidence."]),
     ("03", "pink", "DELIVER", "GOVERNED", "One IR  →  three products.", "deliver", "THE PRODUCTS",
-     ["Visualization — view families:", "HLD · MLD · risk · boundary · finding.",
-      "Generator — intent → Terraform PR", "(gate blocks Critical / High / Medium).",
-      "MCP server — 6 governed tools."]),
+     ["Visualization — view families", "(HLD · MLD · risk · boundary · finding).",
+      "Generator — intent → Terraform PR.", "MCP server — 6 governed tools."]),
 ]
-CARD_Y, CARD_H = 360, 412
+CARD_Y, CARD_H = 342, 388
 CW, GAP = 452, 38
 X0 = (W - (3 * CW + 2 * GAP)) / 2
 gap_centers = []
@@ -192,18 +194,18 @@ for i, (num, key, title, pill, sub, icon, lbl, lines) in enumerate(STAGES):
     pw = 30 + len(pill) * 9.2
     rrect(x + CW - 34 - pw, CARD_Y + 96, pw, 30, 15, "none", ac, 1.6)
     text(x + CW - 34 - pw / 2, CARD_Y + 116, pill, 14, 700, ac, "middle", ls="1")
-    text(x + 36, CARD_Y + 178, title, 36, 800, WHITE)
-    text(x + 36, CARD_Y + 212, sub, 18, 500, MUTE)
+    text(x + 36, CARD_Y + 176, title, 36, 800, WHITE)
+    text(x + 36, CARD_Y + 210, sub, 18, 500, MUTE)
     S.append('<line x1="%s" y1="%s" x2="%s" y2="%s" stroke="%s" stroke-width="1.2"/>'
-             % (x + 36, CARD_Y + 238, x + CW - 36, CARD_Y + 238, "#21405C"))
-    text(x + 36, CARD_Y + 268, lbl, 14, 800, ac, ls="2")
-    text(x + 36, CARD_Y + 296, lines, 15.5, 500, "#C4D4E2", spacing=23)
+             % (x + 36, CARD_Y + 236, x + CW - 36, CARD_Y + 236, "#21405C"))
+    text(x + 36, CARD_Y + 266, lbl, 14, 800, ac, ls="2")
+    text(x + 36, CARD_Y + 296, lines, 15, 500, "#C4D4E2", spacing=22)
     if i < 2:
         gap_centers.append(x + CW + GAP / 2)
 
 # ---- connectors between stage cards ----
 conn_labels = ["graph.Fixture (IR)", "findings + overlay"]
-cy = CARD_Y + 150
+cy = CARD_Y + 67
 for gc, lab in zip(gap_centers, conn_labels):
     S.append('<circle cx="%s" cy="%s" r="17" fill="#0C2031" stroke="url(#acc_teal)" stroke-width="2" filter="url(#glow)"/>' % (gc, cy))
     S.append('<path d="M%s %s l-5 -6 v12 z M%s %s h-12" stroke="url(#acc_teal)" stroke-width="3" '
@@ -211,35 +213,37 @@ for gc, lab in zip(gap_centers, conn_labels):
     text(gc, cy + 42, lab, 13.5, 700, "#7FE3D6", "middle")
 
 # ---------------------------------------------------------------- foundation strip
-FY = CARD_Y + CARD_H + 36
-text(96, FY + 4, "ENGINEERED INTO EVERY STAGE", 16, 800, "#5FD6E6", ls="3")
+FY = CARD_Y + CARD_H + 28
+S.append('<line x1="96" y1="%s" x2="%s" y2="%s" stroke="#1B3650" stroke-width="1.2"/>' % (FY - 18, W - 96, FY - 18))
+text(96, FY + 2, "ENGINEERED INTO EVERY STAGE", 15, 800, "#5FD6E6", ls="3")
 found = [
     ("found_det", "green", "DETERMINISM", "sort before emit · byte-identical"),
-    ("found_twin", "teal", "TWIN-DRIFT PARITY", "Go engine ≡ Python · 0 drift"),
+    ("found_twin", "teal", "TWIN-DRIFT PARITY", "Go ≡ Python · 0 drift"),
     ("found_lock", "purple", "READ-ONLY · LEAST PRIV", "Managed Identity · no writes"),
-    ("found_ci", "pink", "CI-GATED", "go test · twin-drift · views-gate"),
+    ("found_ci", "pink", "CI-GATED", "go test · twin-drift · views"),
 ]
-fw = (W - 192) / 4
+fw = (1190 - 96) / 4                           # foundation occupies the LEFT; logo sits right
+fiy = FY + 60
 for i, (g, key, t, sub) in enumerate(found):
     fx = 96 + i * fw
     a = "url(#acc_%s)" % key
     S.append('<g transform="translate(%s,%s)" fill="none" stroke="%s" stroke-width="3" '
              'stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">%s</g>'
-             % (fx + 26, FY + 52, a, MINI[g]))
-    text(fx + 60, FY + 46, t, 16.5, 800, WHITE)
-    text(fx + 60, FY + 70, sub, 14, 500, MUTE)
+             % (fx + 24, fiy, a, MINI[g]))
+    text(fx + 56, fiy - 6, t, 15.5, 800, WHITE)
+    text(fx + 56, fiy + 16, sub, 13, 500, MUTE)
 
 # ---------------------------------------------------------------- footer
-text(96, H - 28, "AZURE NETWORK TOPOLOGY REVIEWER  ·  DISCOVER → ANALYZE → DELIVER", 14.5, 600, MUTE2, ls="1")
+text(96, H - 26, "antr  ·  Azure Network Topology Reviewer  ·  DISCOVER → ANALYZE → DELIVER", 14, 600, MUTE2, ls="0.5")
 # logo badge bottom-right (embed real Aara Minds logo)
 logo_path = os.path.join(HERE, "aaraminds_logo.png")
 if os.path.exists(logo_path):
     b64 = base64.b64encode(open(logo_path, "rb").read()).decode()
-    bw, bh = 250, 84
-    bx, by = W - bw - 70, H - bh - 22
+    bw, bh = 244, 84
+    bx, by = W - bw - 70, FY + 18
     rrect(bx, by, bw, bh, 14, "#060C1C", "#1B3147", 1.4)
     S.append('<image x="%s" y="%s" width="%s" height="%s" href="data:image/png;base64,%s" '
-             'preserveAspectRatio="xMidYMid meet"/>' % (bx + 16, by + 14, bw - 32, bh - 28, b64))
+             'preserveAspectRatio="xMidYMid meet"/>' % (bx + 18, by + 16, bw - 36, bh - 32, b64))
 
 S.append('</svg>')
 out = os.path.join(HERE, "architecture.svg")
