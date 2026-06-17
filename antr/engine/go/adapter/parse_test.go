@@ -147,7 +147,7 @@ func TestParseVNets_FieldPaths(t *testing.T) {
 			},
 		}},
 	}}
-	vnets := parseVNets(rows)
+	vnets := parseVNets(rows, "s") // local subscription = "s"; peer is in "s2" (cross-sub)
 	if len(vnets) != 1 {
 		t.Fatalf("want 1 vnet, got %d", len(vnets))
 	}

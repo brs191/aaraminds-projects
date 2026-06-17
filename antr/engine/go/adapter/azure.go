@@ -107,6 +107,10 @@ type adapter struct {
 	cred           azcore.TokenCredential
 	subscriptionID string
 	httpClient     *http.Client
+	// argClient, when non-nil, is used instead of constructing a live
+	// armresourcegraph client — the offline seam that lets the recorded-ARM
+	// harness drive the full fetch orchestration without Azure (audit C-2).
+	argClient argQuerier
 }
 
 // ─── NW result ────────────────────────────────────────────────────────────────

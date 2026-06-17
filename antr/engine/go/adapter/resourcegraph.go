@@ -15,9 +15,13 @@ import (
 // fetchResourceGraph runs all 7+ Resource Graph KQL queries in parallel and
 // assembles the graph.ResourceGraph plus adapter-internal metadata.
 func (a *adapter) fetchResourceGraph(ctx context.Context) (rgResult, error) {
-	client, err := armrg.NewClient(a.cred, nil)
-	if err != nil {
-		return rgResult{}, fmt.Errorf("resource graph client: %w", err)
+	var client argQuerier = a.argClient
+	if client == nil {
+		c, err := armrg.NewClient(a.cred, nil)
+		if err != nil {
+			return rgResult{}, fmt.Errorf("resource graph client: %w", err)
+		}
+		client = c
 	}
 
 	// Results channels (each query writes to its own slot via closure).
@@ -56,7 +60,7 @@ func (a *adapter) fetchResourceGraph(ctx context.Context) (rgResult, error) {
 		if err != nil {
 			return fmt.Errorf("vnets: %w", err)
 		}
-		vnets = parseVNets(rows)
+		vnets = parseVNets(rows, a.subscriptionID)
 		return nil
 	})
 
@@ -632,14 +636,14 @@ func kqlFrontDoors(sub string) string {
 
 // ─── Parse helpers ────────────────────────────────────────────────────────────
 
-func parseVNets(rows []map[string]interface{}) []graph.VNet {
+func parseVNets(rows []map[string]interface{}, localSub string) []graph.VNet {
 	var out []graph.VNet
 	for _, row := range rows {
 		vnet := graph.VNet{
 			Name:         getString(row, "name"),
 			AddressSpace: getStringSlice(row, "addressPrefixes"),
 			Subnets:      parseSubnets(getSlice(row, "subnets")),
-			Peerings:     parsePeerings(getSlice(row, "peerings")),
+			Peerings:     parsePeerings(getSlice(row, "peerings"), localSub),
 		}
 		out = append(out, vnet)
 	}
@@ -693,7 +697,7 @@ func parseSubnets(arr []interface{}) []graph.Subnet {
 	return out
 }
 
-func parsePeerings(arr []interface{}) []graph.Peering {
+func parsePeerings(arr []interface{}, localSub string) []graph.Peering {
 	var out []graph.Peering
 	for _, item := range arr {
 		m, ok := item.(map[string]interface{})
@@ -711,7 +715,6 @@ func parsePeerings(arr []interface{}) []graph.Peering {
 		}
 		remoteVnet := extractResourceName(remoteVnetID)
 		remoteSub := extractSubscriptionID(remoteVnetID)
-		// Only set RemoteSubscriptionID if it differs from the local subscription.
 		p := graph.Peering{
 			RemoteVnet:            remoteVnet,
 			State:                 getString(props, "peeringState"),
@@ -719,7 +722,12 @@ func parsePeerings(arr []interface{}) []graph.Peering {
 			AllowGatewayTransit:   getBool(props, "allowGatewayTransit"),
 			UseRemoteGateways:     getBool(props, "useRemoteGateways"),
 		}
-		if remoteSub != "" {
+		// Set RemoteSubscriptionID ONLY for a genuinely cross-subscription peer.
+		// Every real ARM id carries a /subscriptions/<id> segment, so the previous
+		// `remoteSub != ""` test marked EVERY peering — including same-subscription
+		// ones — as cross-sub, which would fire false "cross-subscription peering
+		// without firewall" findings on live data. Compare against the local sub.
+		if remoteSub != "" && !strings.EqualFold(remoteSub, localSub) {
 			p.RemoteSubscriptionID = remoteSub
 		}
 		out = append(out, p)
