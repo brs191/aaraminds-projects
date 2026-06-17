@@ -17,3 +17,4 @@ venv/
 # stray go build binaries
 /engine/go/analyze
 /engine/go/cmd/analyze/analyze
+out/

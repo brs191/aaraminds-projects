@@ -9,6 +9,8 @@ estate that isn't fully covered by paid Defender CSPM / Wiz.
 > the *combination* no incumbent ships: **deterministic + license-free + pre-deploy `simulate_change` +
 > CI-gated artifacts + MCP-native delivery.** See `COMPETITIVE_ANALYSIS.md` and `BENCHMARK_vs_AVNM_Batfish.md`.
 
+![antr architecture — discover → analyze → deliver](docs/diagrams/architecture.png)
+
 ## Where antr fits (vs Defender / AVNM Verifier / Wiz)
 
 | Use this when… | Tool |
@@ -51,38 +53,42 @@ engine/
   reference/           — Python reference implementation (same fixtures, cross-check)
 ```
 
-## What's next (Phase 4 — Enterprise Topology Visualization)
+## Phase 4 — Visualization (in-session scope: DONE)
 
 Triggered by the `ref-topology/generated_antr.pdf` failure (near-zero connectivity, every node
 "Clean") vs. the human reference `ref-topology/BCLM-Revised-8June2026.drawio` (288 edges).
-Strategy: **separate the map from the risk** — adopt OSS for discovery + layout, keep antr's
-`Analyze()` engine as the severity overlay painted on top.
+Strategy (sharpened — `phase-4/design/ADR-001-visualization-strategy.md`): **antr owns discovery and
+risk; it delegates only layout geometry.** Shipped:
 
-```
-phase-4/
-  design/VISUALIZATION_MODEL.md  — design + OSS decision + root causes (RC-1…RC-4)
-  README.md                      — status + step table
-  (4.1) pilot CloudNetDraw + Network Insights vs BCLM
-  (4.3) multi-subscription discovery (mgmt-group scope, MI/OIDC)   ← fixes RC-1
-  (4.4) severity overlay: Analyze() findings → node colour          ← fixes RC-2 + RC-4
-  (4.5) ELK/D2 layout + external boundary nodes                     ← fixes RC-3
-  (4.6) Azure Function → Confluence auto-publish + version diff
-```
+- **View families** (`phase-4/viz/views.py`) — HLD · MLD · risk-only · external-boundary · cross-sub ·
+  one finding-centric k-hop view per Critical/High finding. Each is a deterministic projection over one
+  whole-estate risk truth (a view can hide a resource but never change a verdict). Gated by `test_views.py`.
+- **App-layer resources as first-class nodes** — App Gateway · AKS · Front Door · vWAN · APIM · Private
+  Endpoint drawn and severity-painted; the diagram-eval gate (`eval_diagram.py`) positively enforces that
+  every finding has a node.
+- **Graph IR contract** (`phase-4/design/GRAPH_IR.md`) — `graph.Fixture` + overlay pinned as the stable
+  contract any layout backend (ELK / Graphviz / a CloudNetDraw fork) consumes, so the geometry is
+  swappable while identity, determinism, discovery, and risk are not.
 
-Adopt (fork + vendor) **CloudNetDraw** (MIT) for discovery + hub-spoke layout; **ELK** (via D2)
-for readable layout; **Network Insights Topology** as the ground-truth cross-check.
+CloudNetDraw (MIT) is retained as a **layout-only, adopt-and-patch option** (needs a one-line
+sort-before-emit determinism fix), not the base — see the ADR for the decision and evidence.
 
 ## Getting started
 
 ```bash
-# Verify the engine is green
-cd engine/go
-go test ./...    # 99/99 across 8 packages (Go 1.25)
+# 1. Verify the engine is green (Go 1.25)
+cd engine/go && go test ./...          # all packages pass; go vet clean
 
-# Continue Phase 4
-# Open IMPLEMENTATION_PLAYBOOK.md → Phase 4, Step 4.1
-# Read phase-4/design/VISUALIZATION_MODEL.md
+# 2. Cross-check the Python reference twin == Go engine (0 divergences)
+cd engine && python3 twin_drift_check.py
+
+# 3. One-command end-to-end demo: fixture → analyze → view families → report
+make demo                              # or: ./demo.sh phase-4/fixtures/estate-multisub.json
 ```
+
+`make demo` runs `Analyze()` over a sample estate, generates the full set of view-family `.drawio`
+diagrams under `out/demo/`, and prints a severity summary — the whole discover→analyze→deliver pipeline
+on one fixture, no Azure required.
 
 ## Key decisions
 
@@ -104,8 +110,13 @@ go test ./...    # 99/99 across 8 packages (Go 1.25)
 | `phase-0/FINDINGS_MEMO.md` | Engine proof + locked design decisions |
 | `phase-1/PHASE_1_ACCEPTANCE_MEMO.md` | Adapter + MCP v1 acceptance (G1–G5) |
 | `phase-3/PHASE_3_ACCEPTANCE_MEMO.md` | Topology generation acceptance (G1–G5) |
+| `phase-4/design/ADR-001-visualization-strategy.md` | The sharpened strategy: own discovery+risk, delegate layout, view families, CloudNetDraw as layout-only fallback |
+| `phase-4/design/GRAPH_IR.md` | The stable `graph.Fixture` + overlay contract any layout backend consumes (identity + determinism rules) |
+| `phase-4/viz/views.py` · `test_views.py` | View-family projections (HLD/MLD/risk/boundary/cross-sub/finding) + their gate |
 | `phase-4/design/VISUALIZATION_MODEL.md` | Enterprise visualization design + OSS decision + root causes |
 | `phase-4/PHASE_4_ACCEPTANCE_MEMO.md` | Phase 4 acceptance (in-session) + 4-round audit trail + engineering fixes |
+| `docs/diagrams/architecture.svg` · `gen_architecture.py` | Brand-style architecture diagram (regenerable) |
+| `engine/go/adapter/recorded_estate_test.go` | Offline recorded-ARM harness driving the full fetch fan-out (audit C-2) |
 | `phase-2/PHASE_2_STATUS.md` | Phase 2 de-ambiguation (engines done; MCP wiring + acceptance pending) |
 | `AGENT_ROSTER.md` | Which `aara-*` agents exist and where (engineering pack vs project-delivery) |
 | `.github/workflows/engine-ci.yml` | CI: Go test, Python reference + V4-07, twin-drift, diagram-eval gate (required), Phase-3 generator tests |
