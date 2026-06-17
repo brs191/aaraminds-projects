@@ -187,3 +187,25 @@ Gates after the round-2 fixes: `go test ./...` 7/7, `go vet` clean, gofmt clean,
 0 divergences**, eval **23/23**, diagram-eval **26/26**. The two live-Azure KQL joins (F3) are marked
 `[VERIFY]` — they are the right structure but, like the rest of the adapter (C-2), remain unproven until a
 run against a real subscription. That is still the one gap that matters.
+
+## Hardening round 3 (2026-06-17) — adapter orchestration + independent correctness
+
+Closing the parts of C-2 and H-2 that do **not** require a live subscription.
+
+- **C-2 (CRITICAL) → further reduced.** A recorded-ARM estate harness (`adapter/recorded_estate_test.go`)
+  now drives the **whole `fetchResourceGraph` fan-out offline** via an injectable `argClient` seam — 15+
+  parallel queries, parse wiring, the app-layer WAF-policy join (F3), LB-NAT object shape (F4),
+  multi-firewall detection (F5), cross-sub derivation (F6) — then runs `Analyze`. Adapter coverage
+  **16.7% → 37.9%**. Building it surfaced **F10** (below). Residual C-2: a run against a real Azure
+  subscription (still needs credentials) and the NW/AVNM async-REST paths.
+- **F10 (HIGH, fixed).** `parsePeerings` set `RemoteSubscriptionID` whenever the remote id had any
+  `/subscriptions` segment (always true), so EVERY peering — including same-subscription — was marked
+  cross-sub and would fire false "cross-subscription peering without firewall" findings on live data. Now
+  compares against the local subscription. (Found by the harness; regression test added.)
+- **H-2 (HIGH) → residue closed.** `phase-1/eval/answer-keys-independent/` holds **hand-derived** keys
+  (reasoned from the fixture inputs by 4-gate analysis, not corrected against engine output; derivation
+  recorded per finding). `eval_independent.py` gates the engine against them in CI — a green run is
+  second-source evidence of *correctness*, not just determinism. Scope: the core reachability fixtures.
+
+Gates: go test 7/7, gofmt/vet clean, twin-drift 39/0, eval 23/23, independent-eval 3 keys/0 fail,
+diagram-eval 26/26, views-gate 26/26.

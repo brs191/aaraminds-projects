@@ -1,0 +1,32 @@
+{
+  "fixture": "fixture-1-internet-exposure.json",
+  "_method": "Hand-derived from the fixture inputs by 4-gate reasoning, not from engine output.",
+  "expected_findings": [
+    {
+      "type": "orphaned public endpoint",
+      "severity": "Low",
+      "resource": "pip-orphan-01",
+      "_derivation": "Public IP with null ipConfiguration — allocated but attached to nothing."
+    },
+    {
+      "type": "over-permissive NSG (reachable)",
+      "severity": "High",
+      "resource": "nic-vm-web-a",
+      "evidence": "public IP",
+      "_derivation": "No AVNM admin rule; effective NSG allows 0.0.0.0/0:22 inbound (Gate2 open); default route 0.0.0.0/0 -> Internet (Gate3); NIC has public IP pip-vm-web-a (Gate4). All gates open and the NIC is not tagged sensitive -> reachable, High."
+    },
+    {
+      "type": "over-permissive NSG (latent)",
+      "severity": "Informational",
+      "resource": "nic-vm-web-b",
+      "evidence": "no public IP",
+      "_derivation": "Same internet-facing NSG allow (0.0.0.0/0:22) but NO public IP and default route -> VirtualAppliance (Gate3/Gate4 closed). The over-permissive rule exists but is not reachable -> latent, Informational."
+    }
+  ],
+  "trap_assertions": [
+    {
+      "resource": "nic-vm-web-b",
+      "must_not_have": "reachable High — no public IP and the default route is a VirtualAppliance, so the internet path is closed despite the open NSG rule."
+    }
+  ]
+}

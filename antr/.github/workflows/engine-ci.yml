@@ -159,6 +159,8 @@ jobs:
             --engine-dir ../../engine/go \
             --fixtures-dir fixtures \
             --answer-keys-dir answer-keys
+      - name: independent-correctness gate (hand-derived keys — second source, audit H-2)
+        run: python3 phase-1/eval/eval_independent.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

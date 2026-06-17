@@ -15,6 +15,9 @@ eval:           ## engine accuracy gate over the eval corpus
 	python3 phase-1/eval/run_eval.py --engine-dir engine/go \
 	  --fixtures-dir phase-1/eval/fixtures --answer-keys-dir phase-1/eval/answer-keys --output out/eval.json
 
+eval-independent: ## correctness gate vs HAND-DERIVED keys (second source, not engine output)
+	python3 phase-1/eval/eval_independent.py
+
 diagram:        ## diagram-eval gate (RC checks + severity coverage)
 	python3 phase-4/viz/eval_diagram.py --fixtures phase-4/fixtures phase-1/eval/fixtures --report out/diagram_eval.json
 

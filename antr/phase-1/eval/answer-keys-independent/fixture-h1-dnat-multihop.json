@@ -1,0 +1,19 @@
+{
+  "fixture": "fixture-h1-dnat-multihop.json",
+  "_method": "Hand-derived from the fixture inputs by 4-gate reasoning, not from engine output.",
+  "expected_findings": [
+    {
+      "type": "over-permissive NSG (reachable)",
+      "severity": "High",
+      "resource": "nic-backend1",
+      "evidence": "firewall DNAT",
+      "_derivation": "afw-hub has a DNAT rule destPort 443 -> translatedAddress 10.8.1.4, which is nic-backend1's private IP. A published backend behind a firewall DNAT is internet-reachable even though the NIC itself has no public IP -> reachable, High."
+    }
+  ],
+  "trap_assertions": [
+    {
+      "resource": "nic-backend2",
+      "must_not_have": "any reachable finding — its private IP (10.8.2.4) is not a DNAT target, and its only inbound NSG allow is from 10.0.0.0/26 (hub), not the internet."
+    }
+  ]
+}

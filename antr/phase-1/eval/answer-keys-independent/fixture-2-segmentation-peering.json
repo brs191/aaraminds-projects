@@ -1,0 +1,18 @@
+{
+  "fixture": "fixture-2-segmentation-peering.json",
+  "_method": "Hand-derived from the fixture inputs by 4-gate reasoning, not from engine output.",
+  "expected_findings": [
+    {
+      "type": "missing tier segmentation",
+      "severity": "High",
+      "resource": "nic-db1",
+      "_derivation": "nic-db1 is tagged sensitive=true (tier=data). Its effective rules include the default AllowVnetInBound (priority 65000, Allow) with NO higher-precedence DenyVnetInBound override, so the sensitive data NIC is reachable VNet-wide (east-west) -> missing tier segmentation, High."
+    }
+  ],
+  "trap_assertions": [
+    {
+      "resource": "nic-x1",
+      "must_not_have": "internet-exposure reachable finding — although its default route is Internet, no inbound NSG rule allows an internet (0.0.0.0/0) source and it has no public IP, so the internet path is not open."
+    }
+  ]
+}
