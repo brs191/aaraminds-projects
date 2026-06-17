@@ -1,0 +1,230 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1140" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <rect width="1600" height="1140" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="800" y="42" text-anchor="middle" font-size="24" font-weight="700" fill="#1e293b">Copilot Token Budget — Local-First Architecture</text>
+  <text x="800" y="66" text-anchor="middle" font-size="13.5" fill="#64748b">Reads the files the Copilot CLI already writes · zero network (ADR-001) · Go core + VS Code extension + MCP · estimates from a local price table</text>
+
+  <!-- ===================== LOCAL MACHINE boundary ===================== -->
+  <rect x="24" y="88" width="1552" height="700" rx="14" fill="none" stroke="#0f766e" stroke-width="2" stroke-dasharray="9 6"/>
+  <rect x="40" y="78" width="360" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="56" y="93" font-size="11.5" font-weight="700" fill="#134e4a">LOCAL MACHINE · ZERO NETWORK (ADR-001)</text>
+
+  <!-- ===================== 1. LOCAL DATA SOURCES ===================== -->
+  <text x="48" y="123" font-size="12.5" font-weight="700" fill="#92400e">1 · LOCAL DATA SOURCES (read-only)</text>
+
+  <!-- CLI session-state -->
+  <rect x="48" y="132" width="350" height="104" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="64" y="154" font-size="12.5" font-weight="700" fill="#92400e">GitHub Copilot CLI — session state</text>
+  <text x="64" y="174" font-size="11" fill="#92400e">~/.copilot/session-state/&lt;uuid&gt;/events.jsonl</text>
+  <text x="64" y="192" font-size="10.5" fill="#a16207">session.start · assistant.message · session.shutdown</text>
+  <text x="64" y="208" font-size="10.5" fill="#a16207">totalNanoAiu · usage{in/out/cacheRead/cacheWrite/reasoning}</text>
+  <text x="64" y="224" font-size="10.5" fill="#a16207">+ workspace.yaml · inuse.*.lock (active)</text>
+
+  <!-- instruction files -->
+  <rect x="414" y="132" width="300" height="104" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="430" y="154" font-size="12.5" font-weight="700" fill="#92400e">Instruction files</text>
+  <text x="430" y="176" font-size="11" fill="#92400e">.github/instructions/**.md</text>
+  <text x="430" y="196" font-size="10.5" fill="#a16207">always-loaded overhead — audited &amp; scored</text>
+  <text x="430" y="214" font-size="10.5" fill="#a16207">~12K tokens / message (invisible cost)</text>
+
+  <!-- pricing config -->
+  <rect x="730" y="132" width="300" height="104" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="746" y="154" font-size="12.5" font-weight="700" fill="#92400e">Pricing config (optional)</text>
+  <text x="746" y="176" font-size="11" fill="#92400e">~/.config/copilot-token-budget/pricing.json</text>
+  <text x="746" y="196" font-size="10.5" fill="#a16207">override rates / allowance / context window</text>
+  <text x="746" y="214" font-size="10.5" fill="#a16207">bundled defaults + merge (ADR-008)</text>
+
+  <!-- IDE chat — PENDING -->
+  <rect x="1046" y="132" width="506" height="104" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="1062" y="154" font-size="12.5" font-weight="700" fill="#64748b">VS Code Copilot Chat — SEPARATE source · Phase 6</text>
+  <text x="1062" y="176" font-size="11" fill="#64748b">…/User/workspaceStorage/&lt;ws&gt;/chatSessions/ · GitHub.copilot-chat/transcripts/</text>
+  <text x="1062" y="196" font-size="10.5" fill="#94a3b8">NOT ~/.copilot · token-count estimates (not credits)</text>
+  <text x="1062" y="216" font-size="10.5" font-weight="700" fill="#94a3b8">NOT CAPTURED YET — collector is a no-op stub (ADR-007, corrected)</text>
+
+  <!-- arrows sources -> core -->
+  <g stroke="#94a3b8" stroke-width="1.6" fill="none" marker-end="url(#arrow)">
+    <path d="M223 236 V292"/>
+    <path d="M564 236 V292"/>
+    <path d="M880 236 V292"/>
+  </g>
+  <path d="M1299 236 V292" stroke="#cbd5e1" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#arrowmute)"/>
+
+  <!-- ===================== 2. CORE DATA LAYER (Go) ===================== -->
+  <rect x="48" y="292" width="1504" height="178" rx="10" fill="#e0e7ff" stroke="#4f46e5" stroke-width="1.5"/>
+  <text x="64" y="315" font-size="12.5" font-weight="700" fill="#312e81">2 · CORE DATA LAYER — Go · phase-1/session-manager · zero external deps</text>
+
+  <!-- core sub-boxes -->
+  <g>
+    <rect x="64" y="328" width="300" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="214" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">session · Reader</text>
+    <line x1="80" y1="360" x2="348" y2="360" stroke="#c7d2fe"/>
+    <text x="80" y="380" font-size="10.5" fill="#3730a3">Collectors: cli ✓  ·  ide (stub)</text>
+    <text x="80" y="398" font-size="10.5" fill="#3730a3">dedup-by-ID (final &gt; higher nanoAIU)</text>
+    <text x="80" y="416" font-size="10.5" fill="#3730a3">running snapshot · isFinal (live vs settled)</text>
+    <text x="80" y="434" font-size="10.5" fill="#3730a3">month-scope by END time · UTC</text>
+  </g>
+  <g>
+    <rect x="380" y="328" width="222" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="491" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">budget · pricing</text>
+    <line x1="396" y1="360" x2="586" y2="360" stroke="#c7d2fe"/>
+    <text x="396" y="380" font-size="10.5" fill="#3730a3">nanoAIU → credits → $</text>
+    <text x="396" y="398" font-size="10.5" fill="#3730a3">status OK / WARN 60 / CRIT 90</text>
+    <text x="396" y="416" font-size="10.5" fill="#3730a3">rates: Sonnet 300/1500,</text>
+    <text x="396" y="432" font-size="10.5" fill="#3730a3">Opus 500/2500, Haiku 100/500</text>
+  </g>
+  <g>
+    <rect x="618" y="328" width="222" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="729" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">analytics</text>
+    <line x1="634" y1="360" x2="824" y2="360" stroke="#c7d2fe"/>
+    <text x="634" y="380" font-size="10.5" fill="#3730a3">daily / weekly / monthly (UTC)</text>
+    <text x="634" y="398" font-size="10.5" fill="#3730a3">top sessions / models / projects</text>
+    <text x="634" y="416" font-size="10.5" fill="#3730a3">context-window % per session</text>
+    <text x="634" y="434" font-size="10.5" fill="#3730a3">anomaly: mean + 2σ</text>
+  </g>
+  <g>
+    <rect x="856" y="328" width="222" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="967" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">instructions</text>
+    <line x1="872" y1="360" x2="1062" y2="360" stroke="#c7d2fe"/>
+    <text x="872" y="380" font-size="10.5" fill="#3730a3">scan .github/instructions/</text>
+    <text x="872" y="398" font-size="10.5" fill="#3730a3">per-file token estimate</text>
+    <text x="872" y="416" font-size="10.5" fill="#3730a3">overhead cost (50-turn model)</text>
+    <text x="872" y="434" font-size="10.5" fill="#3730a3">optimization summary</text>
+  </g>
+  <g>
+    <rect x="1094" y="328" width="222" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="1205" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">forecast</text>
+    <line x1="1110" y1="360" x2="1300" y2="360" stroke="#c7d2fe"/>
+    <text x="1110" y="380" font-size="10.5" fill="#3730a3">daily burn rate</text>
+    <text x="1110" y="398" font-size="10.5" fill="#3730a3">projected month-end TOTAL</text>
+    <text x="1110" y="416" font-size="10.5" fill="#3730a3">= used + burn × days left</text>
+    <text x="1110" y="434" font-size="10.5" fill="#3730a3">model-routing recommender</text>
+  </g>
+  <g>
+    <rect x="1332" y="328" width="204" height="128" rx="7" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="1434" y="350" text-anchor="middle" font-size="12.5" font-weight="700" fill="#312e81">export</text>
+    <line x1="1348" y1="360" x2="1520" y2="360" stroke="#c7d2fe"/>
+    <text x="1348" y="380" font-size="10.5" fill="#3730a3">Report → JSON (camelCase)</text>
+    <text x="1348" y="398" font-size="10.5" fill="#3730a3">sessions / daily → CSV</text>
+    <text x="1348" y="424" font-size="10" fill="#6366f1">cache + premium-request</text>
+    <text x="1348" y="438" font-size="10" fill="#6366f1">data surfaced everywhere</text>
+  </g>
+
+  <!-- arrows core -> surfaces -->
+  <g stroke="#0f766e" stroke-width="1.6" fill="none" marker-end="url(#arrowteal)">
+    <path d="M233 470 V524"/>
+    <path d="M620 470 V524"/>
+    <path d="M1005 470 V524"/>
+    <path d="M1378 470 V524"/>
+  </g>
+
+  <!-- ===================== 3. SURFACES ===================== -->
+  <text x="48" y="514" font-size="12.5" font-weight="700" fill="#134e4a">3 · SURFACES — where engineers see it</text>
+
+  <!-- Terminal -->
+  <rect x="48" y="524" width="350" height="218" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="64" y="546" font-size="12.5" font-weight="700" fill="#134e4a">Terminal · Go CLI (phase-1)</text>
+  <rect x="66" y="558" width="314" height="40" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="223" y="583" text-anchor="middle" font-size="11.5" fill="#134e4a">cmd/analyze — report · --json · --csv</text>
+  <rect x="66" y="604" width="314" height="40" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="223" y="629" text-anchor="middle" font-size="11.5" fill="#134e4a">cmd/dashboard — live TUI + WezTerm badge</text>
+  <rect x="66" y="650" width="314" height="40" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="223" y="675" text-anchor="middle" font-size="11.5" fill="#134e4a">cmd/statusline — ccusage-style one-liner</text>
+  <text x="64" y="715" font-size="10.5" fill="#0f766e">run.sh launcher · macOS / Linux / Windows</text>
+
+  <!-- VS Code -->
+  <rect x="414" y="524" width="350" height="218" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="430" y="546" font-size="12.5" font-weight="700" fill="#134e4a">VS Code extension (phase-2 · TS)</text>
+  <rect x="432" y="558" width="314" height="36" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="589" y="581" text-anchor="middle" font-size="11.5" fill="#134e4a">Status-bar badge (green/yellow/red)</text>
+  <rect x="432" y="600" width="314" height="36" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="589" y="623" text-anchor="middle" font-size="11.5" fill="#134e4a">Tree view · Dashboard webview (CSP)</text>
+  <rect x="432" y="642" width="314" height="36" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="589" y="665" text-anchor="middle" font-size="11.5" fill="#134e4a">Usage trend · Top consumers · Export</text>
+  <text x="430" y="703" font-size="10.5" fill="#0f766e">settings: monthlyAllowance · pricingPath ·</text>
+  <text x="430" y="719" font-size="10.5" fill="#0f766e">refreshIntervalSec · teamsWebhookUrl · …</text>
+
+  <!-- Teams -->
+  <rect x="780" y="524" width="350" height="218" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="796" y="546" font-size="12.5" font-weight="700" fill="#134e4a">Teams alerts (phase-3 · Go)</text>
+  <rect x="798" y="558" width="314" height="40" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="955" y="583" text-anchor="middle" font-size="11.5" fill="#134e4a">cmd/alert → Adaptive Card</text>
+  <text x="796" y="620" font-size="10.5" fill="#0f766e">thresholds 60% / 90% · dedup once/day (UTC)</text>
+  <text x="796" y="638" font-size="10.5" fill="#0f766e">webhook from COPILOT_BUDGET_TEAMS_WEBHOOK</text>
+  <text x="796" y="656" font-size="10.5" fill="#0f766e">URL never logged · jitter retry</text>
+
+  <!-- MCP -->
+  <rect x="1146" y="524" width="406" height="218" rx="8" fill="#f0fdfa" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="1162" y="546" font-size="12.5" font-weight="700" fill="#134e4a">MCP server (phase-4 · Go · stdio)</text>
+  <rect x="1164" y="558" width="370" height="92" rx="6" fill="#ccfbf1" stroke="#0f766e"/>
+  <text x="1349" y="578" text-anchor="middle" font-size="11" font-weight="600" fill="#134e4a">6 tools</text>
+  <text x="1349" y="596" text-anchor="middle" font-size="10.5" fill="#134e4a">get_budget_status · get_sessions</text>
+  <text x="1349" y="612" text-anchor="middle" font-size="10.5" fill="#134e4a">get_instruction_overhead · get_model_costs</text>
+  <text x="1349" y="628" text-anchor="middle" font-size="10.5" fill="#134e4a">get_usage_timeseries · get_top_consumers</text>
+  <text x="1164" y="672" font-size="10.5" fill="#0f766e">path-traversal guarded · no stdout pollution</text>
+  <rect x="1164" y="686" width="370" height="42" rx="6" fill="#e0e7ff" stroke="#4f46e5"/>
+  <text x="1349" y="712" text-anchor="middle" font-size="11.5" fill="#312e81">→ Copilot CLI: "how's my budget?" mid-session</text>
+
+  <!-- ===================== outbound: Teams webhook (only egress) ===================== -->
+  <path d="M955 742 V812" stroke="#d97706" stroke-width="2" fill="none" stroke-dasharray="7 5" marker-end="url(#arrowamber)"/>
+  <text x="965" y="780" font-size="10.5" font-weight="700" fill="#b45309">only outbound call</text>
+  <rect x="760" y="814" width="390" height="56" rx="8" fill="#fff7ed" stroke="#d97706" stroke-width="1.5"/>
+  <text x="955" y="838" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e">Microsoft Teams — Power Automate "Workflows" webhook</text>
+  <text x="955" y="857" text-anchor="middle" font-size="10.5" fill="#a16207">opt-in · HTTPS POST · legacy O365 connector retired ~May 2026</text>
+
+  <!-- ===================== 4. BUILD & DISTRIBUTION (build-time, outside runtime) ===================== -->
+  <rect x="24" y="900" width="1552" height="150" rx="10" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+  <text x="44" y="924" font-size="12.5" font-weight="700" fill="#1e293b">4 · BUILD &amp; DISTRIBUTION — Phase 5 (config-complete &amp; locally validated; live publish pending JFrog + first tag)</text>
+
+  <rect x="48" y="938" width="360" height="92" rx="7" fill="#f8fafc" stroke="#475569"/>
+  <text x="228" y="962" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">GitHub Actions</text>
+  <text x="228" y="983" text-anchor="middle" font-size="10.5" fill="#475569">ci.yml — build/vet/test -race + tsc</text>
+  <text x="228" y="1000" text-anchor="middle" font-size="10.5" fill="#475569">release.yml — on tag v*.*.*</text>
+  <text x="228" y="1017" text-anchor="middle" font-size="10.5" fill="#475569">least-privilege · OIDC (no stored tokens)</text>
+
+  <path d="M408 984 H452" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#arrowslate)"/>
+  <rect x="456" y="938" width="430" height="92" rx="7" fill="#f8fafc" stroke="#475569"/>
+  <text x="671" y="962" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">GoReleaser v2  +  vsce</text>
+  <text x="671" y="983" text-anchor="middle" font-size="10.5" fill="#475569">5 binaries × 5 platforms (darwin/linux amd64+arm64, win amd64)</text>
+  <text x="671" y="1000" text-anchor="middle" font-size="10.5" fill="#475569">tar.gz / zip + sha256 checksums · .vsix (Node 22)</text>
+  <text x="671" y="1017" text-anchor="middle" font-size="10.5" fill="#475569">--version embedded via ldflags</text>
+
+  <path d="M886 984 H930" stroke="#475569" stroke-width="1.6" fill="none" marker-end="url(#arrowslate)"/>
+  <rect x="934" y="938" width="360" height="92" rx="7" fill="#f8fafc" stroke="#475569"/>
+  <text x="1114" y="962" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">JFrog Artifactory</text>
+  <text x="1114" y="983" text-anchor="middle" font-size="10.5" fill="#475569">binaries/&lt;tag&gt;/ · vsix/&lt;tag&gt;/</text>
+  <text x="1114" y="1000" text-anchor="middle" font-size="10.5" fill="#475569">via jf rt upload (OIDC) — not Azure ACR (ADR-005)</text>
+  <text x="1114" y="1017" text-anchor="middle" font-size="10.5" fill="#475569">+ GitHub Release w/ assets</text>
+
+  <rect x="1318" y="938" width="234" height="92" rx="7" fill="#f8fafc" stroke="#475569"/>
+  <text x="1435" y="962" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">Engineer install</text>
+  <text x="1435" y="983" text-anchor="middle" font-size="10.5" fill="#475569">install_vscode_extn.sh</text>
+  <text x="1435" y="1000" text-anchor="middle" font-size="10.5" fill="#475569">onboarding runbook ≤5 min</text>
+  <text x="1435" y="1017" text-anchor="middle" font-size="10.5" fill="#475569">all-OS</text>
+
+  <!-- ===================== legend + footer ===================== -->
+  <g font-size="10.5">
+    <rect x="48" y="1070" width="16" height="12" rx="2" fill="#e0e7ff" stroke="#4f46e5"/>
+    <text x="70" y="1080" fill="#475569">Go core (phase-1)</text>
+    <rect x="210" y="1070" width="16" height="12" rx="2" fill="#f0fdfa" stroke="#0f766e"/>
+    <text x="232" y="1080" fill="#475569">Surfaces (phase-1/2/3/4)</text>
+    <rect x="412" y="1070" width="16" height="12" rx="2" fill="#fffbeb" stroke="#d97706"/>
+    <text x="434" y="1080" fill="#475569">Local source (read-only)</text>
+    <rect x="606" y="1070" width="16" height="12" rx="2" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="3 2"/>
+    <text x="628" y="1080" fill="#475569">Pending — Phase 6 (IDE)</text>
+    <line x1="806" y1="1076" x2="838" y2="1076" stroke="#d97706" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="846" y="1080" fill="#475569">Only network egress (opt-in Teams)</text>
+    <rect x="1086" y="1070" width="16" height="12" rx="2" fill="#e2e8f0" stroke="#475569"/>
+    <text x="1108" y="1080" fill="#475569">Build/distribution (Phase 5)</text>
+  </g>
+  <text x="1552" y="1080" text-anchor="end" font-size="10.5" fill="#94a3b8">AaraMinds · local-first · all cost figures are estimates · 2026-06-17</text>
+
+  <!-- arrow markers -->
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a3b8"/></marker>
+    <marker id="arrowmute" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#cbd5e1"/></marker>
+    <marker id="arrowteal" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#0f766e"/></marker>
+    <marker id="arrowamber" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#d97706"/></marker>
+    <marker id="arrowslate" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#475569"/></marker>
+  </defs>
+</svg>
