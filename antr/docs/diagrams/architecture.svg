@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+<defs><linearGradient id="gradTeal" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#00A6B4"/><stop offset="1" stop-color="#006E86"/></linearGradient><linearGradient id="gradPurple" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7F4BDB"/><stop offset="1" stop-color="#4A29A5"/></linearGradient><filter id="softShadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#0B153B" flood-opacity="0.08"/></filter></defs>
+<rect x="0" y="0" width="1536" height="1024" rx="0" fill="#FFFFFF" />
+<circle cx="1190" cy="470" r="470" fill="#F6FAFC" opacity="0.6"/>
+<rect x="26" y="17" width="210" height="34" rx="7" fill="#071B4D" stroke="#071B4D" stroke-width="1.2" />
+<text x="131" y="40" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="white" text-anchor="middle"><tspan x="131" dy="0">PROJECT ARCHITECTURE</tspan></text>
+<text x="26" y="102" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="54" font-weight="800" fill="#071B4D" text-anchor="start"><tspan x="26" dy="0">Azure Network Topology Reviewer</tspan></text>
+<text x="26" y="144" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="600" fill="#5D6472" text-anchor="start"><tspan x="26" dy="0">Deterministic Azure reachability &amp; exposure  —  adopt the map, own the risk.</tspan></text>
+<rect x="1140" y="24" width="370" height="104" rx="10" fill="white" stroke="#C9D8E6" stroke-width="1.2" filter="url(#softShadow)" />
+<circle cx="1188" cy="76" r="26" fill="none" stroke="#007D8F" stroke-width="3"/>
+<circle cx="1188" cy="76" r="13" fill="none" stroke="#007D8F" stroke-width="3"/>
+<circle cx="1188" cy="76" r="3.5" fill="#007D8F"/>
+<text x="1228" y="70" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="800" fill="#071B4D" text-anchor="start"><tspan x="1228" dy="0">Discovery feeds the map.</tspan></text>
+<text x="1228" y="102" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="1228" dy="0">The engine owns the verdict.</tspan></text>
+<rect x="26" y="176" width="1484" height="544" rx="9" fill="white" stroke="#C9D8E6" stroke-width="1.2" filter="url(#softShadow)" />
+<rect x="520" y="234" width="480" height="486" rx="0" fill="#F1F7F9" opacity="0.6" />
+<rect x="26" y="176" width="494" height="58" rx="9" fill="#071B4D" />
+<rect x="506" y="176" width="14" height="58" rx="0" fill="#071B4D" />
+<text x="273.0" y="203" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="800" fill="white" text-anchor="middle"><tspan x="273.0" dy="0">DISCOVER</tspan></text>
+<text x="273.0" y="223" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#AFCAD8" text-anchor="middle"><tspan x="273.0" dy="0">Azure  →  Graph IR</tspan></text>
+<rect x="520" y="176" width="480" height="58" rx="9" fill="#071B4D" />
+<rect x="520" y="176" width="14" height="58" rx="0" fill="#071B4D" />
+<rect x="986" y="176" width="14" height="58" rx="0" fill="#071B4D" />
+<text x="760.0" y="203" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="800" fill="white" text-anchor="middle"><tspan x="760.0" dy="0">ANALYZE</tspan></text>
+<text x="760.0" y="223" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#AFCAD8" text-anchor="middle"><tspan x="760.0" dy="0">the deterministic core</tspan></text>
+<rect x="1000" y="176" width="510" height="58" rx="9" fill="#071B4D" />
+<rect x="1000" y="176" width="14" height="58" rx="0" fill="#071B4D" />
+<text x="1255.0" y="203" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="800" fill="white" text-anchor="middle"><tspan x="1255.0" dy="0">DELIVER</tspan></text>
+<text x="1255.0" y="223" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#AFCAD8" text-anchor="middle"><tspan x="1255.0" dy="0">one IR  →  three products</tspan></text>
+<line x1="520" y1="176" x2="520" y2="720" stroke="#D7E5EF" stroke-width="1"/>
+<line x1="1000" y1="176" x2="1000" y2="720" stroke="#D7E5EF" stroke-width="1"/>
+<circle cx="76" cy="296" r="26" fill="url(#gradTeal)"/>
+<text x="76" y="305" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" fill="white" text-anchor="middle"><tspan x="76" dy="0">1</tspan></text>
+<text x="116" y="290" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="116" dy="0">Azure Adapter</tspan></text>
+<text x="116" y="318" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="116" dy="0">read-only discovery</tspan></text>
+<rect x="50" y="348" width="446" height="50" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="66" y="378.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="66" dy="0">ARG</tspan></text>
+<text x="103.9" y="378.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="103.9" dy="0">paginated KQL · VNets, NSGs, NICs, routes, peerings</tspan></text>
+<rect x="50" y="408" width="446" height="50" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="66" y="438.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="66" dy="0">Network Watcher</tspan></text>
+<text x="215.5" y="438.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="215.5" dy="0">effective rules + effective routes</tspan></text>
+<rect x="50" y="468" width="446" height="50" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="66" y="498.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="66" dy="0">+ context</tspan></text>
+<text x="159.7" y="498.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="159.7" dy="0">AVNM admin · Firewall · App GW/AKS/FD/APIM/vWAN</tspan></text>
+<rect x="50" y="528" width="446" height="50" rx="8" fill="white" stroke="#C9D8E6" stroke-width="1" />
+<text x="66" y="558.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#071B4D" text-anchor="start"><tspan x="66" dy="0">Auth</tspan></text>
+<text x="113.2" y="558.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="113.2" dy="0">Managed Identity / OIDC · Reader · never a secret</tspan></text>
+<rect x="50" y="600" width="446" height="52" rx="8" fill="white" stroke="#007D8F" stroke-width="1" />
+<text x="66" y="631.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="66" dy="0">Output</tspan></text>
+<text x="131.8" y="631.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="131.8" dy="0">graph.Fixture  —  the Graph IR contract</tspan></text>
+<circle cx="570" cy="296" r="26" fill="url(#gradTeal)"/>
+<text x="570" y="305" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" fill="white" text-anchor="middle"><tspan x="570" dy="0">2</tspan></text>
+<text x="610" y="290" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="610" dy="0">Risk Engine</tspan></text>
+<text x="610" y="318" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="610" dy="0">Analyze() · same input → same output</tspan></text>
+<rect x="544" y="352" width="432" height="38" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="376.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">Gate 1</tspan></text>
+<text x="622.08" y="376.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="622.08" dy="0">AVNM admin verdict</tspan></text>
+<path d="M 760.0 390 V 396" stroke="#007D8F" stroke-width="3" stroke-linecap="round"/>
+<path d="M 760.0 402 l -5 -7 h 10 z" fill="#007D8F"/>
+<rect x="544" y="402" width="432" height="38" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="426.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">Gate 2</tspan></text>
+<text x="622.08" y="426.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="622.08" dy="0">NSG effective rules</tspan></text>
+<path d="M 760.0 440 V 446" stroke="#007D8F" stroke-width="3" stroke-linecap="round"/>
+<path d="M 760.0 452 l -5 -7 h 10 z" fill="#007D8F"/>
+<rect x="544" y="452" width="432" height="38" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="476.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">Gate 3</tspan></text>
+<text x="622.08" y="476.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="622.08" dy="0">effective routes (None = black-hole)</tspan></text>
+<path d="M 760.0 490 V 496" stroke="#007D8F" stroke-width="3" stroke-linecap="round"/>
+<path d="M 760.0 502 l -5 -7 h 10 z" fill="#007D8F"/>
+<rect x="544" y="502" width="432" height="38" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="526.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">Gate 4</tspan></text>
+<text x="622.08" y="526.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="622.08" dy="0">public IP / DNAT / LB NAT</tspan></text>
+<path d="M 760.0 540 V 546" stroke="#007D8F" stroke-width="3" stroke-linecap="round"/>
+<path d="M 760.0 552 l -5 -7 h 10 z" fill="#007D8F"/>
+<rect x="544" y="552" width="432" height="38" rx="8" fill="#071B4D" />
+<text x="760.0" y="576" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="white" text-anchor="middle"><tspan x="760.0" dy="0">REACHABLE  →  severity</tspan></text>
+<rect x="544" y="606" width="432" height="40" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="631.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">Twin</tspan></text>
+<text x="604.72" y="631.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="604.72" dy="0">Go engine  ≡  Python reference · drift = 0</tspan></text>
+<rect x="544" y="654" width="432" height="40" rx="8" fill="#F1F7F9" stroke="#DCE8F0" stroke-width="1" />
+<text x="560" y="679.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="560" dy="0">14 families</tspan></text>
+<text x="665.48" y="679.0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="665.48" dy="0">Critical → Info · evidence per finding</tspan></text>
+<circle cx="1050" cy="296" r="26" fill="url(#gradPurple)"/>
+<text x="1050" y="305" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" fill="white" text-anchor="middle"><tspan x="1050" dy="0">3</tspan></text>
+<text x="1090" y="290" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800" fill="#5A33B5" text-anchor="start"><tspan x="1090" dy="0">Consumers</tspan></text>
+<text x="1090" y="318" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1090" dy="0">the engine is the source of truth</tspan></text>
+<rect x="1024" y="348" width="462" height="106" rx="9" fill="#F3EFFB" stroke="#E2D7F5" stroke-width="1" />
+<text x="1042" y="378" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#5A33B5" text-anchor="start"><tspan x="1042" dy="0">Visualization</tspan></text>
+<circle cx="1046" cy="398" r="2.6" fill="#071B4D"/>
+<text x="1058" y="402" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">View families: HLD · MLD · risk</tspan></text>
+<circle cx="1046" cy="420" r="2.6" fill="#071B4D"/>
+<text x="1058" y="424" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">boundary · cross-sub · finding-centric</tspan></text>
+<circle cx="1046" cy="442" r="2.6" fill="#071B4D"/>
+<text x="1058" y="446" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">Deterministic .drawio, CI-gated</tspan></text>
+<rect x="1024" y="468" width="462" height="84" rx="9" fill="#F3EFFB" stroke="#E2D7F5" stroke-width="1" />
+<text x="1042" y="498" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#5A33B5" text-anchor="start"><tspan x="1042" dy="0">Generator</tspan></text>
+<circle cx="1046" cy="518" r="2.6" fill="#071B4D"/>
+<text x="1058" y="522" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">Intent → validated Terraform PR</tspan></text>
+<circle cx="1046" cy="540" r="2.6" fill="#071B4D"/>
+<text x="1058" y="544" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">gate blocks Critical / High / Medium</tspan></text>
+<rect x="1024" y="566" width="462" height="106" rx="9" fill="#F3EFFB" stroke="#E2D7F5" stroke-width="1" />
+<text x="1042" y="596" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#5A33B5" text-anchor="start"><tspan x="1042" dy="0">MCP Server</tspan></text>
+<circle cx="1046" cy="616" r="2.6" fill="#071B4D"/>
+<text x="1058" y="620" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">6 governed tools · get_topology,</tspan></text>
+<circle cx="1046" cy="638" r="2.6" fill="#071B4D"/>
+<text x="1058" y="642" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">analyze_risks, simulate_change, …</tspan></text>
+<circle cx="1046" cy="660" r="2.6" fill="#071B4D"/>
+<text x="1058" y="664" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1058" dy="0">middleware: authz · audit · injection guard</tspan></text>
+<path d="M 494 336 H 468.2" stroke="#071B4D" stroke-width="3" stroke-linecap="round"/>
+<path d="M 475.2 336 l -8 -5 v 10 z" fill="#071B4D"/>
+<path d="M 564.8 336 H 539" stroke="#071B4D" stroke-width="3" stroke-linecap="round"/>
+<path d="M 546 336 l -8 -5 v 10 z" fill="#071B4D"/>
+<rect x="479.2" y="320" width="81.6" height="32" rx="16" fill="white" stroke="#007D8F" stroke-width="1.4" filter="url(#softShadow)" />
+<text x="520" y="341" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="middle"><tspan x="520" dy="0">Graph IR</tspan></text>
+<path d="M 974 336 H 907.2" stroke="#071B4D" stroke-width="3" stroke-linecap="round"/>
+<path d="M 914.2 336 l -8 -5 v 10 z" fill="#071B4D"/>
+<path d="M 1085.8 336 H 1019" stroke="#071B4D" stroke-width="3" stroke-linecap="round"/>
+<path d="M 1026 336 l -8 -5 v 10 z" fill="#071B4D"/>
+<rect x="918.2" y="320" width="163.6" height="32" rx="16" fill="white" stroke="#007D8F" stroke-width="1.4" filter="url(#softShadow)" />
+<text x="1000" y="341" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800" fill="#007D8F" text-anchor="middle"><tspan x="1000" dy="0">findings + overlay</tspan></text>
+<rect x="26" y="736" width="1484" height="132" rx="9" fill="white" stroke="#C9D8E6" stroke-width="1.1" filter="url(#softShadow)" />
+<text x="768" y="766" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="800" fill="#071B4D" text-anchor="middle"><tspan x="768" dy="0">ENGINEERED INTO EVERY STAGE</tspan></text>
+<path d="M66.0 796 L92.0 808 L88.0 844 Q66.0 856 44.0 844 L40.0 808 Z" fill="none" stroke="#007D8F" stroke-width="3"/>
+<path d="M54.0 824 l8 8 l16 -19" fill="none" stroke="#071B4D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="104.0" y="806" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="104.0" dy="0">DETERMINISM</tspan></text>
+<text x="104.0" y="828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="104.0" dy="0">sort before emit</tspan><tspan x="104.0" dy="18">byte-identical artifacts</tspan></text>
+<line x1="397.0" y1="786" x2="397.0" y2="856" stroke="#C9D8E6" stroke-width="1.2"/>
+<path d="M437.0 796 L463.0 808 L459.0 844 Q437.0 856 415.0 844 L411.0 808 Z" fill="none" stroke="#007D8F" stroke-width="3"/>
+<path d="M425.0 824 l8 8 l16 -19" fill="none" stroke="#071B4D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="475.0" y="806" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="475.0" dy="0">TWIN-DRIFT PARITY</tspan></text>
+<text x="475.0" y="828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="475.0" dy="0">Go engine ≡ Python</tspan><tspan x="475.0" dy="18">reference · 0 divergences</tspan></text>
+<line x1="768.0" y1="786" x2="768.0" y2="856" stroke="#C9D8E6" stroke-width="1.2"/>
+<path d="M808.0 796 L834.0 808 L830.0 844 Q808.0 856 786.0 844 L782.0 808 Z" fill="none" stroke="#007D8F" stroke-width="3"/>
+<path d="M796.0 824 l8 8 l16 -19" fill="none" stroke="#071B4D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="846.0" y="806" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="846.0" dy="0">READ-ONLY · LEAST PRIV</tspan></text>
+<text x="846.0" y="828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="846.0" dy="0">Managed Identity / OIDC</tspan><tspan x="846.0" dy="18">no writes · no terraform apply</tspan></text>
+<line x1="1139.0" y1="786" x2="1139.0" y2="856" stroke="#C9D8E6" stroke-width="1.2"/>
+<path d="M1179.0 796 L1205.0 808 L1201.0 844 Q1179.0 856 1157.0 844 L1153.0 808 Z" fill="none" stroke="#007D8F" stroke-width="3"/>
+<path d="M1167.0 824 l8 8 l16 -19" fill="none" stroke="#071B4D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1217.0" y="806" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#007D8F" text-anchor="start"><tspan x="1217.0" dy="0">CI-GATED</tspan></text>
+<text x="1217.0" y="828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1217.0" dy="0">go test · twin-drift</tspan><tspan x="1217.0" dy="18">diagram-eval · views-gate</tspan></text>
+<text x="28" y="1004" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#5D6472" text-anchor="start"><tspan x="28" dy="0">antr  ·  Azure Network Topology Reviewer</tspan></text>
+<path d="M1158 992 L1208 902 L1258 992 H1228 L1208 952 L1188 992 Z" fill="url(#gradTeal)" opacity="0.95"/>
+<path d="M1208 902 L1258 992" stroke="#5A33B5" stroke-width="9" opacity="0.6"/>
+<text x="1270" y="962" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="32" font-weight="500" fill="#071B4D" text-anchor="start"><tspan x="1270" dy="0">Aara Minds</tspan></text>
+<text x="1272" y="990" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#007D8F" text-anchor="start"><tspan x="1272" dy="0">Leadership • AI • Engineering</tspan></text>
+</svg>
