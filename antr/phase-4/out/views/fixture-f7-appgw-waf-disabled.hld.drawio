@@ -1,0 +1,37 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="HLD — VNets, hubs, peerings, boundary" id="phase4-topo">
+    <mxGraphModel dx="1422" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vnet:hub-vnet" value="hub-vnet&lt;br&gt;[]&lt;br&gt;10.0.0.0/16" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="applayer-label" value="Application &amp; edge services" style="text;html=1;align=left;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="374" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="appgw:appgw-prod" value="🟡 App Gateway&lt;br&gt;appgw-prod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="170" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="appgw:appgw-staging" value="🔵 App Gateway&lt;br&gt;appgw-staging" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="240" y="400" width="170" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="appgw:appgw-internal" value="🟢 App Gateway&lt;br&gt;appgw-internal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="440" y="400" width="170" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend — severity&lt;/b&gt;&lt;br&gt;🔴 Critical&lt;br&gt;🟠 High&lt;br&gt;🟡 Medium&lt;br&gt;🔵 Info&lt;br&gt;🟢 Clean&lt;br&gt;&lt;br&gt;&lt;b&gt;Structural&lt;/b&gt;&lt;br&gt;⬜ grey = infrastructure (unscored)" style="rounded=0;whiteSpace=wrap;html=1;align=left;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="40" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="appedge:1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="appgw:appgw-prod" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="appedge:2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="appgw:appgw-staging" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="appedge:3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="appgw:appgw-internal" target="vnet:hub-vnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

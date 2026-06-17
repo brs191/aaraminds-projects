@@ -277,7 +277,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 14,
+          "vertices": 17,
           "overlaps": []
         }
       },
@@ -310,7 +310,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 4,
+          "vertices": 6,
           "overlaps": []
         }
       },
@@ -377,7 +377,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 3,
+          "vertices": 6,
           "overlaps": []
         }
       },
@@ -518,7 +518,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 10,
+          "vertices": 12,
           "overlaps": []
         }
       },
@@ -526,11 +526,10 @@
       "buckets": [
         "Critical",
         "High",
-        "Info"
+        "Info",
+        "Medium"
       ],
-      "non_topology_findings": [
-        "AKS non-private cluster"
-      ],
+      "non_topology_findings": [],
       "status": "PASS"
     },
     {
@@ -709,16 +708,15 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 5,
+          "vertices": 11,
           "overlaps": []
         }
       },
       "errors": [],
-      "buckets": [],
-      "non_topology_findings": [
-        "APIM External mode without WAF",
-        "APIM without VNet isolation"
+      "buckets": [
+        "Medium"
       ],
+      "non_topology_findings": [],
       "status": "PASS"
     },
     {
@@ -746,7 +744,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 9,
+          "vertices": 11,
           "overlaps": []
         }
       },
@@ -782,93 +780,19 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 7,
-          "overlaps": []
-        }
-      },
-      "errors": [],
-      "buckets": [],
-      "non_topology_findings": [
-        "vWAN hub firewall bypasses private traffic",
-        "vWAN hub unsecured \u2014 no firewall"
-      ],
-      "status": "PASS"
-    },
-    {
-      "fixture": "fixture-f14-frontdoor-waf.json",
-      "checks": {
-        "RC1_RC2_edges": {
-          "status": "SKIP",
-          "reason": "no peerings"
-        },
-        "RC3_boundary": {
-          "status": "SKIP",
-          "reason": "no boundary elements"
-        },
-        "RC4_colour_from_analyze": {
-          "status": "PASS",
-          "painted_leaf_nodes": 0,
-          "mismatches": [],
-          "dropped_findings": [],
-          "palette_violations": []
-        },
-        "structure": {
-          "status": "PASS",
-          "duplicate_ids": []
-        },
-        "RC5_layout": {
-          "status": "PASS",
-          "vertices": 1,
-          "overlaps": []
-        }
-      },
-      "errors": [],
-      "buckets": [],
-      "non_topology_findings": [
-        "Front Door WAF disabled",
-        "Front Door WAF in detection mode"
-      ],
-      "status": "PASS"
-    },
-    {
-      "fixture": "fixture-f6-pe-dns-misconfiguration.json",
-      "checks": {
-        "RC1_RC2_edges": {
-          "status": "SKIP",
-          "reason": "no peerings"
-        },
-        "RC3_boundary": {
-          "status": "SKIP",
-          "reason": "no boundary elements"
-        },
-        "RC4_colour_from_analyze": {
-          "status": "PASS",
-          "painted_leaf_nodes": 4,
-          "mismatches": [],
-          "dropped_findings": [],
-          "palette_violations": []
-        },
-        "structure": {
-          "status": "PASS",
-          "duplicate_ids": []
-        },
-        "RC5_layout": {
-          "status": "PASS",
-          "vertices": 12,
+          "vertices": 11,
           "overlaps": []
         }
       },
       "errors": [],
       "buckets": [
-        "Info"
+        "Medium"
       ],
-      "non_topology_findings": [
-        "private DNS zone not linked to VNet"
-      ],
+      "non_topology_findings": [],
       "status": "PASS"
     },
     {
-      "fixture": "fixture-f7-appgw-waf-disabled.json",
+      "fixture": "fixture-f14-frontdoor-waf.json",
       "checks": {
         "RC1_RC2_edges": {
           "status": "SKIP",
@@ -896,11 +820,83 @@
         }
       },
       "errors": [],
-      "buckets": [],
-      "non_topology_findings": [
-        "app gateway WAF disabled",
-        "app gateway WAF in detection mode"
+      "buckets": [
+        "Info",
+        "Medium"
       ],
+      "non_topology_findings": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f6-pe-dns-misconfiguration.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 4,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 15,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "High",
+        "Info"
+      ],
+      "non_topology_findings": [],
+      "status": "PASS"
+    },
+    {
+      "fixture": "fixture-f7-appgw-waf-disabled.json",
+      "checks": {
+        "RC1_RC2_edges": {
+          "status": "SKIP",
+          "reason": "no peerings"
+        },
+        "RC3_boundary": {
+          "status": "SKIP",
+          "reason": "no boundary elements"
+        },
+        "RC4_colour_from_analyze": {
+          "status": "PASS",
+          "painted_leaf_nodes": 0,
+          "mismatches": [],
+          "dropped_findings": [],
+          "palette_violations": []
+        },
+        "structure": {
+          "status": "PASS",
+          "duplicate_ids": []
+        },
+        "RC5_layout": {
+          "status": "PASS",
+          "vertices": 9,
+          "overlaps": []
+        }
+      },
+      "errors": [],
+      "buckets": [
+        "Info",
+        "Medium"
+      ],
+      "non_topology_findings": [],
       "status": "PASS"
     },
     {
@@ -935,14 +931,15 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 5,
+          "vertices": 8,
           "overlaps": []
         }
       },
       "errors": [],
-      "buckets": [],
+      "buckets": [
+        "Medium"
+      ],
       "non_topology_findings": [
-        "AKS non-private cluster",
         "cross-subscription peering without firewall"
       ],
       "status": "PASS"

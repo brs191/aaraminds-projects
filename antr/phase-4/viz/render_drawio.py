@@ -263,6 +263,63 @@ def build(fx, level="mld", overlay=None):
             edges.append(Cell(eid("fwlink:"), "", "html=1;endArrow=none;",
                               vertex=False, source="fw:" + fw["name"], target="vnet:" + hub_name))
 
+    # ---- application & edge-services band ----
+    # Every app-layer family the engine scores (App Gateway, AKS, Private Endpoint,
+    # APIM, Front Door, vWAN hub) is drawn here as a node painted by overlay
+    # severity, so a WAF-disabled gateway / public AKS / unlinked private endpoint
+    # is VISIBLE on the map — not hidden in a side-channel. Subnet-attached families
+    # link (dashed) to their VNet; internet-edge families link to the Internet
+    # boundary (the ingress path). Bastion is drawn structurally (its bypass finding
+    # lands on the offending NIC, not the Bastion). Cross-sub peering has no node —
+    # it is the cross-sub edge already drawn above.
+    app_items = []
+    for gw in rg.get("applicationGateways", []):
+        app_items.append(("appgw", gw["name"], "App Gateway\n" + gw["name"], gw.get("subnet"), False))
+    for a in rg.get("aksClusters", []):
+        app_items.append(("aks", a["name"], "AKS\n" + a["name"], a.get("subnet"), False))
+    for pe in rg.get("privateEndpoints", []):
+        app_items.append(("pe", pe["name"], "Private Endpoint\n" + pe["name"], pe.get("subnet"), False))
+    for b in rg.get("azureBastions", []):
+        app_items.append(("bastion", b["name"], "Bastion\n" + b["name"], b.get("subnet"), False))
+    for ap in rg.get("apiManagements", []):
+        app_items.append(("apim", ap["name"], "APIM\n" + ap["name"], None, True))
+    for fd in rg.get("azureFrontDoors", []):
+        app_items.append(("fd", fd["name"], "Front Door\n" + fd["name"], None, True))
+    for wan in rg.get("virtualWans", []):
+        for hub in wan.get("vHubs", []):
+            app_items.append(("vhub", hub["name"], "vWAN Hub\n" + hub["name"], None, True))
+
+    if app_items:
+        # Clear the external-stub band (stub height 60) when stubs exist, else clear
+        # the VNet row — leaving room for the band label above the nodes (RC-5).
+        app_y = (stub_y + 140) if stub_ids else (max_bottom + 90)
+        add(Cell("applayer-label", "Application & edge services",
+                 "text;html=1;align=left;verticalAlign=middle;fontStyle=1;", x=40, y=app_y - 26, w=320, h=20))
+        ax = 40
+        for kind, name, label, subnet, is_edge in app_items:
+            nid = kind + ":" + name
+            if kind == "bastion":
+                # Bastion is never scored (its bypass finding lands on the NIC); draw
+                # it structurally (grey), like the firewall/gateway boundary nodes.
+                style, badge = struct_style(), "⬜"
+            else:
+                # Scored families: severity fill even when Clean (green), consistent
+                # with NIC/VNet — the band shows the app inventory coloured by risk.
+                sev = ov.severity_of(overlay, nid)
+                style, badge = sev_style(sev), ov.style_for(sev).get("badge", "")
+            add(Cell(nid, "%s %s" % (badge, label), style, x=ax, y=app_y, w=170, h=54))
+            if is_edge and internet_id:
+                edges.append(Cell(eid("appedge:"), "",
+                                  "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=%s;" % ov.STRUCT_STROKE,
+                                  vertex=False, source=internet_id, target=nid))
+            elif subnet:
+                vn = subnet.split("/")[0] if "/" in subnet else subnet
+                if "vnet:" + vn in vertex_ids:
+                    edges.append(Cell(eid("appedge:"), "",
+                                      "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;dashed=1;strokeColor=%s;" % ov.STRUCT_STROKE,
+                                      vertex=False, source=nid, target="vnet:" + vn))
+            ax += 170 + 30
+
     # ---- legend (clear of boundary band + VNet row) ----
     leg = "<b>Legend — severity</b><br>" + "<br>".join(
         "%s %s" % (ov.BUCKET_COLOR[b]["badge"], b) for b in ov.LEGEND_ORDER) + \

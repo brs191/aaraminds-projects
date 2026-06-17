@@ -72,27 +72,33 @@ _NIC_FINDING_TYPES = {
     "internet reachable via load balancer NAT",
 }
 
-# Finding types on resources the network-topology diagram does NOT model as
-# severity-colourable nodes: App Gateway, AKS, Front Door, vWAN hub, APIM, the
-# cross-subscription peering RELATIONSHIP, and Private DNS zone linkage. These are
-# real findings — they remain in the engine output and the risk register — but
-# they have no topology node to colour, so the overlay must NOT invent one.
-# (Before audit H-1's family port, the fallthrough mislabeled every one of these
-# as nic:<resource>, producing phantom NIC nodes the renderer never drew, which
-# the diagram-eval gate then reported as "dropped findings" — a false failure.)
+# App-layer / edge-service finding types → the namespaced node the renderer draws
+# for that resource. As of the app-layer-nodes change, the renderer draws every one
+# of these in the "application & edge services" band, so the finding is VISIBLE on
+# the map (and the diagram-eval gate positively enforces the node exists + is
+# coloured). The resource of each of these findings is the bare resource NAME
+# (engine checkAppGatewayExposure etc. set Resource: gw.Name, aks.Name, …), so the
+# node id is "<kind>:<name>".
+_APP_NODE_FOR_TYPE = {
+    "app gateway WAF disabled": "appgw",
+    "app gateway WAF in detection mode": "appgw",
+    "AKS non-private cluster": "aks",
+    "APIM without VNet isolation": "apim",
+    "APIM External mode without WAF": "apim",
+    "Front Door WAF disabled": "fd",
+    "Front Door WAF in detection mode": "fd",
+    "vWAN hub unsecured — no firewall": "vhub",
+    "vWAN hub firewall bypasses private traffic": "vhub",
+    "private DNS zone missing": "pe",
+    "private DNS zone not linked to VNet": "pe",
+}
+
+# The only finding family with no node: the cross-subscription PEERING relationship.
+# It is a relationship, not a resource — the renderer already shows it as the
+# (dashed when unfirewalled) cross-sub EDGE, so it needs no node. This is the single
+# justified residue reported as `non_topology_findings` by the diagram-eval gate.
 NON_TOPOLOGY_FINDING_TYPES = {
-    "app gateway WAF disabled",
-    "app gateway WAF in detection mode",
-    "AKS non-private cluster",
     "cross-subscription peering without firewall",
-    "APIM without VNet isolation",
-    "APIM External mode without WAF",
-    "Front Door WAF disabled",
-    "Front Door WAF in detection mode",
-    "vWAN hub unsecured — no firewall",
-    "vWAN hub firewall bypasses private traffic",
-    "private DNS zone missing",
-    "private DNS zone not linked to VNet",
 }
 
 
@@ -103,8 +109,8 @@ def finding_node_ids(f):
       NIC findings      -> ["nic:<name>"]
       orphaned PIP      -> ["pip:<name>"]
       CIDR overlap pair -> ["vnet:<a>", "vnet:<b>"]
-    App-layer findings (NON_TOPOLOGY_FINDING_TYPES) paint nothing — they have no
-    topology node — and are surfaced in the risk register instead.
+      app-layer/edge    -> ["<kind>:<name>"]  (appgw|aks|apim|fd|vhub|pe)
+    The cross-sub peering relationship paints nothing (it is the cross-sub edge).
     """
     t, r = f.get("type", ""), f.get("resource", "")
     if t == "orphaned public endpoint":
@@ -114,8 +120,10 @@ def finding_node_ids(f):
         return ["vnet:" + a, "vnet:" + b]
     if t in _NIC_FINDING_TYPES:
         return ["nic:" + r]
+    if t in _APP_NODE_FOR_TYPE:
+        return [_APP_NODE_FOR_TYPE[t] + ":" + r]
     if t in NON_TOPOLOGY_FINDING_TYPES:
-        return []  # surfaced in the risk register, not as a topology node colour
+        return []  # the cross-sub edge represents it; no node
     # Unknown type — paint as nic so the diagram-eval gate trips LOUDLY (dropped
     # finding) and forces a deliberate classification of any new engine family.
     return ["nic:" + r]

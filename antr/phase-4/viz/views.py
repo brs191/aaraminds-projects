@@ -66,13 +66,26 @@ def _peer_adjacency(fx):
     return adj
 
 
-def project(fx, *, keep_vnet, keep_nic, keep_pip,
+# Fixture list -> app-layer node kind (the band the renderer draws). vWAN hubs are
+# nested under virtualWans[].vHubs and handled separately.
+_APP_LIST_KIND = [
+    ("applicationGateways", "appgw"),
+    ("aksClusters", "aks"),
+    ("apiManagements", "apim"),
+    ("azureFrontDoors", "fd"),
+    ("privateEndpoints", "pe"),
+    ("azureBastions", "bastion"),
+]
+
+
+def project(fx, *, keep_vnet, keep_nic, keep_pip, keep_app_node=lambda kind, name: True,
             keep_subnets_with_nics=True, keep_boundary=True, keep_xsub=True):
     """Return a NEW fixture with only the resources selected by the predicates.
 
-    keep_vnet(vnet)->bool, keep_nic(nic)->bool, keep_pip(pip)->bool. The projection
-    is structural only; pass the full-estate overlay to render() so colours are not
-    recomputed from this subset. Order is preserved (determinism)."""
+    keep_vnet(vnet)->bool, keep_nic(nic)->bool, keep_pip(pip)->bool,
+    keep_app_node(kind, name)->bool (kind ∈ appgw|aks|apim|fd|pe|bastion|vhub). The
+    projection is structural only; pass the full-estate overlay to render() so
+    colours are not recomputed from this subset. Order is preserved (determinism)."""
     pfx = copy.deepcopy(fx)
     rg = pfx.get("resourceGraph", {})
 
@@ -92,6 +105,20 @@ def project(fx, *, keep_vnet, keep_nic, keep_pip,
     rg["virtualNetworks"] = new_vnets
 
     rg["publicIPAddresses"] = [p for p in rg.get("publicIPAddresses", []) if keep_pip(p)]
+
+    # app-layer / edge-service resource lists
+    for key, kind in _APP_LIST_KIND:
+        if key in rg:
+            rg[key] = [r for r in rg[key] if keep_app_node(kind, r.get("name", ""))]
+    new_wans = []
+    for wan in rg.get("virtualWans", []):
+        hubs = [h for h in wan.get("vHubs", []) if keep_app_node("vhub", h.get("name", ""))]
+        if hubs:
+            w2 = dict(wan)
+            w2["vHubs"] = hubs
+            new_wans.append(w2)
+    if "virtualWans" in rg:
+        rg["virtualWans"] = new_wans
 
     if not keep_boundary:
         for k in ("virtualNetworkGateways", "expressRouteCircuits", "natGateways"):
@@ -132,6 +159,7 @@ def view_risk(fx, overlay):
         keep_vnet=lambda v: v["name"] in keep_vnets,
         keep_nic=lambda n: ov.rid(n) in nic_rids,
         keep_pip=lambda p: ov.rid(p) in pip_rids,
+        keep_app_node=lambda kind, name: (kind + ":" + name) in overlay,
         keep_subnets_with_nics=True, keep_boundary=True, keep_xsub=True)
     return [(pfx, "mld", "risk", "Risk view — only resources with findings")]
 
@@ -164,40 +192,71 @@ def view_cross_sub(fx, overlay):
         keep_vnet=lambda v: v["name"] in names,
         keep_nic=lambda n: False,
         keep_pip=lambda p: False,
+        keep_app_node=lambda kind, name: False,
         keep_subnets_with_nics=True, keep_boundary=False, keep_xsub=True)
     return [(pfx, "hld", "cross-sub", "Cross-subscription peering — multi-sub blast radius")]
 
 
+# Mediums that are genuine internet exposure (a public WAF turned off) warrant a
+# focused view alongside the Critical/High set.
+_INTERNET_FACING_MEDIUM = {"app gateway WAF disabled", "Front Door WAF disabled"}
+_FINDING_NODE_KINDS = ("nic", "appgw", "aks", "apim", "fd", "vhub", "pe")
+
+
+def _qualifies_for_finding_view(f):
+    return f["severity"] in ("Critical", "High") or f["type"] in _INTERNET_FACING_MEDIUM
+
+
 def views_finding_centric(fx, overlay, k=1):
-    """One small k-hop diagram per Critical/High finding around the affected node."""
+    """One small k-hop diagram per qualifying finding (Critical/High, plus
+    internet-facing Medium) around the affected node — NIC OR app-layer resource."""
     rg = fx.get("resourceGraph", {})
     nic_by_rid = {ov.rid(n): n for n in rg.get("networkInterfaces", [])}
+    # app-layer resource -> its VNet (subnet-attached families only; edge families
+    # — apim/fd/vhub — have no VNet, so their view centres on the boundary).
+    subnet_of = {}
+    for key, kind in (("applicationGateways", "appgw"), ("aksClusters", "aks"),
+                      ("privateEndpoints", "pe")):
+        for r in rg.get(key, []):
+            subnet_of[(kind, r["name"])] = r.get("subnet", "")
     adj = _peer_adjacency(fx)
+
     out, seen = [], set()
     for nid, e in sorted(overlay.items()):
-        if not nid.startswith("nic:"):
+        kind = nid.split(":", 1)[0]
+        if kind not in _FINDING_NODE_KINDS:
             continue
-        rid = nid[4:]
-        nic = nic_by_rid.get(rid)
-        if not nic:
-            continue
+        name = nid.split(":", 1)[1]
         for f in e["findings"]:
-            if f["severity"] not in ("Critical", "High") or f["resource"] in seen:
+            if not _qualifies_for_finding_view(f) or f["resource"] in seen:
                 continue
             seen.add(f["resource"])
-            center = _nic_vnet(nic)
-            khop, frontier = {center}, {center}
-            for _ in range(k):
-                nxt = set()
-                for vn in frontier:
-                    nxt |= adj.get(vn, set())
-                khop |= nxt
-                frontier = nxt
+            # centre VNet(s)
+            if kind == "nic":
+                nic = nic_by_rid.get(name)
+                center = _nic_vnet(nic) if nic else None
+            elif (kind, name) in subnet_of:
+                sub = subnet_of[(kind, name)]
+                center = sub.split("/")[0] if "/" in sub else None
+            else:
+                center = None  # edge resource (apim / fd / vhub)
+            khop = set()
+            if center:
+                khop, frontier = {center}, {center}
+                for _ in range(k):
+                    nxt = set()
+                    for vn in frontier:
+                        nxt |= adj.get(vn, set())
+                    khop |= nxt
+                    frontier = nxt
+            aff_nic = name if kind == "nic" else None
+            aff_app = (kind, name) if kind != "nic" else None
             pfx = project(
                 fx,
                 keep_vnet=lambda v, kh=khop: v["name"] in kh,
-                keep_nic=lambda n, c=rid: ov.rid(n) == c,
+                keep_nic=lambda n, c=aff_nic: c is not None and ov.rid(n) == c,
                 keep_pip=lambda p: False,
+                keep_app_node=lambda kk, nn, a=aff_app: a is not None and (kk, nn) == a,
                 keep_subnets_with_nics=True, keep_boundary=True, keep_xsub=True)
             slug = "finding-" + _slug(f["type"] + "-" + f["resource"])
             title = "Finding — %s on %s (%s)" % (f["type"], f["resource"], f["severity"])

@@ -79,11 +79,19 @@ swappable.** Concretely:
   (icon conventions, hub-spoke aesthetics) is less mature than CloudNetDraw's. We
   accept that until a concrete legibility complaint on a real estate justifies the
   fork-and-patch in (5).
-* **Follow-ups:** (a) the renderer does not yet draw App GW / AKS / Front Door /
-  vWAN / APIM as first-class nodes — those findings surface in `non_topology_findings`
-  (see overlay), a known Phase-4 gap; (b) finding-centric views currently center on
-  NIC-resource findings (the Critical/High exposure set) — extend to other resource
-  families when those gain topology nodes.
+* **Follow-ups (RESOLVED 2026-06-17):** the two limitations this ADR originally
+  recorded are now closed. (a) App Gateway, AKS, Front Door, vWAN hub, APIM, and
+  Private Endpoint are drawn as **first-class nodes** in the renderer's "application
+  & edge services" band, painted by overlay severity; `overlay.finding_node_ids`
+  maps every one of their finding families to a node, and the diagram-eval gate now
+  **positively enforces** that each app-layer finding's node is drawn and correctly
+  coloured (`RC4`). `non_topology_findings` shrank to a single, justified residue:
+  the cross-subscription peering *relationship*, which is rendered as the cross-sub
+  edge, not a node. (b) finding-centric views now centre on **any** Critical/High
+  finding — NIC or app-layer — plus internet-facing Mediums (WAF-disabled public App
+  Gateway / Front Door). Remaining genuine residue: cross-sub peering stays an edge
+  (correct); Load Balancers are not drawn (their NAT exposure already lands on the
+  backend NIC node).
 
 ## Alternatives considered
 

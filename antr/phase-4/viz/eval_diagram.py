@@ -65,9 +65,20 @@ def _colour_problems(fx, overlay, level):
     xml, cells, edges = rd.render(fx, level)
     vids = {c.id for c in cells}
     fills = _fills(xml)
+    # App-layer / edge-service node kinds (drawn in the application band at BOTH
+    # levels). These are POSITIVELY enforced: an app-layer finding maps to a node id
+    # (overlay.finding_node_ids), so the renderer MUST draw that node and colour it
+    # — a missing node is now a real "dropped finding", not an accepted residue.
+    app_kinds = ("appgw:", "aks:", "apim:", "fd:", "vhub:", "pe:")
     bad, dropped = [], []
     for nid, entry in overlay.items():
         if nid.startswith("pip:") or (nid.startswith("nic:") and level == "mld"):
+            if nid not in vids:
+                dropped.append([level, nid]); continue
+            want = ov.style_for(entry["severity"])["fill"]
+            if fills.get(nid) != want:
+                bad.append([level, nid, want, fills.get(nid)])
+        elif nid.startswith(app_kinds):
             if nid not in vids:
                 dropped.append([level, nid]); continue
             want = ov.style_for(entry["severity"])["fill"]
@@ -88,7 +99,7 @@ def _colour_problems(fx, overlay, level):
     engine_sevs = {f["severity"] for f in eng.analyze(fx)}
     allowed = {ov.style_for(s)["fill"] for s in (engine_sevs | {"Clean"})}
     palette = [[level, nid, fills[nid]] for nid in fills
-               if nid.startswith(("nic:", "pip:", "vnet:")) and fills[nid] not in allowed]
+               if nid.startswith(("nic:", "pip:", "vnet:") + app_kinds) and fills[nid] not in allowed]
     return bad, dropped, palette
 
 

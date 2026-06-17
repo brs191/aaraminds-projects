@@ -70,6 +70,15 @@ def check_fixture(path):
         for v in rg.get("virtualNetworks", []):
             if v["name"] not in risky_vnets:
                 fails.append("%s: risk view drew clean VNet %s" % (name, v["name"]))
+        # app-layer resources in the risk view must each carry a finding
+        for key, kind in vw._APP_LIST_KIND:
+            for r in rg.get(key, []):
+                if (kind + ":" + r["name"]) not in overlay:
+                    fails.append("%s: risk view drew app-layer %s:%s with no finding" % (name, kind, r["name"]))
+        for w in rg.get("virtualWans", []):
+            for h in w.get("vHubs", []):
+                if ("vhub:" + h["name"]) not in overlay:
+                    fails.append("%s: risk view drew vhub %s with no finding" % (name, h["name"]))
 
     # ---- cross-sub view: only cross-sub VNets ----
     xsub_names = set()
@@ -94,24 +103,27 @@ def check_fixture(path):
         if missing:
             fails.append("%s: boundary view missing reachable NIC(s) %s" % (name, sorted(missing)))
 
-    # ---- finding-centric: one per distinct Critical/High finding; node present ----
+    # ---- finding-centric: one per distinct qualifying finding (any node kind),
+    #      and each view draws exactly its 1 affected resource (NIC OR app-layer) ----
     expected = set()
     for nid, e in overlay.items():
-        if not nid.startswith("nic:"):
+        if nid.split(":", 1)[0] not in vw._FINDING_NODE_KINDS:
             continue
         for f in e["findings"]:
-            if f["severity"] in ("Critical", "High"):
+            if vw._qualifies_for_finding_view(f):
                 expected.add(f["resource"])
     fc = vw.views_finding_centric(fx, overlay)
     if len(fc) != len(expected):
-        fails.append("%s: finding-centric count %d != distinct Crit/High findings %d"
+        fails.append("%s: finding-centric count %d != distinct qualifying findings %d"
                      % (name, len(fc), len(expected)))
     for pfx, _level, _slug, title in fc:
-        # the affected NIC must appear in its own diagram
-        drawn = {ov.rid(n) for n in pfx["resourceGraph"].get("networkInterfaces", [])}
-        if len(drawn) != 1:
-            fails.append("%s: finding view '%s' should draw exactly its 1 affected NIC, drew %d"
-                         % (name, title, len(drawn)))
+        rgp = pfx["resourceGraph"]
+        drawn_nic = len(rgp.get("networkInterfaces", []))
+        drawn_app = sum(len(rgp.get(key, [])) for key, _ in vw._APP_LIST_KIND) \
+            + sum(len(w.get("vHubs", [])) for w in rgp.get("virtualWans", []))
+        if drawn_nic + drawn_app != 1:
+            fails.append("%s: finding view '%s' should draw exactly its 1 affected resource, drew %d nic + %d app"
+                         % (name, title, drawn_nic, drawn_app))
     return fails
 
 
