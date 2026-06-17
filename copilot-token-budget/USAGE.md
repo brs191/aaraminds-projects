@@ -125,9 +125,25 @@ npm run compile
 
 ```bash
 cd phase-2/vscode-extension
-npm run package                       # produces copilot-token-budget-*.vsix
+npm run package                       # produces copilot-token-budget-*.vsix (needs Node 22+ for vsce)
 code --install-extension copilot-token-budget-*.vsix
 ```
+
+**Install / uninstall via helper scripts** (repo root; bash — use Git Bash/WSL on Windows):
+
+```bash
+./install_vscode_extn.sh                         # build from source + install (Node 22+ to package)
+./install_vscode_extn.sh --vsix /path/file.vsix  # install a prebuilt .vsix (skips build)
+./install_vscode_extn.sh --help                  # all options + a feature summary
+
+./remove_vscode_extn.sh                          # uninstall the extension (no-op if absent)
+./remove_vscode_extn.sh --purge-config --remove-binaries --yes   # full teardown, no prompts
+```
+
+`remove_vscode_extn.sh` never touches your Copilot session data (`~/.copilot/session-state/`);
+`--purge-config` removes the local `pricing.json` + Teams-alert `state.json`, and `--remove-binaries`
+removes the five `~/bin` CLIs. To unregister the MCP server, delete the `copilot-token-budget` entry
+from your workspace `.copilot/mcp.json` by hand.
 
 **Commands** (Command Palette): `Copilot Budget: Show Dashboard`, `: Refresh`, `: Open Settings`,
 `: Export Usage` (`copilotBudget.exportUsage` — JSON/CSV save dialog).
