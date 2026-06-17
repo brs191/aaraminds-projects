@@ -281,6 +281,11 @@ def build(fx, level="mld", overlay=None):
         app_items.append(("pe", pe["name"], "Private Endpoint\n" + pe["name"], pe.get("subnet"), False))
     for b in rg.get("azureBastions", []):
         app_items.append(("bastion", b["name"], "Bastion\n" + b["name"], b.get("subnet"), False))
+    for lb in rg.get("loadBalancers", []):
+        pub = not lb.get("isInternal", False)
+        # Structural (the LB-NAT exposure lands on the backend NIC). Public LB → an
+        # internet ingress; internal LB → just a node (no subnet in the model).
+        app_items.append(("lb", lb["name"], ("Public LB\n" if pub else "Internal LB\n") + lb["name"], None, pub))
     for ap in rg.get("apiManagements", []):
         app_items.append(("apim", ap["name"], "APIM\n" + ap["name"], None, True))
     for fd in rg.get("azureFrontDoors", []):
@@ -298,9 +303,9 @@ def build(fx, level="mld", overlay=None):
         ax = 40
         for kind, name, label, subnet, is_edge in app_items:
             nid = kind + ":" + name
-            if kind == "bastion":
-                # Bastion is never scored (its bypass finding lands on the NIC); draw
-                # it structurally (grey), like the firewall/gateway boundary nodes.
+            if kind in ("bastion", "lb"):
+                # Never scored directly (Bastion-bypass and LB-NAT findings land on
+                # the offending NIC); draw structurally (grey), like the boundary nodes.
                 style, badge = struct_style(), "⬜"
             else:
                 # Scored families: severity fill even when Clean (green), consistent

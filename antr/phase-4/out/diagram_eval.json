@@ -672,7 +672,7 @@
         },
         "RC5_layout": {
           "status": "PASS",
-          "vertices": 6,
+          "vertices": 9,
           "overlaps": []
         }
       },

@@ -75,6 +75,7 @@ _APP_LIST_KIND = [
     ("azureFrontDoors", "fd"),
     ("privateEndpoints", "pe"),
     ("azureBastions", "bastion"),
+    ("loadBalancers", "lb"),
 ]
 
 
