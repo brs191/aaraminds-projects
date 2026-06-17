@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aaraminds/copilot-session-manager/internal/platform"
+	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
 // validateWorkspacePath enforces two security invariants:
@@ -57,7 +57,7 @@ func validateWorkspacePath(workspacePath string) error {
 
 // dailyBurnRate returns average credits consumed per day across sessions.
 // Returns 0 when daysElapsed <= 0 to guard against division by zero.
-// Inlined from phase-3/internal/forecast to avoid cross-module internal/ import.
+// Inlined from alerting/internal/forecast to avoid cross-module internal/ import.
 func dailyBurnRate(sessions []sessionForBurn, daysElapsed int) float64 {
 	if daysElapsed <= 0 {
 		return 0

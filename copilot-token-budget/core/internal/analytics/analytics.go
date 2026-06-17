@@ -15,9 +15,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/pricing"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/pricing"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // Bucket is one time slice (day, ISO week, or month) of aggregated usage.

@@ -1,6 +1,6 @@
 # GoReleaser v2 configuration for the Copilot Token Budget monorepo.
 #
-# This is a multi-module Go repository: each phase has its own go.mod, so there
+# This is a multi-module Go repository: each module has its own go.mod, so there
 # is NO single module at the repo root. GoReleaser handles this by giving every
 # binary its own `builds:` entry with `dir:` pointing at the module root — it
 # runs `go build` inside that directory against that module's go.mod.
@@ -13,7 +13,7 @@
 # 25 artifacts. windows/arm64 is intentionally excluded.
 #
 # The GitHub release + JFrog upload are owned by a later CI job, so `release` is
-# disabled here — this config is the build half of Phase 5.
+# disabled here — this config is the build half of the release pipeline.
 version: 2
 
 project_name: copilot-token-budget
@@ -27,9 +27,9 @@ release:
   disable: true
 
 builds:
-  # ---- module: phase-1/session-manager (3 binaries) ----
+  # ---- module: core (3 binaries) ----
   - id: copilot-analyze
-    dir: phase-1/session-manager
+    dir: core
     main: ./cmd/analyze
     binary: copilot-analyze
     env:
@@ -46,7 +46,7 @@ builds:
       - -X main.date={{ .Date }}
 
   - id: copilot-dashboard
-    dir: phase-1/session-manager
+    dir: core
     main: ./cmd/dashboard
     binary: copilot-dashboard
     env:
@@ -63,7 +63,7 @@ builds:
       - -X main.date={{ .Date }}
 
   - id: copilot-statusline
-    dir: phase-1/session-manager
+    dir: core
     main: ./cmd/statusline
     binary: copilot-statusline
     env:
@@ -79,9 +79,9 @@ builds:
       - -X main.commit={{ .Commit }}
       - -X main.date={{ .Date }}
 
-  # ---- module: phase-3 (1 binary) ----
+  # ---- module: alerting (1 binary) ----
   - id: copilot-alert
-    dir: phase-3
+    dir: alerting
     main: ./cmd/alert
     binary: copilot-alert
     env:
@@ -97,9 +97,9 @@ builds:
       - -X main.commit={{ .Commit }}
       - -X main.date={{ .Date }}
 
-  # ---- module: phase-4 (1 binary) ----
+  # ---- module: mcp (1 binary) ----
   - id: copilot-budget-mcp
-    dir: phase-4
+    dir: mcp
     main: ./cmd/mcp-server
     binary: copilot-budget-mcp
     env:
@@ -129,7 +129,7 @@ archives:
       - README.md
       - USAGE.md
       - LICENSE
-      - docs/onboarding-runbook.md
+      - docs/runbooks/onboarding-runbook.md
 
   - id: copilot-dashboard
     ids: [copilot-dashboard]
@@ -142,7 +142,7 @@ archives:
       - README.md
       - USAGE.md
       - LICENSE
-      - docs/onboarding-runbook.md
+      - docs/runbooks/onboarding-runbook.md
 
   - id: copilot-statusline
     ids: [copilot-statusline]
@@ -155,7 +155,7 @@ archives:
       - README.md
       - USAGE.md
       - LICENSE
-      - docs/onboarding-runbook.md
+      - docs/runbooks/onboarding-runbook.md
 
   - id: copilot-alert
     ids: [copilot-alert]
@@ -168,7 +168,7 @@ archives:
       - README.md
       - USAGE.md
       - LICENSE
-      - docs/onboarding-runbook.md
+      - docs/runbooks/onboarding-runbook.md
 
   - id: copilot-budget-mcp
     ids: [copilot-budget-mcp]
@@ -181,7 +181,7 @@ archives:
       - README.md
       - USAGE.md
       - LICENSE
-      - docs/onboarding-runbook.md
+      - docs/runbooks/onboarding-runbook.md
 
 checksum:
   name_template: "checksums.txt"

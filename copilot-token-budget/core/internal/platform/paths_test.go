@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aaraminds/copilot-session-manager/internal/platform"
+	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
 func TestSessionStateDir(t *testing.T) {

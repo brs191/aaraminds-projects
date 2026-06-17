@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/analytics"
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/analytics"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // Report is the top-level aggregate serialized by ToJSON. It bundles the budget

@@ -63,8 +63,8 @@ need a toolchain if you build from source:
 
 | If you build… | You need |
 |---|---|
-| phase-1 / phase-3 binaries | Go 1.21+ |
-| phase-4 MCP server (`copilot-budget-mcp`) | **Go 1.25+** (hard requirement of `modelcontextprotocol/go-sdk`; `GOTOOLCHAIN=auto` will auto-fetch it) |
+| core / alerting binaries | Go 1.21+ |
+| mcp MCP server (`copilot-budget-mcp`) | **Go 1.25+** (hard requirement of `modelcontextprotocol/go-sdk`; `GOTOOLCHAIN=auto` will auto-fetch it) |
 | VS Code extension `.vsix` | Node 18+ |
 
 Most engineers should **download** rather than build. Build-from-source steps are noted where relevant.
@@ -215,7 +215,7 @@ This registers `copilot-budget-mcp` so the Copilot CLI model can call the budget
    source instead (requires **Go 1.25+**):
 
    ```bash
-   cd phase-4
+   cd mcp
    go build -ldflags "-X main.Version=<version>" -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
    # Windows:
    # go build -ldflags "-X main.Version=<version>" -o %USERPROFILE%\bin\copilot-budget-mcp.exe .\cmd\mcp-server

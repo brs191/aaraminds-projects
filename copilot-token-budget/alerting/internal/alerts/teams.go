@@ -24,8 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // rng provides per-process retry jitter independent of the global math/rand source,

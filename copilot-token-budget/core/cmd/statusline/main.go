@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/pricing"
-	"github.com/aaraminds/copilot-session-manager/internal/render"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/pricing"
+	"github.com/aaraminds/copilot-token-budget/internal/render"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // Build-time version metadata, injected via -ldflags "-X main.version=...".

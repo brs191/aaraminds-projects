@@ -11,7 +11,7 @@
   values (token counts, credits) are preserved — those are what we need.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File phase-0\discover-ide-usage.ps1 > ide-usage-report.txt
+  powershell -ExecutionPolicy Bypass -File scripts\discovery\discover-ide-usage.ps1 > ide-usage-report.txt
   # then paste ide-usage-report.txt back into the chat
 #>
 

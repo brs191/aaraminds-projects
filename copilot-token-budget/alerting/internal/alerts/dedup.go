@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/platform"
+	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
 const stateFileName = "state.json"

@@ -20,7 +20,7 @@ Reads `~/.copilot/session-state/<uuid>/events.jsonl` — no GitHub API, no exter
 
 ### Phase 1 — Go CLI
 ```bash
-cd phase-1/session-manager
+cd core
 go build ./...                          # build all
 go run ./cmd/analyze ~/projects/...     # one-shot budget report
 go run ./cmd/dashboard ~/projects/...   # live 10-second dashboard
@@ -30,21 +30,21 @@ Zero external dependencies.
 
 ### Phase 2 — VS Code Extension
 ```bash
-cd phase-2/vscode-extension
+cd extension
 npm install --registry https://registry.npmjs.org   # first time only
 npm run compile                                      # tsc -p ./
 ```
-Open the `phase-2/vscode-extension` folder in VS Code and press F5 to test.
+Open the `extension` folder in VS Code and press F5 to test.
 
 ## Key files
 
 | File | Purpose |
 |---|---|
-| `phase-1/session-manager/internal/session/reader.go` | Core data layer — reads JSONL |
-| `phase-1/session-manager/internal/budget/tracker.go` | nanoAIU → credits → dollars |
-| `phase-1/session-manager/internal/instructions/analyzer.go` | Instruction file audit |
-| `phase-2/vscode-extension/src/extension.ts` | VS Code activation entry point |
-| `phase-2/vscode-extension/src/ui/dashboardPanel.ts` | Full HTML dashboard webview |
+| `core/internal/session/reader.go` | Core data layer — reads JSONL |
+| `core/internal/budget/tracker.go` | nanoAIU → credits → dollars |
+| `core/internal/instructions/analyzer.go` | Instruction file audit |
+| `extension/src/extension.ts` | VS Code activation entry point |
+| `extension/src/ui/dashboardPanel.ts` | Full HTML dashboard webview |
 | `design/ARCHITECTURE.md` | Component map + data flow |
 | `design/adr/` | All architectural decisions |
 

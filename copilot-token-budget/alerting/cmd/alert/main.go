@@ -23,10 +23,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	sessionsrc "github.com/aaraminds/copilot-session-manager/internal/session"
-	"github.com/aaraminds/copilot-session-manager/phase3/internal/alerts"
-	forecastpkg "github.com/aaraminds/copilot-session-manager/phase3/internal/forecast"
+	"github.com/aaraminds/copilot-token-budget/alerting/internal/alerts"
+	forecastpkg "github.com/aaraminds/copilot-token-budget/alerting/internal/forecast"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	sessionsrc "github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // Build-time version metadata, injected via -ldflags "-X main.version=...".

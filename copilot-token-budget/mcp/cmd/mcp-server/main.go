@@ -24,7 +24,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aaraminds/copilot-session-manager/phase4/internal/tools"
+	"github.com/aaraminds/copilot-token-budget/mcp/internal/tools"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

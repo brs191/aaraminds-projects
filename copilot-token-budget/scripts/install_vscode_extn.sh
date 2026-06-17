@@ -2,12 +2,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXT_DIR="${SCRIPT_DIR}/phase-2/vscode-extension"
+EXT_DIR="${SCRIPT_DIR}/../extension"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./install_vscode_extn.sh [--vsix /path/to/file.vsix] [--skip-npm-install]
+  ./scripts/install_vscode_extn.sh [--vsix /path/to/file.vsix] [--skip-npm-install]
 
 Behavior:
   - No --vsix: builds extension from local source, then installs it.

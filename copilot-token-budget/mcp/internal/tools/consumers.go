@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aaraminds/copilot-session-manager/internal/analytics"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/analytics"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

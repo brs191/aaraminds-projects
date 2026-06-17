@@ -12,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/cli"
-	"github.com/aaraminds/copilot-session-manager/internal/instructions"
-	"github.com/aaraminds/copilot-session-manager/internal/pricing"
-	"github.com/aaraminds/copilot-session-manager/internal/render"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
-	"github.com/aaraminds/copilot-session-manager/internal/wezterm"
+	"github.com/aaraminds/copilot-token-budget/internal/cli"
+	"github.com/aaraminds/copilot-token-budget/internal/instructions"
+	"github.com/aaraminds/copilot-token-budget/internal/pricing"
+	"github.com/aaraminds/copilot-token-budget/internal/render"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/wezterm"
 )
 
 const clearScreen = "\033[2J\033[H"

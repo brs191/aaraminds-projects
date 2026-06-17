@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/platform"
+	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
 // Session holds the billing and token data for a single Copilot CLI session.
@@ -71,7 +71,7 @@ type ModelMetric struct {
 // BillingTime returns the time used to attribute a session to a calendar month.
 // It is the EndTime (shutdown time) when set, otherwise StartTime.
 //
-// Per phase-0 findings, spend is attributed to the calendar month in which it is
+// Per the data-source discovery findings, spend is attributed to the calendar month in which it is
 // finalized — i.e. when the session shuts down — not when it started. A long
 // session that begins late in one month but settles in the next belongs to the
 // later month's budget. Active sessions have no EndTime yet; they fall back to

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/pricing"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/pricing"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 const credit = int64(1_000_000_000)

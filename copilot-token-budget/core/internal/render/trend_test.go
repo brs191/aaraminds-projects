@@ -4,7 +4,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/aaraminds/copilot-session-manager/internal/analytics"
+	"github.com/aaraminds/copilot-token-budget/internal/analytics"
 )
 
 // TestDailyBar covers the proportional-bar math: empty for non-positive inputs,

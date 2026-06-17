@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-# phase-1/run.sh — Copilot Token Budget launcher
-# Builds the Go module, runs the one-shot budget report, then launches the live dashboard.
+# scripts/run.sh — Copilot Token Budget launcher
+# Builds the core Go module, runs the one-shot budget report, then launches the live dashboard.
 #
 # Usage:
-#   ./phase-1/run.sh                    # defaults to aaraminds-projects workspace
-#   ./phase-1/run.sh /path/to/workspace # explicit workspace root
+#   ./scripts/run.sh                    # defaults to aaraminds-projects workspace
+#   ./scripts/run.sh /path/to/workspace # explicit workspace root
 set -euo pipefail
 
 # ── Path resolution ────────────────────────────────────────────────────────────
 # Resolve SCRIPT_DIR without string manipulation so spaces in paths work.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODULE_DIR="${SCRIPT_DIR}/session-manager"
+MODULE_DIR="${SCRIPT_DIR}/../core"
 
 if [ -n "${1:-}" ]; then
   WORKSPACE_ROOT="$(cd "$1" && pwd)"
 else
-  # Default: two levels up from phase-1/ = the aaraminds-projects workspace.
+  # Default: two levels up from scripts/ = the aaraminds-projects workspace.
   WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 fi
 
 # ── Stage [1/3]: Pre-flight ────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║       Copilot Token Budget — Phase 1 Launcher       ║"
+echo "║          Copilot Token Budget — Launcher            ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 echo "[1/3] Pre-flight checks"

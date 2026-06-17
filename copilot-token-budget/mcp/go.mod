@@ -1,11 +1,11 @@
-module github.com/aaraminds/copilot-session-manager/phase4
+module github.com/aaraminds/copilot-token-budget/mcp
 
 go 1.25.0
 
-replace github.com/aaraminds/copilot-session-manager => ../phase-1/session-manager
+replace github.com/aaraminds/copilot-token-budget => ../core
 
 require (
-	github.com/aaraminds/copilot-session-manager v0.0.0-00010101000000-000000000000
+	github.com/aaraminds/copilot-token-budget v0.0.0-00010101000000-000000000000
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 )
 

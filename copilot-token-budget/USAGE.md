@@ -4,11 +4,11 @@ How to run the outcome of **each phase**. Everything here is local-first and zer
 (the only outbound call is the optional Teams webhook in Phase 3).
 
 > **Just want to install and use it?** End users (any OS) should follow
-> [`docs/onboarding-runbook.md`](docs/onboarding-runbook.md) — the ≤5-minute install guide with full
+> [`docs/runbooks/onboarding-runbook.md`](docs/runbooks/onboarding-runbook.md) — the ≤5-minute install guide with full
 > macOS / Linux / Windows steps. **This file** is the developer/source-build reference (run each phase
 > from the repo). Commands default to **bash** (macOS/Linux); **Windows** variants (PowerShell) are
 > given inline where they differ. On Windows, `run.sh` requires **Git Bash or WSL**; the IDE-discovery
-> step has a native PowerShell port (`phase-0/discover-ide-usage.ps1`).
+> step has a native PowerShell port (`scripts/discovery/discover-ide-usage.ps1`).
 
 > **A note on two "workspace" concepts.** Credit/session data is *always* read from
 > `~/.copilot/session-state/` regardless of arguments. The optional `[workspace-root]` argument on
@@ -26,7 +26,7 @@ helpers (`os.UserHomeDir`, `os.UserConfigDir`, `filepath.Join`) and the TypeScri
 on Linux/macOS and `%AppData%\copilot-token-budget\` on Windows; session data is read from
 `~/.copilot/session-state/` (or `%USERPROFILE%\.copilot\session-state\`) on every OS.
 
-> The IDE-discovery script (`phase-0/discover-ide-usage.sh`) is OS-aware: it scans
+> The IDE-discovery script (`scripts/discovery/discover-ide-usage.sh`) is OS-aware: it scans
 > `~/Library/Application Support/Code*` on macOS and `~/.config/Code*` + `~/.vscode-server` on Linux.
 > Phase 5 distribution (GoReleaser) builds for `darwin/amd64+arm64`, `linux/amd64+arm64`, and `windows/amd64`.
 
@@ -34,8 +34,8 @@ on Linux/macOS and `%AppData%\copilot-token-budget\` on Windows; session data is
 
 | Need | Why |
 |---|---|
-| **Go 1.21+** | builds phase-1 and phase-3 |
-| **Go 1.25+** | builds phase-4 (the MCP server) — hard requirement of `modelcontextprotocol/go-sdk v1.6.1`. `GOTOOLCHAIN=auto` (default) will auto-fetch it. |
+| **Go 1.21+** | builds core and alerting |
+| **Go 1.25+** | builds mcp (the MCP server) — hard requirement of `modelcontextprotocol/go-sdk v1.6.1`. `GOTOOLCHAIN=auto` (default) will auto-fetch it. |
 | **Node 18+** | to `npm run compile` / F5 the extension. **Node 22+** is required to `npm run package` the `.vsix` (`@vscode/vsce` 3.x). |
 | GitHub Copilot CLI that has produced sessions under `~/.copilot/session-state/` (`%USERPROFILE%\.copilot\session-state\` on Windows) | there is nothing to report without real session data |
 | Windows only: **Git Bash or WSL** | to run the `.sh` helper scripts (`run.sh`, `discover-ide-usage.sh`) |
@@ -47,19 +47,19 @@ PowerShell variant where shown; `~` maps to `%USERPROFILE%`, and built binaries 
 
 ## Phase 0 — Data-source validation (spike)
 
-**Outcome:** confirmation that `~/.copilot/session-state/` carries the billing fields. Findings live in `phase-0/findings/FINDINGS_MEMO.md` + `sample_event.json` (no command needed to re-run).
+**Outcome:** confirmation that `~/.copilot/session-state/` carries the billing fields. Findings live in `docs/history/discovery/findings/FINDINGS_MEMO.md` + `sample_event.json` (no command needed to re-run).
 
 **IDE discovery spike (Phase 6 prerequisite, Step 6.0)** — run on your Mac to map VS Code IDE Copilot usage:
 
 ```bash
-bash phase-0/discover-ide-usage.sh > phase-0/findings/ide-usage-report.txt
-cat phase-0/findings/ide-usage-report.txt   # read-only, zero-network, redacts PII
+bash scripts/discovery/discover-ide-usage.sh > ide-usage-report.txt
+cat ide-usage-report.txt   # read-only, zero-network, redacts PII
 ```
 
 **Windows (native PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File phase-0\discover-ide-usage.ps1 > ide-usage-report.txt
+powershell -ExecutionPolicy Bypass -File scripts\discovery\discover-ide-usage.ps1 > ide-usage-report.txt
 Get-Content ide-usage-report.txt   # read-only, zero-network, redacts PII
 ```
 
@@ -71,7 +71,7 @@ you can run the `.sh` version instead, which inspects the Linux-side VS Code dir
 ## Phase 1 — Go CLI (analyze + dashboard)
 
 ```bash
-cd phase-1/session-manager
+cd core
 
 # One-shot report (active sessions, history, budget, instruction audit, usage trend, top consumers)
 go run ./cmd/analyze [workspace-root]
@@ -83,14 +83,14 @@ go run ./cmd/dashboard [workspace-root]
 **Guided launcher** (preflight → build → one-shot report → dashboard):
 
 ```bash
-./phase-1/run.sh [workspace-root]     # defaults to the aaraminds-projects workspace if omitted
+./scripts/run.sh [workspace-root]     # defaults to the aaraminds-projects workspace if omitted
 ```
 
 Build static binaries instead of `go run`:
 
 ```bash
 # macOS / Linux
-cd phase-1/session-manager
+cd core
 go build -o ~/bin/copilot-analyze    ./cmd/analyze
 go build -o ~/bin/copilot-dashboard  ./cmd/dashboard
 go build -o ~/bin/copilot-statusline ./cmd/statusline
@@ -98,14 +98,14 @@ go build -o ~/bin/copilot-statusline ./cmd/statusline
 
 ```powershell
 # Windows (PowerShell) — note the .exe suffix and %USERPROFILE%\bin
-cd phase-1\session-manager
+cd core
 go build -o "$env:USERPROFILE\bin\copilot-analyze.exe"    ./cmd/analyze
 go build -o "$env:USERPROFILE\bin\copilot-dashboard.exe"  ./cmd/dashboard
 go build -o "$env:USERPROFILE\bin\copilot-statusline.exe" ./cmd/statusline
 # add %USERPROFILE%\bin to PATH once:  setx PATH "$($env:PATH);$env:USERPROFILE\bin"
 ```
 
-> On **Windows**, `./phase-1/run.sh` only works under Git Bash/WSL. Otherwise run `go run ./cmd/analyze`
+> On **Windows**, `./scripts/run.sh` only works under Git Bash/WSL. Otherwise run `go run ./cmd/analyze`
 > and `go run ./cmd/dashboard` directly (PowerShell), which is what `run.sh` does.
 
 ---
@@ -115,16 +115,16 @@ go build -o "$env:USERPROFILE\bin\copilot-statusline.exe" ./cmd/statusline
 **Run from source (F5):**
 
 ```bash
-cd phase-2/vscode-extension
+cd extension
 npm install --registry https://registry.npmjs.org   # first time (AT&T proxy workaround)
 npm run compile
-# In VS Code: File → Open Folder → phase-2/vscode-extension, then press F5 → Extension Development Host
+# In VS Code: File → Open Folder → extension, then press F5 → Extension Development Host
 ```
 
 **Build + install a `.vsix`:**
 
 ```bash
-cd phase-2/vscode-extension
+cd extension
 npm run package                       # produces copilot-token-budget-*.vsix (needs Node 22+ for vsce)
 code --install-extension copilot-token-budget-*.vsix
 ```
@@ -132,12 +132,12 @@ code --install-extension copilot-token-budget-*.vsix
 **Install / uninstall via helper scripts** (repo root; bash — use Git Bash/WSL on Windows):
 
 ```bash
-./install_vscode_extn.sh                         # build from source + install (Node 22+ to package)
-./install_vscode_extn.sh --vsix /path/file.vsix  # install a prebuilt .vsix (skips build)
-./install_vscode_extn.sh --help                  # all options + a feature summary
+./scripts/install_vscode_extn.sh                         # build from source + install (Node 22+ to package)
+./scripts/install_vscode_extn.sh --vsix /path/file.vsix  # install a prebuilt .vsix (skips build)
+./scripts/install_vscode_extn.sh --help                  # all options + a feature summary
 
-./remove_vscode_extn.sh                          # uninstall the extension (no-op if absent)
-./remove_vscode_extn.sh --purge-config --remove-binaries --yes   # full teardown, no prompts
+./scripts/remove_vscode_extn.sh                          # uninstall the extension (no-op if absent)
+./scripts/remove_vscode_extn.sh --purge-config --remove-binaries --yes   # full teardown, no prompts
 ```
 
 `remove_vscode_extn.sh` never touches your Copilot session data (`~/.copilot/session-state/`);
@@ -159,7 +159,7 @@ The webhook URL comes **only** from the `COPILOT_BUDGET_TEAMS_WEBHOOK` env var (
 The `<workspace-root>` argument is **required**.
 
 ```bash
-cd phase-3
+cd alerting
 
 # Safe preview — builds the Adaptive Card JSON, makes NO network call
 go run ./cmd/alert --dry-run [--allowance 7000] <workspace-root>
@@ -178,7 +178,7 @@ go run ./cmd/alert <workspace-root>
 
 > **Teams webhook:** the legacy O365 "Incoming Webhook" connector is retired (~May 2026). Create a
 > **Power Automate "Workflows"** webhook ("Post to a channel when a webhook request is received") — our
-> Adaptive Card payload works with it. Steps are in `docs/onboarding-runbook.md`.
+> Adaptive Card payload works with it. Steps are in `docs/runbooks/onboarding-runbook.md`.
 
 Exit codes: `0` = no alert needed / already sent today · `1` = alert fired (or dry-run printed) · `2` = error.
 
@@ -207,13 +207,13 @@ schtasks /create /tn "CopilotBudgetAlert" /tr "powershell -File C:\path\to\alert
 
 ```bash
 # macOS / Linux
-cd phase-4
+cd mcp
 go build -ldflags "-X main.version=v0.1.0" -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
 ```
 
 ```powershell
 # Windows (PowerShell)
-cd phase-4
+cd mcp
 go build -ldflags "-X main.version=v0.1.0" -o "$env:USERPROFILE\bin\copilot-budget-mcp.exe" ./cmd/mcp-server
 ```
 
@@ -247,9 +247,9 @@ Smoke-test the binary directly:
 ## Phase 5 — Distribution + onboarding · CONFIG-COMPLETE (live publish pending)
 
 The release config is built and locally validated; the live publish path (JFrog upload + GitHub
-Release on a real tag) is pending JFrog provisioning + the first tag. See `evaluation/PHASE5_ACCEPTANCE.md`.
+Release on a real tag) is pending JFrog provisioning + the first tag. See `docs/history/evaluation/PHASE5_ACCEPTANCE.md`.
 
-**End-user install (any OS):** follow [`docs/onboarding-runbook.md`](docs/onboarding-runbook.md) — the
+**End-user install (any OS):** follow [`docs/runbooks/onboarding-runbook.md`](docs/runbooks/onboarding-runbook.md) — the
 ≤5-minute guide with macOS / Linux / Windows steps (download from Artifactory, install the `.vsix`,
 register MCP, configure Teams).
 
@@ -267,7 +267,7 @@ Targets: `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`, `windows/
 **Package the extension `.vsix`** (needs Node 22):
 
 ```bash
-cd phase-2/vscode-extension
+cd extension
 npm install --registry https://registry.npmjs.org
 npx @vscode/vsce package --no-dependencies
 ```
@@ -282,7 +282,7 @@ npx @vscode/vsce package --no-dependencies
 
 The Source/Collector abstraction and dedup are in place, but the **IDE collector is a stub** — today
 `ReadAll()` returns CLI sessions only. To unblock the IDE parser, run the Phase 0 discovery script
-above and share the output. No new commands until the schema is known (see `IMPLEMENTATION_PLAYBOOK.md`
+above and share the output. No new commands until the schema is known (see `docs/history/IMPLEMENTATION_PLAYBOOK.md`
 Phase 6 and ADR-009).
 
 ---
@@ -294,7 +294,7 @@ These ship inside the Phase 1/2/4 binaries you already built.
 **Machine-readable export** (CLI):
 
 ```bash
-cd phase-1/session-manager
+cd core
 go run ./cmd/analyze --json [workspace-root]   # full report as JSON (camelCase)
 go run ./cmd/analyze --csv  [workspace-root]   # per-session CSV (RFC-4180)
 ```
@@ -338,11 +338,11 @@ In the VS Code extension, point `copilotBudget.pricingPath` at a file of the sam
 ## Developer: build & test the whole repo
 
 ```bash
-# Go (run in each module: phase-1/session-manager, phase-3, phase-4)
+# Go (run in each module: core, alerting, mcp)
 go build ./... && go vet ./... && go test ./... -race
 
 # TypeScript extension
-cd phase-2/vscode-extension && npm run compile
+cd extension && npm run compile
 ```
 
-Acceptance gates per phase live in `evaluation/` (`ACCEPTANCE_CRITERIA.md`, `PHASE3/PHASE4/PHASE7_ACCEPTANCE.md`).
+Acceptance gates per phase live in `docs/history/evaluation/` (`ACCEPTANCE_CRITERIA.md`, `PHASE3/PHASE4/PHASE7_ACCEPTANCE.md`).

@@ -12,11 +12,11 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/analytics"
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/instructions"
-	"github.com/aaraminds/copilot-session-manager/internal/pricing"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/analytics"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/instructions"
+	"github.com/aaraminds/copilot-token-budget/internal/pricing"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // ANSI colour and style codes.

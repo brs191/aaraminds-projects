@@ -1,4 +1,4 @@
-package phase4_test
+package mcp_test
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/phase4/internal/tools"
+	"github.com/aaraminds/copilot-token-budget/mcp/internal/tools"
 )
 
 // TestMain builds both server binaries once for integration tests.
@@ -29,13 +29,13 @@ func TestMain(m *testing.M) {
 	if err == nil {
 		mcpBin := tmpDir + "/copilot-budget-mcp"
 		if buildErr := exec.Command("go", "build", "-o", mcpBin,
-			"github.com/aaraminds/copilot-session-manager/phase4/cmd/mcp-server").Run(); buildErr == nil {
+			"github.com/aaraminds/copilot-token-budget/mcp/cmd/mcp-server").Run(); buildErr == nil {
 			serverBinary = mcpBin
 		}
 
 		analyzeBin := tmpDir + "/analyze"
 		if buildErr := exec.Command("go", "build", "-o", analyzeBin,
-			"github.com/aaraminds/copilot-session-manager/cmd/analyze").Run(); buildErr == nil {
+			"github.com/aaraminds/copilot-token-budget/cmd/analyze").Run(); buildErr == nil {
 			analyzeBinary = analyzeBin
 		}
 	}

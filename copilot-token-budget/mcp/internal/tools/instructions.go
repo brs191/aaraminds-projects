@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/instructions"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/instructions"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

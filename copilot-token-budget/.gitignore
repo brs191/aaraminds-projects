@@ -22,8 +22,8 @@ vendor/
 *.lock
 
 # Build artifacts
-phase-1/session-manager/session-manager
-phase-2/vscode-extension/out/
+core/core
+extension/out/
 
 # GoReleaser
 dist/

@@ -26,9 +26,9 @@ jobs:
       fail-fast: false
       matrix:
         module:
-          - phase-1/session-manager
-          - phase-3
-          - phase-4
+          - core
+          - alerting
+          - mcp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          # phase-4 needs >= 1.25; the others build fine on it.
+          # mcp needs >= 1.25; the others build fine on it.
           go-version: '1.25'
 
       - name: Build
@@ -88,6 +88,6 @@ jobs:
 
       - name: Install and compile
         run: |
-          cd phase-2/vscode-extension
+          cd extension
           npm install --registry https://registry.npmjs.org
           npm run compile

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 // TestFilterThisMonth_BillingTimeScoping covers BUG 2: sessions are attributed

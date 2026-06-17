@@ -3,7 +3,7 @@ package forecast
 import (
 	"testing"
 
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
 func TestDailyBurnRate(t *testing.T) {

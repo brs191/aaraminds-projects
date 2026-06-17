@@ -9,7 +9,7 @@ EXT_ID="att-internal.copilot-token-budget"
 usage() {
   cat <<EOF
 Usage:
-  ./remove_vscode_extn.sh [--purge-config] [--remove-binaries] [--yes]
+  ./scripts/remove_vscode_extn.sh [--purge-config] [--remove-binaries] [--yes]
 
 Behavior:
   - Uninstalls the "${EXT_ID}" VS Code extension (via 'code --uninstall-extension').

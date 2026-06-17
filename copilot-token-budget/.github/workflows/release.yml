@@ -34,7 +34,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          # phase-4 requires >= 1.25; the 1.21 modules build fine on 1.25 too.
+          # mcp requires >= 1.25; the 1.21 modules build fine on 1.25 too.
           go-version: '1.25'
 
       - name: Run GoReleaser
@@ -72,7 +72,7 @@ jobs:
 
       - name: Build and package extension
         run: |
-          cd phase-2/vscode-extension
+          cd extension
           npm install --registry https://registry.npmjs.org
           npm run compile
           npx @vscode/vsce package --no-dependencies \

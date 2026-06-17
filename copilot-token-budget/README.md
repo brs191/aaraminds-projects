@@ -6,7 +6,7 @@ A **local-first, zero-network** monitoring suite that reads Copilot session tele
 
 **Current Status (2026-06-17):**
 - ✅ **Phases 0–4 + v1.1 shipped**; **Phase 5** distribution is config-complete (live publish pending JFrog + first tag)
-- ⚠️ **CLI usage only today.** Multi-source (CLI + VS Code IDE) is **groundwork**: the Copilot **CLI** is captured from `~/.copilot/session-state/`; **VS Code Copilot Chat is a separate local source** (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`) and is **NOT captured yet** — the IDE collector is a stub pending discovery on an IDE-only machine (see `phase-0/findings/IDE_USAGE_FINDINGS.md` correction + ADR-007 correction).
+- ⚠️ **CLI usage only today.** Multi-source (CLI + VS Code IDE) is **groundwork**: the Copilot **CLI** is captured from `~/.copilot/session-state/`; **VS Code Copilot Chat is a separate local source** (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`) and is **NOT captured yet** — the IDE collector is a stub pending discovery on an IDE-only machine (see `docs/history/discovery/findings/IDE_USAGE_FINDINGS.md` correction + ADR-007 correction).
 - ✅ Go builds race-free; TypeScript compiles strict (no `any`)
 - 🟡 **Distribution** packaged as `.vsix` + GoReleaser binaries (config validated locally; not yet published)
 
@@ -134,14 +134,14 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 **Goal:** Validate data source, schema, billing field.
 
 ```bash
-# Already done — findings in phase-0/findings/
+# Already done — findings in docs/history/discovery/findings/
 # Output: IDE_USAGE_FINDINGS.md (schema, marker detection)
 ```
 
 **Outputs:**
 - Confirmed: `events.jsonl` is the CLI source
 - Schema validated against real 50KB+ event file
-- Correction (2026-06-17): VS Code Copilot Chat is a **separate** local store (`…/chatSessions/`, `…/transcripts/`), **not** `~/.copilot`; the earlier `vscode.metadata.json` marker was an unverified assumption and has been retracted (see `phase-0/findings/IDE_USAGE_FINDINGS.md` + ADR-007 corrections)
+- Correction (2026-06-17): VS Code Copilot Chat is a **separate** local store (`…/chatSessions/`, `…/transcripts/`), **not** `~/.copilot`; the earlier `vscode.metadata.json` marker was an unverified assumption and has been retracted (see `docs/history/discovery/findings/IDE_USAGE_FINDINGS.md` + ADR-007 corrections)
 
 ---
 
@@ -150,7 +150,7 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 **Goal:** Build terminal-based budget analyzer with live dashboard.
 
 ```bash
-cd phase-1/session-manager
+cd core
 
 # Build
 go build ./cmd/analyze ./cmd/dashboard ./cmd/statusline
@@ -174,7 +174,7 @@ go test -race ./...
 - Binary: `analyze` (credit report)
 - Binary: `dashboard` (live TUI with charts)
 - Binary: `statusline` (one-liner)
-- Module: `github.com/aaraminds/copilot-session-manager` (30 tests)
+- Module: `github.com/aaraminds/copilot-token-budget` (30 tests)
 
 ---
 
@@ -183,7 +183,7 @@ go test -race ./...
 **Goal:** Build VS Code webview dashboard with live updates and export.
 
 ```bash
-cd phase-2/vscode-extension
+cd extension
 
 # Install dependencies
 npm install
@@ -233,7 +233,7 @@ npm run package
 **Goal:** Send CRITICAL/WARNING alerts to Microsoft Teams, add burn-rate forecasting.
 
 ```bash
-cd phase-3
+cd alerting
 
 # Build
 go build -o alert ./cmd/alert ./cmd/webhook-tester
@@ -262,7 +262,7 @@ export COPILOT_BUDGET_TEAMS_WEBHOOK="https://outlook.webhook.office.com/webhookb
 **Goal:** Expose budget as Copilot CLI tools via MCP (Model Context Protocol).
 
 ```bash
-cd phase-4
+cd mcp
 
 # Build
 go build -o ~/bin/copilot-budget-mcp ./cmd/mcp-server
@@ -305,7 +305,7 @@ goreleaser build --snapshot
 #   - Windows (amd64): analyze-windows-amd64.exe, ...
 
 # VS Code Extension
-cd phase-2/vscode-extension && npm run package
+cd extension && npm run package
 # → copilot-token-budget-0.1.0.vsix
 
 # CI/CD (GitHub Actions)
@@ -330,10 +330,10 @@ cd phase-2/vscode-extension && npm run package
 > (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`), **not**
 > `~/.copilot/`. Until the collector is implemented against that real schema (after discovery on an
 > IDE-only machine), only Copilot **CLI** usage is captured and the SOURCE BREAKDOWN below shows
-> CLI only. See `phase-0/findings/IDE_USAGE_FINDINGS.md` (corrected) and ADR-007 (corrected).
+> CLI only. See `docs/history/discovery/findings/IDE_USAGE_FINDINGS.md` (corrected) and ADR-007 (corrected).
 
 ```bash
-cd phase-1/session-manager && go run ./cmd/analyze
+cd core && go run ./cmd/analyze
 
 # Outputs (today — CLI only; IDE not captured yet):
 # ▶ SOURCE BREAKDOWN
@@ -353,7 +353,7 @@ cd phase-1/session-manager && go run ./cmd/analyze
 **Outputs:**
 - Reader with Source/Collector abstraction; CLI source live, **IDE collector is a no-op stub**
 - ADR-007 (corrected): multi-source dedup architecture; IDE is a separate VS Code Chat source, not yet implemented
-- Acceptance gates **G65–G70** in `evaluation/PHASE6_ACCEPTANCE.md` — **REOPENED / NOT MET** (the earlier `vscode.metadata.json` marker assumption was retracted)
+- Acceptance gates **G65–G70** in `docs/history/evaluation/PHASE6_ACCEPTANCE.md` — **REOPENED / NOT MET** (the earlier `vscode.metadata.json` marker assumption was retracted)
 - Per-source breakdown in dashboard + CLI (IDE total is 0 until the collector lands)
 
 ---
@@ -363,7 +363,7 @@ cd phase-1/session-manager && go run ./cmd/analyze
 **Goal:** Analytics, export, overridable pricing, rich status bar, anomaly detection.
 
 ```bash
-cd phase-1/session-manager && go run ./cmd/analyze --json > report.json
+cd core && go run ./cmd/analyze --json > report.json
 
 # Outputs:
 # - Daily/weekly/monthly usage trends
@@ -432,7 +432,7 @@ code --list-extensions | grep copilot-token-budget
 
 ```bash
 # You create release (one-time)
-cd phase-2/vscode-extension
+cd extension
 npm run package
 gh release create v0.1.0 copilot-token-budget-0.1.0.vsix \
   --notes "Copilot Token Budget for AT&T team — Phases 0-4 + v1.1 (Phase 7) shipped; Phase 5 config-complete; Phase 6 IDE capture pending"
@@ -450,7 +450,7 @@ code --install-extension extension.vsix --force
 ```bash
 # You push to Artifactory
 export JFROG_ACCESS_TOKEN="<your-token>"
-jf rt upload phase-2/vscode-extension/copilot-token-budget-0.1.0.vsix \
+jf rt upload extension/copilot-token-budget-0.1.0.vsix \
   generic-local/vscode-extensions/
 
 # Team downloads
@@ -517,58 +517,48 @@ If dashboard is empty:
 
 ## Project Architecture
 
+The repository is organized by **domain / bounded context**, not by build phase.
+The phase-based history is archived under `docs/history/`. See
+`docs/architecture/RESTRUCTURE.md` for the full old→new mapping and rationale.
+
 ```
 copilot-token-budget/
-├── phase-0/                    — Data source spike (✅)
-│   └── findings/               — IDE_USAGE_FINDINGS.md, schema validation
-├── phase-1/                    — Go CLI tool (✅)
-│   └── session-manager/        — Go module: analyze, dashboard, statusline
-│       ├── cmd/analyze/        — Budget report (--json, --csv modes)
-│       ├── cmd/dashboard/      — Live TUI with charts
-│       ├── cmd/statusline/     — WezTerm badge
-│       ├── internal/
-│       │   ├── session/        — Reader (CLI source + dedup-by-ID; IDE collector stubbed)
-│       │   ├── analytics/      — Daily/weekly/monthly trends (Phase 7)
-│       │   ├── export/         — JSON/CSV (Phase 7)
-│       │   ├── pricing/        — Config + model rates (Phase 7, ADR-008)
-│       │   ├── budget/         — Credit calculations
-│       │   └── render/         — Terminal output formatting
-├── phase-2/                    — VS Code Extension (✅)
-│   └── vscode-extension/       — TypeScript extension
-│       ├── src/
-│       │   ├── ui/
-│       │   │   ├── dashboardPanel.ts   — Webview (raw credits, thousands separators)
-│       │   │   ├── sessionTree.ts      — Tree view
-│       │   │   └── statusBar.ts        — Status bar badge
-│       │   ├── session/reader.ts       — CLI collector (IDE collector is a no-op stub)
-│       │   ├── analytics/model.ts      — Trend/anomaly (Phase 7)
-│       │   ├── export/report.ts        — JSON/CSV (Phase 7)
-│       │   └── types.ts                — Session, BudgetState, SessionSource
-│       └── out/                        — Compiled JavaScript
-├── phase-3/                    — Teams Alerts (✅)
-│   └── cmd/alert/              — Adaptive Card sender
-├── phase-4/                    — MCP Server (✅)
-│   └── cmd/mcp-server/         — 6 tools for Copilot CLI
-├── design/                     — Architecture & ADRs
-│   └── adr/
-│       ├── ADR-001.md          — Zero-network constraint
-│       ├── ADR-007.md          — Multi-source dedup (Phase 6)
-│       └── ADR-008.md          — Pricing override (Phase 7)
-├── evaluation/                 — Acceptance gates
-│   ├── PHASE6_ACCEPTANCE.md    — G65-G70 (IDE multi-source — REOPENED/NOT MET)
-│   └── PHASE7_ACCEPTANCE.md    — G38-G50 (analytics)
-├── docs/                       — Runbooks & guides
-│   └── onboarding-runbook.md   — ≤5-min install (all OS)
-├── .github/
-│   ├── workflows/
-│   │   ├── ci.yml              — Build/test on push
-│   │   └── release.yml         — GoReleaser + JFrog
-│   └── instructions/           — Copilot CLI workspace setup
+├── core/                       — Go module: github.com/aaraminds/copilot-token-budget
+│   │                             domain engine + CLI surface
+│   ├── cmd/
+│   │   ├── analyze/            — Budget report (--json, --csv)
+│   │   ├── dashboard/         — Live TUI with charts
+│   │   └── statusline/        — ccusage-style one-liner / WezTerm badge
+│   └── internal/              — domain packages
+│       ├── session/           — Ingestion: CLI reader + dedup-by-ID (IDE collector stubbed)
+│       ├── budget/            — Budgeting: credit calculations
+│       ├── pricing/           — Budgeting: config + model rates (ADR-008)
+│       ├── analytics/         — Analytics: trends, top-N consumers, anomalies
+│       ├── instructions/      — Instruction-file overhead audit
+│       ├── export/            — JSON / CSV export
+│       ├── render/  wezterm/  — Presentation: terminal output + badge
+│       └── platform/  cli/    — Shared kernel: OS paths, CLI helpers
+├── alerting/                   — Go module .../alerting — Teams alerts + forecasting
+│   ├── cmd/alert/             — Adaptive Card sender
+│   └── internal/{alerts,forecast}/
+├── mcp/                        — Go module .../mcp — MCP server (Go 1.25)
+│   ├── cmd/mcp-server/        — 6 tools for Copilot CLI
+│   └── internal/tools/
+├── extension/                  — VS Code extension (TypeScript surface)
+│   └── src/{ui,session,analytics,export,pricing,budget,forecast,instructions,alerts}/
+├── scripts/                    — install/remove/run + discovery/ (IDE-source probes)
+├── docs/
+│   ├── architecture/          — ARCHITECTURE.md, architecture-diagram.svg, adr/, RESTRUCTURE.md
+│   ├── product/               — PRD.md
+│   ├── research/              — dashboard-feature-analysis.md
+│   ├── runbooks/              — onboarding-runbook.md (≤5-min install, all OS)
+│   └── history/               — archived phase record: IMPLEMENTATION_PLAYBOOK, STATUS,
+│                                TRACKING, BUILD_PLAN, evaluation/, discovery/findings/
+├── .github/workflows/         — ci.yml, release.yml (+ dependabot.yml, instructions/)
+├── go.work                     — workspace stitching core + alerting + mcp
 ├── .goreleaser.yaml            — 25 binaries × 5 platforms
 ├── .copilot/mcp.json           — MCP server registration
-├── STATUS.md                   — Phase dashboard
-├── IMPLEMENTATION_PLAYBOOK.md  — Execution log (all steps + results)
-└── README.md                   — This file
+└── README.md  ·  USAGE.md  ·  LICENSE
 ```
 
 ---
@@ -605,29 +595,29 @@ copilot-token-budget/
 git clone https://github.com/your-org/copilot-token-budget.git
 cd copilot-token-budget
 
-# Phase 1: Go CLI
-cd phase-1/session-manager
+# core: Go CLI (analyze, dashboard, statusline)
+cd core
 go build -o /usr/local/bin/copilot-budget-analyze ./cmd/analyze
 go build -o /usr/local/bin/copilot-budget-dashboard ./cmd/dashboard
 go build -o /usr/local/bin/copilot-budget-statusline ./cmd/statusline
 
-# Phase 2: VS Code Extension
-cd ../../phase-2/vscode-extension
+# extension: VS Code Extension
+cd ../extension
 npm install
 npm run compile
 npm run package
 # → copilot-token-budget-0.1.0.vsix
 
-# Phase 3: Teams Alert
-cd ../../phase-3
+# alerting: Teams Alert
+cd ../alerting
 go build -o /usr/local/bin/copilot-budget-alert ./cmd/alert
 
-# Phase 4: MCP Server
-cd ../phase-4
+# mcp: MCP Server (requires Go 1.25)
+cd ../mcp
 go build -o /usr/local/bin/copilot-budget-mcp ./cmd/mcp-server
 
-# Phase 5: GoReleaser (all platforms)
-cd ../
+# Release build: GoReleaser (all platforms)
+cd ..
 goreleaser build --snapshot
 # → dist/ contains 25 binaries × 5 platforms
 ```
@@ -635,17 +625,16 @@ goreleaser build --snapshot
 ### **Run Tests**
 
 ```bash
-# Phase 1 tests
-cd phase-1/session-manager
-go test -race ./...
+# Go tests — run from the workspace root (go.work covers all 3 modules)
+go test -race ./core/... ./alerting/... ./mcp/...
 
-# Phase 2 tests (TypeScript)
-cd ../../phase-2/vscode-extension
+# Extension tests (TypeScript)
+cd extension
 npm test
 
 # Linting
-cd ../../
-gofmt -l ./phase-1 ./phase-3 ./phase-4
+cd ..
+gofmt -l ./core ./alerting ./mcp
 actionlint .github/workflows/*.yml
 ```
 
@@ -664,7 +653,7 @@ actionlint .github/workflows/*.yml
 | **6** | 🔲 Groundwork | G65–G70 REOPENED/NOT MET | CLI source + dedup wired; IDE collector is a no-op stub — IDE usage not captured yet |
 | **7** | ✅ Complete | All gates | Analytics, export, pricing override, rich UI |
 
-**Live deployment:** Ready for team distribution immediately. See `docs/onboarding-runbook.md` for ≤5-min install.
+**Live deployment:** Ready for team distribution immediately. See `docs/runbooks/onboarding-runbook.md` for ≤5-min install.
 
 ---
 
@@ -672,10 +661,10 @@ actionlint .github/workflows/*.yml
 
 For issues, PRs, or questions:
 
-1. Read [`product/`](product/) and [`design/adr/`](design/adr/) first
-2. Consult [`STATUS.md`](STATUS.md) for current phase
-3. Check [`IMPLEMENTATION_PLAYBOOK.md`](IMPLEMENTATION_PLAYBOOK.md) for execution history
-4. File issues in GitHub; tag with phase (P1, P2, etc.)
+1. Read [`docs/product/`](docs/product/) and [`docs/architecture/adr/`](docs/architecture/adr/) first
+2. Consult [`docs/history/STATUS.md`](docs/history/STATUS.md) for the phase build record
+3. Check [`docs/history/IMPLEMENTATION_PLAYBOOK.md`](docs/history/IMPLEMENTATION_PLAYBOOK.md) for execution history
+4. See [`docs/architecture/RESTRUCTURE.md`](docs/architecture/RESTRUCTURE.md) for the repository layout
 
 ---
 

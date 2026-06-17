@@ -52,7 +52,7 @@
 
   <!-- ===================== 2. CORE DATA LAYER (Go) ===================== -->
   <rect x="48" y="292" width="1504" height="178" rx="10" fill="#e0e7ff" stroke="#4f46e5" stroke-width="1.5"/>
-  <text x="64" y="315" font-size="12.5" font-weight="700" fill="#312e81">2 · CORE DATA LAYER — Go · core module · zero external deps</text>
+  <text x="64" y="315" font-size="12.5" font-weight="700" fill="#312e81">2 · CORE DATA LAYER — Go · phase-1/session-manager · zero external deps</text>
 
   <!-- core sub-boxes -->
   <g>

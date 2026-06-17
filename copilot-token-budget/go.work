@@ -1,0 +1,11 @@
+// Go workspace stitching the three modules of the Copilot Token Budget monorepo.
+// core      — domain engine (ingestion, budgeting, analytics, instructions) + CLI surface
+// alerting  — Teams alerting + forecasting bounded context
+// mcp        — MCP server surface (requires Go 1.25 via modelcontextprotocol/go-sdk)
+go 1.25.0
+
+use (
+	./core
+	./alerting
+	./mcp
+)

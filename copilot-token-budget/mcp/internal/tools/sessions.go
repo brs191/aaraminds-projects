@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/aaraminds/copilot-session-manager/internal/budget"
-	"github.com/aaraminds/copilot-session-manager/internal/session"
+	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/session"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
