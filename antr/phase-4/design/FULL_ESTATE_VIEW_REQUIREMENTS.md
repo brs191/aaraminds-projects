@@ -1,7 +1,8 @@
 # Full-Estate (BCLM-parity) View — Build Requirements
 
 **For:** an external build (e.g. GitHub Copilot). **Companion to:** `APPLICATION_VIEW_REQUIREMENTS.md`,
-`ADR-001-visualization-strategy.md`, `GRAPH_IR.md`. **Status:** requirements, not yet built.
+`ADR-001-visualization-strategy.md`, `GRAPH_IR.md`, and **`../../docs/IR_SCHEMA.md`** (the full IR
+schema + example fixtures — read that for every field shape). **Status:** requirements, not yet built.
 
 Goal: auto-generate a comprehensive, single-canvas estate diagram at the **coverage and
 structure** of the hand-drawn reference `ref-topology/BCLM-Revised-8June2026.drawio` —
@@ -159,6 +160,42 @@ fixtures — which would then colour the data nodes via the overlay automaticall
 the engine (not the renderer) if you want the data tier risk-coloured. Keep it a separate
 work item; this spec only requires *drawing* the data services.
 
+## 6b. Hard dependency — multi-subscription scope
+
+BCLM is **enterprise-wide**; antr's discovery is **single-subscription today** (the original
+RC-1 / C-2 limitation — every ARG query is `subscriptionId == %q`). A single-subscription
+"estate" will render a *fraction* of a BCLM-scale map, and the builder must not silently
+assume otherwise. Requirement:
+
+- The discovery layer MUST accept a **set of subscriptions** (ideally resolved from a
+  **management group**), fan the ARG queries across all of them, and assemble one IR. Cross-
+  subscription peerings (already modeled) stitch the VNets together.
+- Until that lands, the Full-Estate view is **explicitly scoped to the subscriptions provided**
+  and must label the canvas with that scope (e.g. "Estate — 3 subscriptions") so a partial map
+  is never mistaken for the whole estate.
+- This is a **discovery** change (adapter + the recorded-ARM harness), not a renderer change —
+  sequence it with G1.
+
+## 6c. Scale & legibility (≈1000 nodes)
+
+BCLM is ~1000 vertices. One flat canvas of a thousand nodes is the "soup" problem in pure
+form — unreviewable. The merged view MUST include a scale strategy:
+
+- **Collapsible containers.** VNet and subnet zones are draw.io groups that can be folded
+  (`collapsible`); collapsed by default above a node-count threshold, expanded on click.
+- **Tier/zone pagination or banding** so each VNet zone is bounded; do not let one column grow
+  unbounded.
+- **Node cap with rollup.** Above a per-container cap (e.g. > 25 NICs in a subnet), collapse the
+  overflow into a single "+N more (k risky)" node coloured by the worst contained severity — so
+  the *risk* never hides even when detail does.
+- **Always pair with the filtered views.** The merged canvas is for inventory; `risk`,
+  `boundary`, `app`, and `finding` views remain the decision surfaces (ADR-001). The Full-Estate
+  view's job is coverage, not legibility-at-all-costs — but it must degrade gracefully, not
+  produce an unopenable 50,000-cell file.
+
+Determinism still holds: collapsed/rollup state is a pure function of the input (the same estate
+always collapses the same way), not interactive state baked into the file.
+
 ## 7. Acceptance
 
 Build `estate-full.json` covering: hub + ≥2 spokes, subnets, NICs, AKS, App GW, Front Door,
@@ -175,6 +212,11 @@ targets discovered SQL + Storage + Redis. Assert:
 5. **All edge classes present, none dangling; ids unique.**
 6. **Determinism:** byte-identical re-render.
 7. **Twin-drift still 0** after the `DataService` model addition (Go ≡ Python).
+8. **Multi-sub scope is labelled:** a 2-subscription estate renders both, stitched by cross-sub
+   peering, and the canvas labels the subscription count.
+9. **Scale degrades gracefully + deterministically:** a synthetic ~1000-node estate produces a
+   collapsed/rolled-up canvas (not a 50k-cell file), risk still visible via rollup colour, and
+   the collapse is byte-identical on re-render.
 
 ## 8. Sequencing
 

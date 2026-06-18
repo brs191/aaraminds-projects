@@ -172,7 +172,9 @@ These are honest limitations, not things a better prompt fixes:
    **Designed** in `phase-4/design/FULL_ESTATE_VIEW_REQUIREMENTS.md` (its biggest piece —
    data-service discovery — needs new ARG queries + adapter/twin work).
 
-See `phase-4/design/ADR-001-visualization-strategy.md` and `GRAPH_IR.md` for how a new view or
+For the exact IR field shapes, the analysis/overlay output, the node-id scheme, the severity
+palette, and example fixtures an external build can use, see **`IR_SCHEMA.md`**. See
+`phase-4/design/ADR-001-visualization-strategy.md` and `GRAPH_IR.md` for how a new view or
 output backend plugs in without touching discovery or the engine.
 
 ---

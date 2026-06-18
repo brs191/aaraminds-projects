@@ -3,6 +3,9 @@
 **For:** an external build (e.g. GitHub Copilot). **Design rationale:** `ADR-002-application-view.md`.
 **Status:** requirements, not yet built.
 
+> For every IR field shape, the `Finding`/overlay output, the node-id scheme, the severity
+> palette, the draw.io header, and ready-to-use example fixtures, see **`../../docs/IR_SCHEMA.md`**.
+
 This spec is self-contained: it states the inputs, the data shapes, the rules, the
 output, and the acceptance tests for the **Application (dependency) view** — an
 app-owner projection of an Azure estate (Users → Front Door → App Gateway → AKS →
