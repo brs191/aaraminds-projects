@@ -1,7 +1,7 @@
 # Copilot Token Budget — Architecture
 
-**Status:** Phases 1–4 implemented; v1.1 usage-insight increment (Phase 7) shipped. Phase 5 distribution config-complete + locally validated (live publish pending JFrog + first tag); Phase 6 pending.
-**Last updated:** 2026-06-16
+**Status:** Phases 1–8 implemented; v1.1 usage-insight increment (Phase 7) shipped; Phase 8 live billing enrichment is complete, opt-in, and default-off.
+**Last updated:** 2026-06-17
 
 ---
 
@@ -167,6 +167,8 @@ All config/state lives under `platform.ConfigDir()` (one cross-platform path hel
 | File | Purpose | ADR |
 |---|---|---|
 | `pricing.json` | Overridable per-model rates, allowance, context windows; merged over bundled defaults; graceful fallback | ADR-008 |
+| `config.json` | Optional live billing opt-in config; env-var token only, default-off, dry-run supported | ADR-010 |
+| `live-billing-cache.json` | Cached org-aggregate live billing snapshot + raw payload; TTL-based refresh gate | ADR-010 |
 | `state.json` | Teams alert dedup (threshold → date); 0600; no secrets | ADR-006 |
 
 | Platform | ConfigDir() |
@@ -177,6 +179,9 @@ All config/state lives under `platform.ConfigDir()` (one cross-platform path hel
 The TS extension reads its pricing override from the explicit setting `copilotBudget.pricingPath`
 (it does not assume the Go config dir). Allowance precedence in the extension: an explicitly set
 `copilotBudget.monthlyAllowance` wins, else `pricing.allowanceCredits` (ADR-008 §6).
+
+Live billing uses the shared config-dir file `config.json` only when explicitly enabled. The PAT is
+read from the env var named by `liveBilling.tokenEnvVar` and never stored on disk.
 
 ---
 
@@ -268,15 +273,46 @@ status-bar badge appears.
 | [ADR-006](adr/ADR-006-config-storage.md) | Cross-platform config and state storage | Accepted |
 | [ADR-008](adr/ADR-008-overridable-pricing-config.md) | Overridable local pricing configuration | Accepted |
 | [ADR-009](adr/ADR-009-usage-analytics-and-source-abstraction.md) | Usage analytics, export, and source abstraction | Accepted |
+| [ADR-010](adr/ADR-010-live-billing-enrichment.md) | Optional GitHub enterprise entitlements fetcher (Phase 8) | Accepted |
 
-> ADR-007 (multi-source capture / IDE parser) is **planned**, not yet written — see Step 6.1
-> in `IMPLEMENTATION_PLAYBOOK.md`. ADR-009 lands its groundwork (Source/Collector/dedup).
+---
+
+## Phase 8 design — Live billing enrichment
+
+```go
+// OPTIONAL, opt-in-only, default-off entitlements fetcher.
+// Fetches org-level Copilot quota from GitHub's internal GraphQL API
+// and caches it locally. Gracefully degrades if the API is unavailable.
+// 
+// AuthResolution precedence:
+//   1. enabled=false (default)      → disabled mode (no network)
+//   2. missing/invalid orgSlug      → config-error mode (fail closed)
+//   3. dryRun=true                  → dry-run mode (no HTTP, test config)
+//   4. missing/invalid COPILOT_BILLING_TOKEN → missing-token (fail closed)
+//   5. all valid                    → ready mode (fetch live quota)
+
+// Fetch flow:
+//   1. GitHub GraphQL POST to /graphql (org-level entitlements query)
+//   2. Parse response → org.copilotQuota (e.g., 35000 for AT&T)
+//   3. Cache locally at ConfigDir()/live-billing-cache.json with TTL
+//   4. Wire into LiveBillingSnapshot.AllowedCredits
+//   5. On error / timeout → revert to estimated-only (ADR-010)
+```
+
+Phase 8 introduces **optional, user-opt-in** GitHub GraphQL fetching that does NOT change
+the foundational "local-first, zero-network" principle (ADR-001 amended to allow optional
+Phase 7+ GitHub API calls **only when explicitly enabled**).
+
+**Key invariants:**
+- Default is **off** (feature disabled, no network, local-only behavior unchanged)
+- Token is **env-var only** (never stored on disk)
+- Cache **TTL-based** (1 day by default, configurable 1–72 hours)
+- Network errors **gracefully degrade** to estimated-only mode
+- The **org-aggregate quota** (e.g., 35000) replaces the estimated fallback when available
 
 ---
 
 ## Technology choices
-
-| Layer | Technology | Rationale |
 |---|---|---|
 | Core data layer | Go 1.21, zero external deps | Static binary, fast startup, `go.sum` clean |
 | VS Code extension | TypeScript 5.4, `@types/vscode` only | Official VS Code API; no runtime deps |

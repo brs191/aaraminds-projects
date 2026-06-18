@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -452,78 +453,123 @@ func TestReadAll_SetsCLISource(t *testing.T) {
 	if len(sessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(sessions))
 	}
-	if sessions[0].Source != "copilot-cli" {
-		t.Errorf("Source = %q, want %q", sessions[0].Source, "copilot-cli")
+	if sessions[0].Source != "cli" {
+		t.Errorf("Source = %q, want %q", sessions[0].Source, "cli")
 	}
 }
 
-func TestIDECollector_IsHermeticNoOp(t *testing.T) {
-	// The ideCollector is a no-op stub: the real VS Code Copilot Chat reader is a
-	// SEPARATE source (chatSessions/transcripts under VS Code user data, NOT
-	// ~/.copilot) and is deferred to Phase 6 (see ADR-007 corrected). Until then
-	// it must be hermetic — return no error and no sessions, and never read the
-	// real ~/.copilot or any marker file.
-	c := ideCollector{}
-	if c.Name() != "copilot-ide" {
-		t.Errorf("Name = %q, want %q", c.Name(), "copilot-ide")
+func TestIDECollector_MissingPaths(t *testing.T) {
+	// IDE collector should return an error if both the DB and metadata paths are missing.
+	collector := &ideCollectorImpl{
+		ideDBPath:    "/nonexistent/ide/db/path",
+		metadataPath: "/nonexistent/metadata/path",
 	}
-	got, err := c.Collect()
+	_, err := collector.Collect()
+	if err == nil {
+		t.Errorf("Collect() error = nil, want error (paths missing)")
+	}
+}
+
+func TestIDECollector_MetadataFallback(t *testing.T) {
+	// IDE collector should use JSON metadata fallback when DB is missing.
+	tmpdir := t.TempDir()
+
+	// Create a minimal metadata file with one session
+	metadataPath := filepath.Join(tmpdir, "metadata.json")
+	metadataContent := map[string]map[string]interface{}{
+		"test-session-id": {
+			"origin":   "other",
+			"created":  1780896909035.0,
+			"modified": 1780898895790.0,
+			"workspaceFolder": map[string]interface{}{
+				"folderPath": "/Users/test/projects/test-project",
+				"timestamp":  1780898895787.0,
+			},
+		},
+	}
+	f, err := os.Create(metadataPath)
 	if err != nil {
-		t.Fatalf("ideCollector.Collect: %v", err)
+		t.Fatalf("create metadata file: %v", err)
 	}
-	if len(got) != 0 {
-		t.Errorf("Collect() returned %d sessions, want 0 (no-op stub)", len(got))
+	if err := json.NewEncoder(f).Encode(metadataContent); err != nil {
+		f.Close()
+		t.Fatalf("encode metadata: %v", err)
+	}
+	f.Close()
+
+	collector := &ideCollectorImpl{
+		ideDBPath:    "/nonexistent/db/path", // DB doesn't exist; fallback to metadata
+		metadataPath: metadataPath,
+	}
+	got, err := collector.Collect()
+	if err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("Collect returned %d sessions, want 1", len(got))
+	}
+	if got[0].ID != "test-session-id" {
+		t.Errorf("Session ID = %q, want %q", got[0].ID, "test-session-id")
+	}
+	if got[0].Source != "ide-chat" {
+		t.Errorf("Source = %q, want %q", got[0].Source, "ide-chat")
+	}
+	if got[0].TokenCostSource != "estimated" {
+		t.Errorf("TokenCostSource = %q, want %q", got[0].TokenCostSource, "estimated")
+	}
+	if got[0].WorkspaceDir != "/Users/test/projects/test-project" {
+		t.Errorf("WorkspaceDir = %q, want %q", got[0].WorkspaceDir, "/Users/test/projects/test-project")
 	}
 }
 
-func TestDedupByID(t *testing.T) {
+func TestDedupBySourceAndID(t *testing.T) {
 	cases := []struct {
 		name     string
 		in       []Session
 		wantLen  int
-		wantNano map[string]int64 // ID -> expected surviving TotalNanoAIU
+		wantNano map[string]int64 // "{source}:{ID}" -> expected surviving TotalNanoAIU
 	}{
 		{
-			name: "final beats live snapshot regardless of magnitude",
+			name: "same session ID, different sources -> both kept",
 			in: []Session{
-				{ID: "x", Source: "copilot-ide", IsFinal: false, TotalNanoAIU: 900},
-				{ID: "x", Source: "copilot-cli", IsFinal: true, TotalNanoAIU: 100},
+				{ID: "x", Source: "ide-chat", IsFinal: false, TotalNanoAIU: 900},
+				{ID: "x", Source: "cli", IsFinal: true, TotalNanoAIU: 100},
 			},
-			wantLen:  1,
-			wantNano: map[string]int64{"x": 100},
+			wantLen:  2,
+			wantNano: map[string]int64{"cli:x": 100, "ide-chat:x": 900},
 		},
 		{
-			name: "neither final -> higher nano wins",
+			name: "same source, same ID -> final beats live snapshot regardless of magnitude",
 			in: []Session{
-				{ID: "y", Source: "copilot-cli", IsFinal: false, TotalNanoAIU: 200},
-				{ID: "y", Source: "copilot-ide", IsFinal: false, TotalNanoAIU: 500},
+				{ID: "y", Source: "cli", IsFinal: false, TotalNanoAIU: 200},
+				{ID: "y", Source: "cli", IsFinal: true, TotalNanoAIU: 50},
 			},
 			wantLen:  1,
-			wantNano: map[string]int64{"y": 500},
+			wantNano: map[string]int64{"cli:y": 50},
 		},
 		{
-			name: "both final -> higher nano wins",
+			name: "same source, same ID, neither final -> higher nano wins",
 			in: []Session{
-				{ID: "z", IsFinal: true, TotalNanoAIU: 300},
-				{ID: "z", IsFinal: true, TotalNanoAIU: 800},
+				{ID: "z", Source: "ide-chat", IsFinal: false, TotalNanoAIU: 300},
+				{ID: "z", Source: "ide-chat", IsFinal: false, TotalNanoAIU: 800},
 			},
 			wantLen:  1,
-			wantNano: map[string]int64{"z": 800},
+			wantNano: map[string]int64{"ide-chat:z": 800},
 		},
 		{
 			name: "distinct ids all kept",
 			in: []Session{
-				{ID: "a", TotalNanoAIU: 1},
-				{ID: "b", TotalNanoAIU: 2},
+				{ID: "a", Source: "cli", TotalNanoAIU: 1},
+				{ID: "b", Source: "cli", TotalNanoAIU: 2},
 			},
 			wantLen:  2,
-			wantNano: map[string]int64{"a": 1, "b": 2},
+			wantNano: map[string]int64{"cli:a": 1, "cli:b": 2},
 		},
 		{
 			name: "empty id passes through untouched",
 			in: []Session{
-				{ID: "", TotalNanoAIU: 7},
-				{ID: "", TotalNanoAIU: 9},
+				{ID: "", Source: "cli", TotalNanoAIU: 7},
+				{ID: "", Source: "cli", TotalNanoAIU: 9},
 			},
 			wantLen: 2,
 		},
@@ -531,22 +577,27 @@ func TestDedupByID(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			out := dedupByID(c.in)
+			out := dedupBySourceAndID(c.in)
 			if len(out) != c.wantLen {
 				t.Fatalf("len = %d, want %d", len(out), c.wantLen)
 			}
-			for id, want := range c.wantNano {
+			for key, want := range c.wantNano {
+				parts := strings.Split(key, ":")
+				if len(parts) != 2 {
+					t.Fatalf("invalid key format: %s", key)
+				}
+				source, id := parts[0], parts[1]
 				var found bool
 				for _, s := range out {
-					if s.ID == id {
+					if s.Source == source && s.ID == id {
 						found = true
 						if s.TotalNanoAIU != want {
-							t.Errorf("id %q TotalNanoAIU = %d, want %d", id, s.TotalNanoAIU, want)
+							t.Errorf("key %q TotalNanoAIU = %d, want %d", key, s.TotalNanoAIU, want)
 						}
 					}
 				}
 				if !found {
-					t.Errorf("id %q not found in output", id)
+					t.Errorf("key %q not found in output", key)
 				}
 			}
 		})

@@ -16,6 +16,7 @@ import (
 
 	"github.com/aaraminds/copilot-token-budget/internal/analytics"
 	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
@@ -26,58 +27,77 @@ type Report struct {
 	BudgetState budget.BudgetState `json:"budgetState"`
 	// PremiumRequests is the total premium-request count across this month's
 	// settled sessions (sum of session.shutdown.totalPremiumRequests).
-	PremiumRequests int64                `json:"premiumRequests"`
-	Daily           []analytics.Bucket   `json:"daily"`
-	TopSessions     []analytics.Consumer `json:"topSessions"`
-	TopModels       []analytics.Consumer `json:"topModels"`
-	TopProjects     []analytics.Consumer `json:"topProjects"`
-	Sessions        []SessionView        `json:"sessions"`
+	PremiumRequests    int64                           `json:"premiumRequests"`
+	OrgBillingSnapshot *livebilling.OrgBillingSnapshot `json:"orgBillingSnapshot,omitempty"`
+	Daily              []analytics.Bucket              `json:"daily"`
+	TopSessions        []analytics.Consumer            `json:"topSessions"`
+	TopModels          []analytics.Consumer            `json:"topModels"`
+	TopProjects        []analytics.Consumer            `json:"topProjects"`
+	Sessions           []SessionView                   `json:"sessions"`
 }
 
 // SessionView is the flattened, serialization-friendly projection of a session.
 // It exposes derived figures (credits, token totals, billing date) rather than
 // the raw event-shaped Session, so consumers do not depend on internal fields.
 type SessionView struct {
-	ID               string    `json:"id"`
-	Source           string    `json:"source"`
-	Project          string    `json:"project"`
-	Model            string    `json:"model"`
-	BillingDate      string    `json:"billingDate"` // "2006-01-02"
-	Credits          float64   `json:"credits"`
-	InputTokens      int64     `json:"inputTokens"`
-	OutputTokens     int64     `json:"outputTokens"`
-	SystemTokens     int64     `json:"systemTokens"`
-	CacheReadTokens  int64     `json:"cacheReadTokens"`  // prompt-cache reads, summed over the session's models
-	CacheWriteTokens int64     `json:"cacheWriteTokens"` // prompt-cache writes, summed over the session's models
-	ReasoningTokens  int64     `json:"reasoningTokens"`  // extended-thinking tokens, summed over the session's models
-	PremiumRequests  int64     `json:"premiumRequests"`  // session.shutdown.totalPremiumRequests (0 until finalized)
-	IsActive         bool      `json:"isActive"`
-	IsFinal          bool      `json:"isFinal"`
-	StartTime        time.Time `json:"startTime"`
-	EndTime          time.Time `json:"endTime,omitempty"`
+	ID                 string                          `json:"id"`
+	Source             string                          `json:"source"`
+	Project            string                          `json:"project"`
+	Model              string                          `json:"model"`
+	BillingDate        string                          `json:"billingDate"` // "2006-01-02"
+	Credits            float64                         `json:"credits"`
+	InputTokens        int64                           `json:"inputTokens"`
+	OutputTokens       int64                           `json:"outputTokens"`
+	SystemTokens       int64                           `json:"systemTokens"`
+	CacheReadTokens    int64                           `json:"cacheReadTokens"`  // prompt-cache reads, summed over the session's models
+	CacheWriteTokens   int64                           `json:"cacheWriteTokens"` // prompt-cache writes, summed over the session's models
+	ReasoningTokens    int64                           `json:"reasoningTokens"`  // extended-thinking tokens, summed over the session's models
+	PremiumRequests    int64                           `json:"premiumRequests"`  // session.shutdown.totalPremiumRequests (0 until finalized)
+	OrgBillingSnapshot *livebilling.OrgBillingSnapshot `json:"orgBillingSnapshot,omitempty"`
+	IsActive           bool                            `json:"isActive"`
+	IsFinal            bool                            `json:"isFinal"`
+	StartTime          time.Time                       `json:"startTime"`
+	EndTime            time.Time                       `json:"endTime,omitempty"`
 }
 
 // NewSessionView builds the flattened view for one session.
 func NewSessionView(s session.Session) SessionView {
 	return SessionView{
-		ID:               s.ID,
-		Source:           s.Source,
-		Project:          s.ProjectName,
-		Model:            s.PrimaryModel,
-		BillingDate:      s.BillingTime().Format("2006-01-02"),
-		Credits:          budget.FromNanoAIU(s.TotalNanoAIU),
-		InputTokens:      s.TotalInputTokens(),
-		OutputTokens:     s.TotalOutputTokens(),
-		SystemTokens:     s.Tokens.SystemTokens,
-		CacheReadTokens:  s.TotalCacheReadTokens(),
-		CacheWriteTokens: s.TotalCacheWriteTokens(),
-		ReasoningTokens:  s.TotalReasoningTokens(),
-		PremiumRequests:  s.TotalPremiumRequests,
-		IsActive:         s.IsActive,
-		IsFinal:          s.IsFinal,
-		StartTime:        s.StartTime,
-		EndTime:          s.EndTime,
+		ID:                 s.ID,
+		Source:             s.Source,
+		Project:            s.ProjectName,
+		Model:              s.PrimaryModel,
+		BillingDate:        s.BillingTime().Format("2006-01-02"),
+		Credits:            budget.FromNanoAIU(s.TotalNanoAIU),
+		InputTokens:        s.TotalInputTokens(),
+		OutputTokens:       s.TotalOutputTokens(),
+		SystemTokens:       s.Tokens.SystemTokens,
+		CacheReadTokens:    s.TotalCacheReadTokens(),
+		CacheWriteTokens:   s.TotalCacheWriteTokens(),
+		ReasoningTokens:    s.TotalReasoningTokens(),
+		PremiumRequests:    s.TotalPremiumRequests,
+		OrgBillingSnapshot: s.OrgBillingSnapshot,
+		IsActive:           s.IsActive,
+		IsFinal:            s.IsFinal,
+		StartTime:          s.StartTime,
+		EndTime:            s.EndTime,
 	}
+}
+
+// LatestOrgBillingSnapshot returns the freshest live billing snapshot found in the
+// provided sessions, or nil when none exists.
+func LatestOrgBillingSnapshot(sessions []session.Session) *livebilling.OrgBillingSnapshot {
+	var latest *livebilling.OrgBillingSnapshot
+	for i := range sessions {
+		snap := sessions[i].OrgBillingSnapshot
+		if snap == nil {
+			continue
+		}
+		if latest == nil || snap.LastRefreshedAt.After(latest.LastRefreshedAt) {
+			latest = snap
+		}
+	}
+	return latest
 }
 
 // SessionViews maps a slice of sessions to their flattened views, preserving order.

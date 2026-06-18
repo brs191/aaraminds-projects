@@ -11,10 +11,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"time"
 
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/pricing"
 	"github.com/aaraminds/copilot-token-budget/internal/render"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
@@ -47,6 +49,13 @@ func main() {
 	if err != nil {
 		sessions = nil
 	}
+
+	// Refresh live billing data from cache or GitHub (Phase 8.7).
+	// This is non-blocking; failures degrade to estimated mode and are logged to stderr.
+	cfg2, _ := livebilling.Load()
+	auth := livebilling.ResolveAuth(cfg2, nil)
+	refresher := livebilling.NewRefresher(cfg2, auth)
+	refresher.Refresh(context.Background())
 
 	line := render.Statusline(sessions, cfg, time.Now(), render.ColorEnabled())
 	fmt.Println(line)

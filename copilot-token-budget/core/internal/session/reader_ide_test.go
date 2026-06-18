@@ -7,12 +7,11 @@ import (
 // These tests exercise readSession's parsing of cache-read, cache-write, and
 // reasoning token metrics from session.shutdown / running-snapshot events. They
 // are source-agnostic: readSession is the shared parser for every Collector, so
-// the coverage applies to the CLI source today and any future source.
+// the coverage applies to the CLI source and IDE source (when Nitrite SDK integrated).
 //
-// NOTE: the IDE collector (ideCollector) is a no-op stub — it does NOT read
-// vscode.metadata.json or any marker file (see ADR-007 corrected and
-// TestIDECollectorIsNoOp). These tests therefore do not create marker files or
-// assert any marker-driven behavior; doing so would contradict the stub.
+// NOTE: The IDE collector (ideCollector) is implemented in ide_collector.go and
+// reads from Nitrite DB or JSON metadata fallback. These tests do not create those
+// marker files; test-specific unit tests are in reader_test.go (TestIDECollector_*).
 
 // assistantMessageEvent returns a synthetic assistant.message event with cache and reasoning tokens.
 func assistantMessageEvent(ts, apiCallID string, inputTokens, outputTokens int64,
@@ -115,25 +114,15 @@ func TestReadSession_ParsesCacheReasoningTokens(t *testing.T) {
 	}
 }
 
-// TestIDECollectorIsNoOp verifies the ideCollector is a hermetic no-op stub.
+// TestIDECollectorName verifies the ideCollector reports the correct source name.
 //
-// The real VS Code Copilot Chat reader is a SEPARATE source (chatSessions/transcripts
-// under VS Code user data, NOT ~/.copilot) and will be implemented in Phase 6 against
-// the real Chat schema — see ADR-007 (corrected). Until then the collector must return
-// no error and no sessions, and must NOT touch the real ~/.copilot.
-func TestIDECollectorIsNoOp(t *testing.T) {
+// The ideCollector is implemented in ide_collector.go and reads from Nitrite DB
+// or JSON metadata fallback. Unit tests are in reader_test.go (TestIDECollector_*).
+func TestIDECollectorName(t *testing.T) {
 	collector := ideCollector{}
 
-	if got := collector.Name(); got != "copilot-ide" {
-		t.Errorf("Name() = %q, want %q", got, "copilot-ide")
-	}
-
-	sessions, err := collector.Collect()
-	if err != nil {
-		t.Fatalf("Collect() error = %v, want nil (no-op stub)", err)
-	}
-	if len(sessions) != 0 {
-		t.Errorf("Collect() returned %d sessions, want 0 (no-op stub)", len(sessions))
+	if got := collector.Name(); got != "ide-chat" {
+		t.Errorf("Name() = %q, want %q", got, "ide-chat")
 	}
 }
 

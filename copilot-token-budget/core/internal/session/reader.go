@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
@@ -42,11 +43,26 @@ type Session struct {
 	IsFinal bool
 
 	// Source identifies which Collector produced this session. Known values:
-	//   "copilot-cli" — GitHub Copilot CLI session-state (the only live source today).
-	//   "copilot-ide" — VS Code IDE Copilot usage (Phase 6 groundwork; not yet emitted).
+	//   "cli" — GitHub Copilot CLI session-state (events.jsonl).
+	//   "ide-chat" — VS Code Copilot Chat (Nitrite DB).
+	//   "ide-edit" — VS Code Copilot Edit extension (future).
+	//   "ide-agent" — VS Code Copilot Agent (future).
 	// Source lets the dedup step in ReadAll reason about cross-source overlap and
 	// lets the UI attribute spend to the originating tool.
 	Source string
+
+	// TokenCostSource indicates the trustworthiness of the cost figures.
+	// Known values:
+	//   "authoritative" — Cost is from CLI session.shutdown event (ground truth).
+	//   "estimated" — Cost is computed from IDE token counts via pricing table (Phase 6 limitation).
+	// Callers must use this label when reporting costs to distinguish settled charges
+	// from estimates pending GitHub API enrichment (Phase 7).
+	TokenCostSource string
+
+	// OrgBillingSnapshot carries optional org-aggregate live billing metadata.
+	// It is nil in the default local-first path and only populated when the
+	// user explicitly opts in to Phase 8 live billing enrichment.
+	OrgBillingSnapshot *livebilling.OrgBillingSnapshot
 }
 
 // TokenBreakdown holds the last-known context-window token counts.
@@ -146,11 +162,11 @@ type Collector interface {
 }
 
 // cliCollector reads GitHub Copilot CLI session-state via the existing readAll
-// core. It is the only live source today.
+// core. It is the primary live source.
 type cliCollector struct{}
 
 // Name implements Collector.
-func (cliCollector) Name() string { return "copilot-cli" }
+func (cliCollector) Name() string { return "cli" }
 
 // Collect implements Collector by reading every session under SessionStateDir.
 func (cliCollector) Collect() ([]Session, error) {
@@ -158,22 +174,30 @@ func (cliCollector) Collect() ([]Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("session: cannot determine session-state directory: %w", err)
 	}
-	return readAll(stateDir)
+	sessions, err := readAll(stateDir)
+	if err != nil {
+		return nil, err
+	}
+	// Stamp TokenCostSource as authoritative for CLI (from session.shutdown billing).
+	for i := range sessions {
+		sessions[i].TokenCostSource = "authoritative"
+	}
+	return sessions, nil
 }
 
-// ideCollector is the registration slot for the future VS Code Copilot Chat
-// reader. It is currently a no-op stub: it produces no sessions.
+// ideCollector reads GitHub Copilot IDE Chat sessions via the Nitrite SDK
+// or falls back to metadata-only parsing from JSON cache.
+// Implementation details are in ide_collector.go.
 type ideCollector struct{}
 
 // Name implements Collector.
-func (ideCollector) Name() string { return "copilot-ide" }
+func (ideCollector) Name() string { return "ide-chat" }
 
-// Collect implements Collector as a no-op.
-// TODO(Phase 6): VS Code Copilot Chat is a SEPARATE source (chatSessions/transcripts
-// under VS Code user data), NOT ~/.copilot. Returns nothing until implemented against
-// the real Chat schema — see ADR-007 (corrected).
+// Collect implements Collector by reading IDE sessions from Nitrite DB or JSON metadata.
+// If the IDE DB is missing, it returns nil error (not a hard failure — IDE is optional in Phase 6).
+// See ide_collector.go for implementation.
 func (ideCollector) Collect() ([]Session, error) {
-	return nil, nil
+	return newIDECollector().Collect()
 }
 
 // collectors is the ordered set of sources ReadAll merges. CLI first so that, all
@@ -181,30 +205,32 @@ func (ideCollector) Collect() ([]Session, error) {
 var collectors = []Collector{cliCollector{}, ideCollector{}}
 
 // ReadAll runs every registered Collector, concatenates their sessions,
-// deduplicates by session ID across all sources, and returns the survivors
-// sorted by StartTime descending (newest first).
+// deduplicates by {source}:{sessionId} across all sources, and returns the survivors
+// sorted by BillingTime descending (newest first).
 //
 // A collector that fails is logged to stderr and skipped — it does not abort the
 // merge. A single unreadable session directory inside a collector is likewise
 // logged and skipped. ReadAll returns an error only if it cannot produce any
 // result at all (today: only when the sole live collector fails).
 //
-// Dedup rule: sessions are keyed by ID alone, deliberately NOT by Source+ID,
-// because the same logical session can surface from more than one source and
-// must collapse to a single record. When two records share an ID the winner is:
+// Dedup rule: sessions are keyed by {source}:{ID} to prevent false collapse of
+// CLI and IDE sessions that may share an ID across different products.
+// When two records share a {source}:{ID} key the winner is:
 //  1. the one with IsFinal == true (settled billing beats a live snapshot); else
 //  2. the one with the higher TotalNanoAIU (the more complete reading).
 //
-// For CLI-only data every ID is unique, so this is a no-op and existing behavior
-// is preserved.
+// For CLI-only data every ID is unique per source, so this is a no-op and existing
+// behavior is preserved.
 func ReadAll() ([]Session, error) {
 	var merged []Session
 	var firstErr error
 	for _, c := range collectors {
 		got, err := c.Collect()
 		if err != nil {
+			// Log IDE collection errors but don't fail ReadAll; CLI is the authoritative source.
 			log.Printf("session: collector %q failed: %v", c.Name(), err)
-			if firstErr == nil {
+			if firstErr == nil && c.Name() != "copilot-ide" {
+				// Only record non-IDE errors as critical
 				firstErr = err
 			}
 			continue
@@ -224,20 +250,20 @@ func ReadAll() ([]Session, error) {
 		return nil, firstErr
 	}
 
-	deduped := dedupByID(merged)
+	deduped := dedupBySourceAndID(merged)
 
 	sort.Slice(deduped, func(i, j int) bool {
-		return deduped[i].StartTime.After(deduped[j].StartTime)
+		return deduped[i].BillingTime().After(deduped[j].BillingTime())
 	})
 
 	return deduped, nil
 }
 
-// dedupByID collapses sessions sharing an ID to a single record per the ReadAll
-// dedup rule (final wins; else higher TotalNanoAIU). Sessions with an empty ID
-// are passed through untouched (they cannot be keyed). Order of survivors is not
-// guaranteed; ReadAll sorts afterwards.
-func dedupByID(sessions []Session) []Session {
+// dedupBySourceAndID collapses sessions sharing a {source}:{ID} tuple to a single
+// record per the ReadAll dedup rule (final wins; else higher TotalNanoAIU).
+// Sessions with an empty ID are passed through untouched (they cannot be keyed).
+// Order of survivors is not guaranteed; ReadAll sorts afterwards.
+func dedupBySourceAndID(sessions []Session) []Session {
 	best := make(map[string]Session, len(sessions))
 	var unkeyed []Session
 	var order []string
@@ -247,20 +273,21 @@ func dedupByID(sessions []Session) []Session {
 			unkeyed = append(unkeyed, s)
 			continue
 		}
-		prev, ok := best[s.ID]
+		key := fmt.Sprintf("%s:%s", s.Source, s.ID)
+		prev, ok := best[key]
 		if !ok {
-			best[s.ID] = s
-			order = append(order, s.ID)
+			best[key] = s
+			order = append(order, key)
 			continue
 		}
 		if preferSession(prev, s) {
-			best[s.ID] = s
+			best[key] = s
 		}
 	}
 
 	out := make([]Session, 0, len(order)+len(unkeyed))
-	for _, id := range order {
-		out = append(out, best[id])
+	for _, key := range order {
+		out = append(out, best[key])
 	}
 	out = append(out, unkeyed...)
 	return out
@@ -344,7 +371,7 @@ func readAll(stateDir string) ([]Session, error) {
 
 // readSession parses one session directory into a Session.
 func readSession(uuid, sessionDir string) (Session, error) {
-	s := Session{ID: uuid, Source: "copilot-cli"}
+	s := Session{ID: uuid, Source: "cli"}
 
 	// Detect active session: presence of any inuse.*.lock file.
 	locks, err := filepath.Glob(filepath.Join(sessionDir, "inuse.*.lock"))

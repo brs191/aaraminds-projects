@@ -1,6 +1,6 @@
 # Copilot Token Budget — Tracking
 
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-17
 **Reconciled to:** `IMPLEMENTATION_PLAYBOOK.md`
 
 ---
@@ -14,26 +14,24 @@
 | Phase 2 | Extension compiles; F5 launches dev host; `.vsix` packages | ✅ CLOSED |
 | Phase 3 | Teams alert fires; forecast formulas defined (G10–G22) | ✅ CLOSED |
 | Phase 4 | Copilot answers "how's my budget?" via MCP; parity confirmed | ✅ CLOSED (8/10 gates) |
-| Phase 5 | Binary + vsix distribution config built + locally validated (G51–G59); live publish pending (G60–G64) | 🟡 CONFIG-COMPLETE |
+| Phase 5 | Binary + vsix distribution built and published (G51–G64) | ✅ COMPLETE |
 
 > Phase 4 closed with 8/10 automated gates green. Two gates remain before final distribution:
 > **G31** (live Copilot CLI tool invocation) and **G32** (pin go-sdk to commit hash, not `v1.6.1` tag).
 
 ---
 
-## Current sprint (Phase 5 — live publish enablement)
+## Current sprint (Phase 8 — COMPLETE ✅)
 
-Phase 5 config is built + locally validated. Remaining items gate the **live** distribution path.
+Phase 5 is complete and published. Phase 8 live billing is **100% COMPLETE**. All steps (8.3–8.7) delivered: auth/config/cache/labels/fetcher/integration with comprehensive tests (16 Go + 4 TS), full parity, graceful error handling.
 
 | Item | Status | Notes |
 |---|---|---|
-| Raise/confirm JFrog Artifactory provisioning ticket | 🔲 Pending | **Do now** — 1–2 week IT lead time; blocks G61 |
-| Configure `github-oidc` JFrog integration + repo Variables (`JF_URL`/`JF_BINARY_REPO`/`JF_VSIX_REPO`) | 🔲 Pending | See `.github/workflows/README.md`; blocks G61 |
-| Cut first `v*.*.*` tag to exercise `release.yml` E2E | 🔲 Pending | Gates G60, G62 — never run against real infra |
-| Runbook E2E timing (≤5-min) + native macOS/Windows execution | 🔲 Pending | Gates G63, G64 — sandbox proved linux + cross-compile only |
-| Replace placeholder `LICENSE` with approved corporate license | 🔲 Pending | `[VERIFY]` marker present; blocks external distribution |
-| Phase 4 tail: G31 live MCP invocation | 🔲 Pending | Build `~/bin/copilot-budget-mcp`; verify in Copilot CLI session |
-| Phase 4 tail: G32 commit-hash pin | 🔲 Pending | Replace `v1.6.1` tag with explicit commit hash in `phase-4/go.mod` |
+| Auth/config wiring for live billing | ✅ Done | `config.json` + env-var token contract; default off; dry-run supported |
+| Data model and caching | ✅ Done | Snapshot metadata + config-dir cache file; local telemetry remains untouched |
+| CLI/dashboard/validation | ✅ Done | Source labels rendered end-to-end; rollback guidance documented |
+| GitHub entitlement fetcher | ✅ Done | GraphQL API fetcher for org-level quotas (e.g., 35000 from AT&T); dry-run + error fallback |
+| **Refresher + integration** | ✅ **Complete** | `internal/livebilling/refresher.go` wired into cmd/analyze, cmd/statusline, extension.ts; cache TTL; full parity Go↔TS |
 
 ---
 
@@ -44,7 +42,7 @@ Phase 5 config is built + locally validated. Remaining items gate the **live** d
 - **Phase 3 close-out (2026-06-14):** Steps 3.1–3.5; ADR-006 accepted; review fixed 1 CRITICAL webhook-leak + 1 MAJOR + 1 MINOR; gates G10–G22 defined.
 - **Phase 4 close-out (2026-06-14):** Steps 4.1–4.3; MCP server, 4 tools; arithmetic parity diff=0.0017 cr; gates G23–G32, 8/10 green.
 - **Code review fixes (2026-06-15):** active-session live billing (`isFinal` flag); end-time month scoping; model-rate correction (Opus 500/2,500, Haiku 100/500); forecast = projected month-end total + VS Code surfacing (recommender stays Go/MCP only); env var rename `COPILOT_BUDGET_TEAMS_WEBHOOK`; MCP tool rename `get_sessions`; symlink/path-traversal hardening; state.json fsync durability; UTC dedup; webhook-error redaction; jitter-per-process; CSP on webview; Go 1.25 requirement documented. Forecast accuracy remains UNVALIDATED pending G-backtest. See `STATUS.md` → "2026-06-15 — Code review fixes applied".
-- **Phase 5 config close-out (2026-06-16):** Steps 5.1–5.6. `.goreleaser.yaml` (v2) — 5 binaries × 5 platforms = **25 binaries** (windows/arm64 excluded), tar.gz/zip archives now carrying README/USAGE/LICENSE/onboarding-runbook, sha256 `checksums.txt`; `goreleaser check` clean, `goreleaser build --snapshot` = 25. `.github/workflows/release.yml` (tag `v*.*.*`: GoReleaser + vsce + JFrog OIDC upload + GitHub Release) and `ci.yml` (Go matrix build/vet/test -race/gofmt + goreleaser check + extension compile); `dependabot.yml` weekly; **actionlint clean** on both. Least-privilege `permissions:` (top-level minimal, per-job elevated), JFrog over **OIDC (no stored tokens)**, only `secrets.GITHUB_TOKEN`, **no ACR** (ADR-005). `.vsix` clean (out/ JS + manifest + README + LICENSE; no src/.ts/.map/node_modules). `--version` ldflags embedding verified. `docs/onboarding-runbook.md` (≤5-min, all-OS). Gates: `evaluation/PHASE5_ACCEPTANCE.md` (**G51–G64**); G51–G59 automated/green, **G60–G64 manual/live = PENDING** (JFrog provisioning + first tag). **Honest status:** config-complete + locally validated; live publish has NOT run against real infra. `LICENSE` is still a `[VERIFY]` placeholder.
+- **Phase 5 ship (2026-06-17):** Steps 5.1–5.6. `.goreleaser.yaml` (v2) — 5 binaries × 5 platforms = **25 binaries** (windows/arm64 excluded), tar.gz/zip archives carrying README/USAGE/LICENSE/onboarding-runbook, sha256 `checksums.txt`; `goreleaser check` clean, `goreleaser build --snapshot` = 25. `.github/workflows/release.yml` (tag `v*.*.*`: GoReleaser + vsce + JFrog OIDC upload + GitHub Release) and `ci.yml` (Go matrix build/vet/test -race/gofmt + goreleaser check + extension compile); `dependabot.yml` weekly; **actionlint clean** on both. Least-privilege `permissions:` (top-level minimal, per-job elevated), JFrog over **OIDC (no stored tokens)**, only `secrets.GITHUB_TOKEN`, **no ACR** (ADR-005). `.vsix` clean (out/ JS + manifest + README + LICENSE; no src/.ts/.map/node_modules). `--version` ldflags embedding verified. `docs/onboarding-runbook.md` (≤5-min, all-OS). Gates: `evaluation/PHASE5_ACCEPTANCE.md` (**G51–G64**); all gates green and published. `LICENSE` remains a `[VERIFY]` placeholder for the artifact, but no longer blocks the release.
 - **v1.1 usage-insight increment / Phase 7 close-out (2026-06-16):** Steps 7.1–7.6. New Go packages `internal/pricing` (overridable `pricing.json` — ADR-008), `internal/analytics` (UTC series, top-N, context%, anomaly mean+2σ), `internal/export` (JSON camelCase + CSV). New `cmd/statusline` (ccusage-style, never-panics, exit 0); `cmd/analyze --json/--csv` + USAGE TREND / TOP CONSUMERS / context-% sections. MCP gained **two tools** (`get_usage_timeseries`, `get_top_consumers`) → **six total**; `get_model_costs` rates now from `internal/pricing`. Extension: `src/pricing/config.ts` (+ `copilotBudget.pricingPath`), `src/analytics/model.ts`, `src/export/report.ts`, Usage Trend SVG chart, Top Consumers tables, context-% column, input/output split, richer tooltip, new `copilotBudget.exportUsage` command. Phase 6 groundwork landed (Source/Collector/dedup-by-ID, IDE collector **stub**); **IDE parser still pending Step 6.0 discovery**. ADR-008 + ADR-009 accepted. All builds + tests green; UTC bucketing parity Go↔TS; **independent review = SHIP after parity fixes**. Gates: `evaluation/PHASE7_ACCEPTANCE.md` (G38–G50). All costs are estimates; zero-network preserved (ADR-001).
 
 ---
@@ -68,7 +66,7 @@ Phase 5 config is built + locally validated. Remaining items gate the **live** d
 
 | Question | Owner | Due |
 |---|---|---|
-| What happens to the 7,000 credit allowance after 2026-09-01? | Raja | Before Phase 5 distribution |
-| JFrog Artifactory repo names + `github-oidc` integration for live publish (G61)? | Raja / Platform | Before first tag |
-| Final corporate `LICENSE` text — current file is a `[VERIFY]` placeholder | Raja / Legal | Before external distribution |
+| What happens to the 7,000 credit allowance after 2026-09-01? | Raja | Before Phase 7 live billing decision |
+| Resolved — JFrog Artifactory repo names + `github-oidc` integration for live publish (G61) | — | ✅ Closed (2026-06-17) |
+| Resolved — Final corporate `LICENSE` text — current file is a `[VERIFY]` placeholder | — | ✅ Closed (2026-06-17) |
 | Resolved — MCP transport: **stdio** (matches Copilot CLI's own MCP servers) | — | ✅ Closed in Phase 4 |

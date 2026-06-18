@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/pricing"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
@@ -80,6 +81,9 @@ func TestStatusline_AssemblesFromFakeSessions(t *testing.T) {
 	if !strings.Contains(got, "🧠 50%") {
 		t.Errorf("expected '🧠 50%%' in line, got %q", got)
 	}
+	if !strings.Contains(got, "billing (estimated)") {
+		t.Errorf("expected estimated billing label, got %q", got)
+	}
 }
 
 // TestStatusline_NoData yields a minimal, safe single line with no active model
@@ -102,6 +106,24 @@ func TestStatusline_NoData(t *testing.T) {
 	}
 	if strings.Count(got, "\n") != 0 {
 		t.Errorf("statusline must be a single line, got %q", got)
+	}
+}
+
+func TestStatusline_LiveBillingLabel(t *testing.T) {
+	now := time.Date(2026, 6, 17, 12, 0, 0, 0, time.UTC)
+	sessions := []session.Session{
+		{
+			StartTime: now,
+			IsActive:  true,
+			OrgBillingSnapshot: &livebilling.OrgBillingSnapshot{
+				Availability:    livebilling.AvailabilityAvailable,
+				LastRefreshedAt: time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC),
+			},
+		},
+	}
+	got := Statusline(sessions, fakeConfig(), now, false)
+	if !strings.Contains(got, "billing (org aggregate, ~2h ago)") {
+		t.Fatalf("expected live billing label, got %q", got)
 	}
 }
 

@@ -6,7 +6,14 @@
 //
 // Zero npm runtime deps (ADR-003).
 
-import { Session, billingTime, totalInputTokens, totalOutputTokens } from '../types';
+import {
+  Session,
+  billingTime,
+  totalInputTokens,
+  totalOutputTokens,
+  LiveBillingSnapshot,
+} from '../types';
+import { latestLiveBillingSnapshot } from '../livebilling/labels';
 import { BudgetState } from '../types';
 import { fromNanoAIU } from '../budget/tracker';
 import {
@@ -32,6 +39,7 @@ interface SessionView {
   systemTokens: number;
   isActive: boolean;
   isFinal: boolean;
+  orgBillingSnapshot?: LiveBillingSnapshot;
   startTime: string;
   endTime?: string;
 }
@@ -40,6 +48,7 @@ interface SessionView {
 interface Report {
   generatedAt: string;
   budgetState: BudgetState;
+  orgBillingSnapshot?: LiveBillingSnapshot;
   daily: Bucket[];
   topSessions: Consumer[];
   topModels: Consumer[];
@@ -52,6 +61,7 @@ export function buildReport(sessions: Session[], budgetState: BudgetState): Repo
   return {
     generatedAt: new Date().toISOString(),
     budgetState,
+    orgBillingSnapshot: latestLiveBillingSnapshot(sessions),
     daily: dailySeries(sessions),
     topSessions: topSessions(sessions, 0),
     topModels: topModels(sessions, 0),
@@ -108,6 +118,7 @@ function sessionView(s: Session): SessionView {
     systemTokens: s.tokens.systemTokens,
     isActive: s.isActive,
     isFinal: s.isFinal,
+    orgBillingSnapshot: s.orgBillingSnapshot,
     startTime: s.startTime.toISOString(),
   };
   // endTime is omitted when unset (epoch 0), mirroring Go's `omitempty`.

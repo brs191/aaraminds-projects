@@ -61,9 +61,10 @@ That triggers `release.yml`:
    the GitHub release itself.
 2. **build-vsix** — packages the VS Code extension into
    `copilot-token-budget-<tag>.vsix` (Node 22, required by `@vscode/vsce`).
-3. **publish** — downloads both artifacts, uploads to JFrog Artifactory over OIDC
-   (`binaries/<tag>/` and `vsix/<tag>/`), then cuts the GitHub Release with all
-   archives, `checksums.txt`, and the `.vsix` attached.
+3. **publish** — downloads both artifacts, builds the macOS out-of-the-box bundle,
+   uploads to JFrog Artifactory over OIDC (`binaries/<tag>/`, `binaries/<tag>/macos-oob/`
+   and `vsix/<tag>/`), then cuts the GitHub Release with all archives, `checksums.txt`,
+   the `.vsix`, and the macOS bundle attached.
 
 ## Hardening follow-up: SHA-pin actions
 

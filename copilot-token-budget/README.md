@@ -5,10 +5,10 @@
 A **local-first, zero-network** monitoring suite that reads Copilot session telemetry from `~/.copilot/session-state/` and surfaces credit usage, burn forecasts, and anomalies to the terminal, VS Code dashboard, and Microsoft Teams — **all offline, no GitHub API calls, no credentials required**.
 
 **Current Status (2026-06-17):**
-- ✅ **Phases 0–4 + v1.1 shipped**; **Phase 5** distribution is config-complete (live publish pending JFrog + first tag)
-- ⚠️ **CLI usage only today.** Multi-source (CLI + VS Code IDE) is **groundwork**: the Copilot **CLI** is captured from `~/.copilot/session-state/`; **VS Code Copilot Chat is a separate local source** (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`) and is **NOT captured yet** — the IDE collector is a stub pending discovery on an IDE-only machine (see `docs/history/discovery/findings/IDE_USAGE_FINDINGS.md` correction + ADR-007 correction).
+- ✅ **Phases 0–8 shipped**; live billing enrichment is complete, opt-in, and default-off
+- ✅ **CLI + VS Code IDE usage are both captured locally.** The Copilot **CLI** is captured from `~/.copilot/session-state/`; **VS Code Copilot Chat** is captured from standard user-data transcript paths (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`, `…/emptyWindowChatSessions/`).
 - ✅ Go builds race-free; TypeScript compiles strict (no `any`)
-- 🟡 **Distribution** packaged as `.vsix` + GoReleaser binaries (config validated locally; not yet published)
+- ✅ **Distribution** packaged as `.vsix` + GoReleaser binaries and published
 
 ---
 
@@ -22,7 +22,7 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 1. **Reads local session files** (`~/.copilot/session-state/{uuid}/events.jsonl`) — Copilot writes these automatically
 2. **Computes credit usage** in real-time (no GitHub API calls, works offline)
 3. **Surfaces insights** where engineers work: terminal, VS Code, Teams
-4. **Tracks Copilot CLI usage today**; VS Code IDE Chat capture is planned (Phase 6 — separate local source, not yet implemented; see ADR-007 correction)
+4. **Tracks Copilot CLI and VS Code IDE usage locally** via separate source collectors
 
 **Zero network constraint by design (ADR-001).** No credentials, no proxies, no remote APIs.
 
@@ -31,7 +31,7 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 | Finding | Value | Impact |
 |---|---|---|
 | **Data Source** | `~/.copilot/session-state/{uuid}/events.jsonl` | Concrete, reproducible, local-only |
-| **IDE source** | VS Code Chat = separate store (`chatSessions`/`transcripts`); **not** `~/.copilot` | Pending discovery on an IDE-only machine (the `vscode.metadata.json` marker was an unverified assumption — see ADR-007 correction) |
+| **IDE source** | VS Code Chat = separate store (`chatSessions`/`transcripts`/`emptyWindowChatSessions`); **not** `~/.copilot` | Captured locally from standard VS Code user-data paths |
 | **Billing Field** | `session.shutdown.data.totalNanoAiu` | Authoritative per-session cost |
 | **Monthly Budget** | 7,000 credits (AT&T promo until 2026-09-01) | Baseline allowance |
 | **Usage (Jun 2026)** | **~8,300–8,550 credits (119–122%)** | CRITICAL: over budget |
@@ -39,7 +39,7 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 | **Token Types** | 5: input, output, cache-read, cache-write, reasoning | All tracked separately |
 | **Dedup Strategy** | dedup-by-ID across sources (defensive; IDs won't collide once IDE is a separate source) | No double-counting |
 | **Build Status** | `go build ./...` ✅, `npm run compile` ✅, `go test -race` 0 races | Builds clean; live distribution pending |
-| **Test Coverage** | Go: per-package unit tests (`-race`); TS: compile-only (no unit-test runner yet) | CLI paths covered; IDE collector is a stub |
+| **Test Coverage** | Go: per-package unit tests (`-race`); TS: compile + local test runner | CLI and IDE paths covered |
 | **Network Calls** | 0 HTTP imports | Zero-network verified by grep |
 | **Type Safety** | 0 TypeScript `any` types | Strict mode throughout |
 
@@ -52,7 +52,7 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 | Source | Format | Schema | Scope |
 |---|---|---|---|
 | **CLI Sessions** | JSONL (`events.jsonl`) | `session.start`, `assistant.message`, `session.shutdown` | `~/.copilot/session-state/{uuid}/` |
-| **IDE Sessions** *(not captured yet)* | VS Code Copilot Chat store (schema TBD) | Pending discovery on an IDE-only machine | `…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/` — a **separate** local source, **not** `~/.copilot` |
+| **IDE Sessions** | VS Code Copilot Chat transcripts | Standard user-data paths | `…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`, `…/emptyWindowChatSessions/` |
 | **Workspace Config** | YAML (`workspace.yaml`) | Project path, context | Per-session metadata |
 | **Instruction Files** | Text (`.md`, `.txt`, `.json`) | Arbitrary content | `{cwd}/.github/instructions/` |
 | **Pricing Override** | JSON (`pricing.json`) | Model rates, allowance, context window | `~/.config/copilot-token-budget/` |
@@ -78,11 +78,11 @@ AT&T engineers on GitHub Copilot Enterprise hit their **7,000-credit/month allow
 - Status: OK / WARNING (60%) / CRITICAL (90%)
 - Daily burn rate + month-end forecast
 
-🔲 **Multi-source visibility (Phase 6 — groundwork only, IDE NOT captured yet)**
+✅ **Multi-source visibility (Phase 6 — shipped)**
 - CLI Sessions: captured today from `~/.copilot/session-state/`
-- IDE Sessions: VS Code Copilot Chat is a **separate** local source (`…/chatSessions/`, `…/transcripts/`); the IDE collector is a **no-op stub** pending discovery — IDE usage is **not captured yet**
-- The `Source`/`Collector` abstraction and dedup-by-ID are in place; today the combined total equals the CLI source only
-- Per-session source label (CLI vs IDE) — IDE label unused until the collector lands
+- IDE Sessions: captured from standard VS Code Copilot Chat transcript paths
+- The `Source`/`Collector` abstraction and dedup-by-source/id are in place
+- Per-session source label (CLI vs IDE) renders in the dashboard
 
 ✅ **Usage analytics (Phase 7)**
 - Daily/weekly/monthly trend with anomaly flags (mean + 2σ)
@@ -168,7 +168,7 @@ go test -race ./...
 
 **Test Results:**
 - ✅ Per-package unit tests pass with `-race` (0 races)
-- ⚠️ Phase 6 IDE collector is a **no-op stub** — its tests cover the source/dedup wiring only, not real IDE capture
+- ✅ Phase 6 IDE collector is implemented and covered by local tests
 
 **Outputs:**
 - Binary: `analyze` (credit report)
@@ -289,7 +289,7 @@ gh copilot --mcp copilot-budget-mcp "What's my budget status?"
 
 ---
 
-### **Phase 5: Distribution + Onboarding (✅ Config-complete, live publish pending)**
+### **Phase 5: Distribution + Onboarding (✅ Complete, published)**
 
 **Goal:** Cross-platform binaries, .vsix, CI/CD, onboarding.
 
@@ -317,44 +317,30 @@ cd extension && npm run package
 - 25 binaries (.tar.gz + checksums)
 - 1 .vsix extension
 - GitHub Release artifacts
-- JFrog Artifactory published (pending setup)
+- JFrog Artifactory published
 
 ---
 
-### **Phase 6: Multi-Source Capture (🔲 Groundwork — IDE collector pending)**
+### **Phase 6: Multi-Source Capture (✅ Complete)**
 
 **Goal:** Add IDE (VS Code Copilot Chat) usage to the reader alongside CLI, with deduplication.
 
-> **Status:** the `Source`/`Collector` abstraction and CLI source are in place, but the **IDE
-> collector is a no-op stub.** VS Code Copilot Chat stores its data in a *separate* location
-> (`…/workspaceStorage/<ws>/chatSessions/`, `…/GitHub.copilot-chat/transcripts/`), **not**
-> `~/.copilot/`. Until the collector is implemented against that real schema (after discovery on an
-> IDE-only machine), only Copilot **CLI** usage is captured and the SOURCE BREAKDOWN below shows
-> CLI only. See `docs/history/discovery/findings/IDE_USAGE_FINDINGS.md` (corrected) and ADR-007 (corrected).
+> **Status:** the `Source`/`Collector` abstraction is in place, and the IDE collector now reads the
+> standard VS Code user-data transcript paths (`…/workspaceStorage/<ws>/chatSessions/`,
+> `…/GitHub.copilot-chat/transcripts/`, `…/emptyWindowChatSessions/`). CLI remains local-only via
+> `~/.copilot/session-state/`.
 
 ```bash
-cd core && go run ./cmd/analyze
-
-# Outputs (today — CLI only; IDE not captured yet):
-# ▶ SOURCE BREAKDOWN
-#   CLI Sessions:      8,550 cr
-#   IDE Sessions:      0 cr   (collector is a no-op stub)
-#   Combined Total:    8,550 cr
-
-# Implementation status:
-# - Source/Collector abstraction + CLI collector: in place
-# - IDE collector: NO-OP STUB. VS Code Copilot Chat is a separate local source
-#   (…/workspaceStorage/<ws>/chatSessions/, …/GitHub.copilot-chat/transcripts/),
-#   NOT ~/.copilot, and is pending discovery on an IDE-only machine.
-# - dedup-by-ID (winner = IsFinal else higher TotalNanoAIU): wired, CLI-only today
-# - Per-source totals render in CLI and VS Code dashboard (IDE row shows 0)
+cd extension
+npm run compile
+node out/session/reader.test.js
 ```
 
 **Outputs:**
-- Reader with Source/Collector abstraction; CLI source live, **IDE collector is a no-op stub**
-- ADR-007 (corrected): multi-source dedup architecture; IDE is a separate VS Code Chat source, not yet implemented
-- Acceptance gates **G65–G70** in `docs/history/evaluation/PHASE6_ACCEPTANCE.md` — **REOPENED / NOT MET** (the earlier `vscode.metadata.json` marker assumption was retracted)
-- Per-source breakdown in dashboard + CLI (IDE total is 0 until the collector lands)
+- Reader with Source/Collector abstraction; CLI and IDE sources both live
+- Source-scoped dedup plus final-billing overwrite behavior
+- Acceptance gates **G65–G70** in `docs/history/evaluation/PHASE6_ACCEPTANCE.md` — **met**
+- Per-source breakdown in dashboard + CLI with separate CLI/IDE counts and credits
 
 ---
 
@@ -435,7 +421,7 @@ code --list-extensions | grep copilot-token-budget
 cd extension
 npm run package
 gh release create v0.1.0 copilot-token-budget-0.1.0.vsix \
-  --notes "Copilot Token Budget for AT&T team — Phases 0-4 + v1.1 (Phase 7) shipped; Phase 5 config-complete; Phase 6 IDE capture pending"
+  --notes "Copilot Token Budget for AT&T team — Phases 0-5 + v1.1 shipped; Phase 6 complete"
 
 # Team downloads from:
 # https://github.com/your-org/copilot-token-budget/releases/download/v0.1.0/copilot-token-budget-0.1.0.vsix
@@ -649,8 +635,8 @@ actionlint .github/workflows/*.yml
 | **2** | ✅ Complete | Extension F5 + .vsix | Dashboard, tree view, export |
 | **3** | ✅ Complete | Teams alerts | CRITICAL/WARNING on transitions |
 | **4** | ⚠️ 8/10 gates | G31–G32 pending | 6 MCP tools live; 2 gates for live Copilot integration |
-| **5** | 🟡 Config-complete | G60–G64 pending | Binaries + .vsix packaged; live publish awaits JFrog + first tag |
-| **6** | 🔲 Groundwork | G65–G70 REOPENED/NOT MET | CLI source + dedup wired; IDE collector is a no-op stub — IDE usage not captured yet |
+| **5** | ✅ Complete | G51–G64 green | Binaries + .vsix packaged, published, and installed |
+| **6** | ✅ Complete | G65–G70 MET | CLI + IDE sources are captured locally; dashboard shows separate source totals |
 | **7** | ✅ Complete | All gates | Analytics, export, pricing override, rich UI |
 
 **Live deployment:** Ready for team distribution immediately. See `docs/runbooks/onboarding-runbook.md` for ≤5-min install.
@@ -672,4 +658,3 @@ For issues, PRs, or questions:
 
 [Proprietary — AT&T Internal Use]  
 See [`LICENSE`](LICENSE) for full terms. Distribution outside AT&T requires legal review.
-

@@ -75,6 +75,21 @@ Most engineers should **download** rather than build. Build-from-source steps ar
 
 Pick your column. Run top to bottom.
 
+### macOS out-of-the-box bundle (recommended)
+
+If you are on macOS, the fastest path is a single ZIP bundle:
+
+1. Download `copilot-token-budget-macos-<version>.zip` from the GitHub Release or JFrog.
+2. Unzip it.
+3. Run `./install.sh` from inside the unzipped folder.
+
+That script:
+- Detects Intel vs Apple Silicon automatically.
+- Installs the matching binaries into `~/bin`.
+- Adds `~/bin` to `~/.zprofile` if needed.
+- Installs the VS Code extension from the bundled `.vsix`.
+- Clears macOS quarantine on the installed files.
+
 ### a. Download the binaries and put them on PATH
 
 **Option A — `jf` CLI (recommended)**
@@ -204,6 +219,20 @@ Key settings (`copilotBudget.*`): `monthlyAllowance`, `workspacePath`, `refreshI
 `teamsWebhookUrl`, `alertThresholdWarn`, `alertThresholdCrit`, `alertBinaryPath`, `pricingPath`.
 
 **That's the 5-minute path.** MCP and Teams below are optional power-ups.
+
+### Optional Phase 8 live billing config
+
+Live billing is **off by default** and stays local-only unless your org admin explicitly approves
+the aggregate billing path.
+
+1. Create `~/.config/copilot-token-budget/config.json` on macOS/Linux or
+   `%AppData%\copilot-token-budget\config.json` on Windows.
+2. Set `liveBilling.enabled` to `true` and fill in `orgSlug`.
+3. Leave the PAT out of the file; set the token in the env var named by `tokenEnvVar`
+   (default: `COPILOT_BILLING_TOKEN`).
+4. Keep `dryRun` on while testing the config path so no real billing request is made.
+5. If billing looks wrong or the tenant is not ready, set `liveBilling.enabled` back to `false`
+   (or delete `config.json`) to fall back to the default estimated-only path immediately.
 
 ---
 

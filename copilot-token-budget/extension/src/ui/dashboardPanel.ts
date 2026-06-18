@@ -1,11 +1,11 @@
 // ui/dashboardPanel.ts — singleton VS Code webview panel for the budget dashboard.
 // Uses VS Code CSS variables so it respects the user's light/dark theme automatically.
 
-// formatCreditsDisplay renders raw credits with thousands separators and up to two
-// decimals — parity with the Go side (e.g. "8,554.03", "656.54"). Credits are already
-// credits (nanoAIU / 1e9), so there is no further scaling and no "B"/billions unit.
+// formatCreditsDisplay renders raw credits with thousands separators and no decimals.
+// Credits are already credits (nanoAIU / 1e9), so there is no further scaling and no
+// "B"/billions unit.
 function formatCreditsDisplay(credits: number): string {
-  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 import * as vscode from "vscode";
@@ -24,6 +24,8 @@ import {
   contextWindowPct,
   Consumer,
 } from "../analytics/model";
+import { latestLiveBillingSnapshot, liveBillingLabel } from "../livebilling/labels";
+import { LiveBillingSnapshot } from "../types";
 
 // Forecast figures surfaced in the dashboard's Forecast block.
 interface SerializedForecast {
@@ -59,6 +61,13 @@ interface SerializedModelCache {
   dominatesInput: boolean; // cacheReadTokens > inputTokens
 }
 
+interface SerializedModelSummary {
+  model: string;
+  credits: number;
+  inputTokensK: number;
+  outputTokensK: number;
+}
+
 interface SerializedOptimizationOpportunity {
   name: string;
   reducibleTokens: number;
@@ -81,6 +90,7 @@ interface SerializedOptimizationSummary {
 interface DashboardMessage {
   sessions: SerializedSession[];
   budgetState: BudgetState;
+  orgBillingSnapshot?: LiveBillingSnapshot;
   instructionFiles: InstructionFile[];
   forecast: SerializedForecast;
   trend: TrendPoint[]; // last 14 daily buckets, anomalies flagged
@@ -88,11 +98,19 @@ interface DashboardMessage {
   topModels: SerializedConsumer[];
   topProjects: SerializedConsumer[];
   modelCache: SerializedModelCache[]; // per-model prompt-cache tallies (Top Models)
+  modelSummary: SerializedModelSummary[]; // all-model consumption summary
   premiumRequests: number; // total premium requests across this month's settled sessions
+  cliSessionCount: number; // number of CLI sessions discovered
   cliTotal: number; // total credits from CLI sessions — the real, tracked total
-  ideTotal: number; // IDE credits: ALWAYS 0 today (no live IDE source); presented as "not tracked yet"
-  ideTracked: boolean; // false until a live IDE source exists; gates the IDE figure's framing
+  ideSessionCount: number; // number of IDE sessions discovered
+  ideTotal: number; // IDE credits from standard VS Code user-data transcripts; pending only if absent
+  ideTracked: boolean; // true once a live IDE collector contributes sessions
   optimization: SerializedOptimizationSummary;
+}
+
+interface DashboardInboundMessage {
+  type: "setAllowance";
+  allowanceCredits: number;
 }
 
 // Sessions must be serialized (Dates → ISO strings) before posting to the webview.
@@ -131,6 +149,33 @@ export class DashboardPanel {
     );
 
     this.panel.webview.html = buildHtml(this.panel.webview);
+    this.panel.webview.onDidReceiveMessage(
+      async (raw: unknown) => {
+        if (
+          !raw ||
+          typeof raw !== "object" ||
+          (raw as { type?: unknown }).type !== "setAllowance"
+        ) {
+          return;
+        }
+        const msg = raw as DashboardInboundMessage;
+        const next = Number(msg.allowanceCredits);
+        if (!Number.isFinite(next) || next <= 0) {
+          return;
+        }
+        const target =
+          vscode.workspace.workspaceFolders &&
+          vscode.workspace.workspaceFolders.length > 0
+            ? vscode.ConfigurationTarget.Workspace
+            : vscode.ConfigurationTarget.Global;
+        await vscode
+          .workspace
+          .getConfiguration("copilotBudget")
+          .update("monthlyAllowance", next, target);
+      },
+      null,
+      context.subscriptions,
+    );
 
     this.panel.onDidDispose(
       () => {
@@ -167,26 +212,25 @@ export class DashboardPanel {
     );
     const cfg = loadPricing();
 
-    // Compute source breakdown and premium-request total. cliTotal is the real,
-    // tracked total. ideTotal is collected for completeness but is ALWAYS 0 today —
-    // VS Code Chat is a separate, not-yet-implemented source (see reader.ts ideCollector
-    // / ADR-007). It is presented as "not tracked yet (Phase 6)", NOT summed into a
-    // combined total, so the dashboard never implies the IDE figure is a measured 0.
+    // Compute source breakdown and premium-request total. CLI gets a separate session
+    // count + credit total; IDE gets the same treatment when discovered.
+    let cliSessionCount = 0;
     let cliTotal = 0;
+    let ideSessionCount = 0;
     let ideTotal = 0;
     let premiumRequests = 0;
     for (const s of sessions) {
       const credits = s.totalNanoAIU / 1_000_000_000;
       if (s.source === "copilot-cli") {
+        cliSessionCount += 1;
         cliTotal += credits;
       } else if (s.source === "copilot-ide") {
+        ideSessionCount += 1;
         ideTotal += credits;
       }
       premiumRequests += s.totalPremiumRequests;
     }
-    // ideTracked stays false until a live IDE collector contributes sessions. Detecting
-    // an actual IDE session (not the no-op stub) flips it on so the UI relabels itself
-    // automatically when Phase 6 lands.
+    // ideTracked flips on automatically when the IDE collector contributes sessions.
     const ideTracked = sessions.some((s) => s.source === "copilot-ide");
 
     // Per-model prompt-cache tallies for the Top Models area — mirrors Go
@@ -200,6 +244,14 @@ export class DashboardPanel {
         input: number;
       }
     >();
+    const summaryByModel = new Map<
+      string,
+      {
+        credits: number;
+        inputTokens: number;
+        outputTokens: number;
+      }
+    >();
     for (const s of sessions) {
       for (const m of s.modelMetrics) {
         let t = cacheByModel.get(m.model);
@@ -211,6 +263,15 @@ export class DashboardPanel {
         t.cacheWrite += m.cacheWriteTokens;
         t.reasoning += m.reasoningTokens;
         t.input += m.inputTokens;
+
+        let sum = summaryByModel.get(m.model);
+        if (sum === undefined) {
+          sum = { credits: 0, inputTokens: 0, outputTokens: 0 };
+          summaryByModel.set(m.model, sum);
+        }
+        sum.credits += m.nanoAIU / 1_000_000_000;
+        sum.inputTokens += m.inputTokens;
+        sum.outputTokens += m.outputTokens;
       }
     }
 
@@ -242,14 +303,25 @@ export class DashboardPanel {
         dominatesInput: t.cacheRead > t.input,
       });
     }
+    const modelSummary: SerializedModelSummary[] = Array
+      .from(summaryByModel.entries())
+      .map(([model, s]) => ({
+        model,
+        credits: s.credits,
+        inputTokensK: Math.floor(s.inputTokens / 1000),
+        outputTokensK: Math.floor(s.outputTokens / 1000),
+      }))
+      .sort((a, b) => b.credits - a.credits);
 
     const plan = buildOptimizationSummary(instructionFiles);
     const current = estimateInstructionCostPerSession(plan.alwaysLoadedTokens);
     const target = estimateInstructionCostPerSession(plan.targetTokens);
+    const orgBillingSnapshot = latestLiveBillingSnapshot(sessions);
 
     const message: DashboardMessage = {
       sessions: sessions.map((s) => serialize(s, cfg)),
       budgetState,
+      orgBillingSnapshot,
       instructionFiles,
       forecast: {
         dailyBurn: f.dailyBurn,
@@ -261,9 +333,12 @@ export class DashboardPanel {
       topModels: rankedModels,
       topProjects: topProjects(sessions, 5).map(serializeConsumer),
       modelCache,
+      modelSummary,
       premiumRequests,
+      cliSessionCount,
       cliTotal, // real tracked total
-      ideTotal, // always 0 today — see ideTracked
+      ideSessionCount,
+      ideTotal, // IDE credits total for discovered IDE sessions
       ideTracked,
       optimization: {
         alwaysLoadedTokens: plan.alwaysLoadedTokens,
@@ -284,6 +359,7 @@ export class DashboardPanel {
         })),
       },
     };
+    console.log(`[DashboardPanel.update] Posting message with ${message.sessions.length} sessions, budget=${message.budgetState.usedCredits}/${message.budgetState.allowedCredits}`);
     void this.panel.webview.postMessage(message);
   }
 
@@ -354,55 +430,87 @@ function buildHtml(webview: vscode.Webview): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Copilot Budget Dashboard</title>
 <style>
+  :root {
+    --tn-bg: #1a1b26;
+    --tn-bg-alt: #1f2335;
+    --tn-surface: #24283b;
+    --tn-border: #3b4261;
+    --tn-fg: #c0caf5;
+    --tn-muted: #a9b1d6;
+    --tn-accent: #7aa2f7;
+    --tn-green: #9ece6a;
+    --tn-yellow: #e0af68;
+    --tn-red: #f7768e;
+    --tn-cyan: #7dcfff;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: var(--vscode-font-family);
-    font-size: var(--vscode-font-size);
-    color: var(--vscode-editor-foreground);
-    background: var(--vscode-editor-background);
+    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-size: var(--vscode-font-size, 13px);
+    color: var(--tn-fg);
+    background: var(--tn-bg);
     padding: 16px;
   }
 
   h1 { font-size: 1.4em; margin-bottom: 4px; }
-  h2 { font-size: 1.1em; margin: 20px 0 8px; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
+  h2 { font-size: 1.1em; margin: 20px 0 8px; border-bottom: 1px solid var(--tn-border); padding-bottom: 4px; }
+  .section-header {
+    margin: 20px 0 8px;
+    border-bottom: 1px solid var(--tn-border);
+    padding-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-header h2 {
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
 
-  .subtitle { color: var(--vscode-descriptionForeground); font-size: 0.85em; margin-bottom: 20px; }
+  .subtitle { color: var(--tn-muted); font-size: 0.85em; margin-bottom: 20px; }
 
   /* Budget gauge */
   .gauge-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .gauge-bar { flex: 1; height: 16px; background: var(--vscode-progressBar-background, #333); border-radius: 4px; overflow: hidden; }
+  .gauge-bar { flex: 1; height: 16px; background: var(--tn-bg-alt); border-radius: 4px; overflow: hidden; }
   .gauge-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
-  .gauge-fill.ok       { background: #4caf50; }
-  .gauge-fill.warning  { background: #ff9800; }
-  .gauge-fill.critical { background: var(--vscode-statusBarItem-errorBackground, #c72e0f); }
+  .gauge-fill.ok       { background: var(--tn-green); }
+  .gauge-fill.warning  { background: var(--tn-yellow); }
+  .gauge-fill.critical { background: var(--tn-red); }
   .gauge-label { min-width: 80px; text-align: right; font-weight: bold; }
 
   .budget-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
+  .source-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
+  .forecast-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
   .stat-card {
-    background: var(--vscode-sideBar-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--tn-surface);
+    border: 1px solid var(--tn-border);
     border-radius: 4px;
     padding: 10px 14px;
   }
-  .stat-label { font-size: 0.78em; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-label { font-size: 0.78em; color: var(--tn-muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .stat-value { font-size: 1.3em; font-weight: bold; margin-top: 2px; }
-  .stat-value.critical { color: var(--vscode-statusBarItem-errorBackground, #e05252); }
-  .stat-value.warning  { color: #ff9800; }
-  .stat-value.ok       { color: #4caf50; }
-  /* "pending" marks a figure that is not measured yet (e.g. IDE source, Phase 6) so it
+  .stat-value.critical { color: var(--tn-red); }
+  .stat-value.warning  { color: var(--tn-yellow); }
+  .stat-value.ok       { color: var(--tn-green); }
+  /* "pending" marks a figure that is not measured yet (e.g. no IDE transcripts found yet) so it
      is never read as a real value. */
-  .stat-value.pending  { color: var(--vscode-descriptionForeground); font-style: italic; font-size: 1em; }
-  .source-note { font-size: 0.8em; color: var(--vscode-descriptionForeground); margin: 4px 0 8px; }
-  .cache-note  { font-size: 0.82em; color: var(--vscode-descriptionForeground); margin: 6px 0 0; }
-  .cache-note .dominant { color: #ff9800; }
+  .stat-value.pending  { color: var(--tn-muted); font-style: italic; font-size: 1em; }
+  .source-note { font-size: 0.8em; color: var(--tn-muted); margin: 4px 0 8px; }
+  .cache-title { font-size: 0.8em; color: var(--tn-muted); margin: 0 0 4px; }
+  .cache-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+  .cache-table th, .cache-table td { padding: 4px 6px; border-bottom: 1px solid var(--tn-border); }
+  .cache-table th { color: var(--tn-muted); text-transform: uppercase; font-weight: normal; }
+  .cache-table tr:last-child td { border-bottom: none; }
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-  th { text-align: left; padding: 6px 8px; color: var(--vscode-descriptionForeground); font-weight: normal; font-size: 0.85em; text-transform: uppercase; border-bottom: 1px solid var(--vscode-panel-border); }
-  td { padding: 6px 8px; border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.08)); }
+  th { text-align: left; padding: 6px 8px; color: var(--tn-muted); font-weight: normal; font-size: 0.85em; text-transform: uppercase; border-bottom: 1px solid var(--tn-border); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--tn-border); }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--vscode-list-hoverBackground); }
+  tr:hover td { background: var(--tn-bg-alt); }
 
   .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; font-weight: bold; }
   .badge.active   { background: #1a6b2a; color: #7ec891; }
@@ -411,28 +519,92 @@ function buildHtml(webview: vscode.Webview): string {
   .badge.low      { background: #1a4b6b; color: #90c8e0; }
   .badge.ok       { background: #1a4b1a; color: #90e090; }
 
-  .footer { margin-top: 24px; font-size: 0.78em; color: var(--vscode-descriptionForeground); }
+  .footer { margin-top: 24px; font-size: 0.78em; color: var(--tn-muted); }
+  .allowance-inline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .allowance-inline input {
+    width: 160px;
+    background: var(--tn-bg-alt);
+    color: var(--tn-fg);
+    border: 1px solid var(--tn-border);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-family: var(--vscode-font-family);
+    font-size: 0.95em;
+  }
+  .allowance-inline button {
+    border: 1px solid var(--tn-border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    background: var(--tn-accent);
+    color: var(--tn-bg);
+    font-family: var(--vscode-font-family);
+    font-size: 0.95em;
+  }
+  .allowance-inline button:hover {
+    background: var(--tn-cyan);
+  }
+  .allowance-error {
+    font-size: 0.8em;
+    color: var(--tn-red);
+  }
 
-  #no-data { color: var(--vscode-descriptionForeground); margin-top: 40px; text-align: center; }
+  #no-data { color: var(--tn-muted); margin-top: 40px; text-align: center; }
 
   /* Usage trend (inline SVG bar chart) */
-  h3 { font-size: 0.95em; margin: 4px 0 6px; color: var(--vscode-descriptionForeground); }
+  h3 { font-size: 0.95em; margin: 4px 0 6px; color: var(--tn-muted); }
+  .heading-sessions { color: #73daca; }
+  .heading-models { color: #7aa2f7; }
+  .heading-projects { color: #bb9af7; }
+  .heading-summary { color: #e0af68; }
+  .heading-cache { color: #f7768e; }
   .trend-chart { width: 100%; overflow-x: auto; }
   .trend-chart svg { display: block; max-width: 100%; height: auto; }
   .trend-bar        { fill: #4a9eff; }
   .trend-bar.anomaly { fill: #e0524f; }
-  .trend-axis       { stroke: var(--vscode-panel-border); stroke-width: 1; }
-  .trend-label      { fill: var(--vscode-descriptionForeground); font-size: 9px; }
-  .trend-empty      { color: var(--vscode-descriptionForeground); font-size: 0.85em; padding: 12px 0; }
-  .chart-legend     { font-size: 0.78em; color: var(--vscode-descriptionForeground); margin-top: 6px; }
+  .trend-axis       { stroke: var(--tn-border); stroke-width: 1; }
+  .trend-label      { fill: var(--tn-muted); font-size: 9px; }
+  .trend-empty      { color: var(--tn-muted); font-size: 0.85em; padding: 12px 0; }
+  .chart-legend     { font-size: 0.78em; color: var(--tn-muted); margin-top: 6px; }
   .legend-swatch    { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: middle; }
   .legend-swatch.normal  { background: #4a9eff; }
   .legend-swatch.anomaly { background: #e0524f; }
 
-  /* Top consumers — three small tables side by side */
-  .consumers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  /* Top consumers layout: first row (sessions+models), second row (projects+summaries). */
+  .consumers-row { display: grid; gap: 16px; margin-bottom: 12px; }
+  .consumers-row.primary { grid-template-columns: repeat(2, 1fr); }
+  .consumers-row.secondary { grid-template-columns: repeat(3, 1fr); }
   .consumer-block table { font-size: 0.85em; }
-  @media (max-width: 720px) { .consumers-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) {
+    .consumers-row.primary,
+    .consumers-row.secondary { grid-template-columns: 1fr; }
+  }
+  details.collapsible-section {
+    margin-top: 20px;
+  }
+  details.collapsible-section summary {
+    cursor: pointer;
+    font-size: 1.1em;
+    border-bottom: 1px solid var(--tn-border);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    list-style: none;
+  }
+  details.collapsible-section summary::-webkit-details-marker {
+    display: none;
+  }
+  details.collapsible-section summary::before {
+    content: '▸ ';
+    color: var(--tn-muted);
+  }
+  details.collapsible-section[open] summary::before {
+    content: '▾ ';
+  }
 </style>
 </head>
 <body>
@@ -440,7 +612,14 @@ function buildHtml(webview: vscode.Webview): string {
 <p class="subtitle">AT&T Enterprise · Local session data · Auto-refreshes every 30s</p>
 
 <div id="content" style="display:none">
-  <h2>Monthly Budget</h2>
+  <div class="section-header">
+    <h2>Monthly Budget</h2>
+    <div class="allowance-inline">
+      <input id="allowance-input" type="number" min="1" step="1" placeholder="Allowance" />
+      <button id="allowance-apply">Apply</button>
+      <span id="allowance-error" class="allowance-error"></span>
+    </div>
+  </div>
   <div class="gauge-row">
     <div class="gauge-bar"><div id="gauge-fill" class="gauge-fill"></div></div>
     <div class="gauge-label"><span id="gauge-pct">—</span></div>
@@ -459,26 +638,35 @@ function buildHtml(webview: vscode.Webview): string {
       <div id="remaining-credits" class="stat-value">—</div>
     </div>
   </div>
+  <p id="billing-note" class="source-note">Live billing source: estimated</p>
 
 <h2>Source Breakdown</h2>
-<div class="budget-grid">
+<div class="source-grid">
   <div class="stat-card">
-    <div class="stat-label">CLI Sessions (tracked)</div>
-    <div id="cli-total" class="stat-value">—</div>
+    <div class="stat-label">CLI Sessions:</div>
+    <div id="cli-sessions" class="stat-value">—</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label" id="ide-label">IDE Sessions</div>
-    <div id="ide-total" class="stat-value pending">—</div>
+    <div class="stat-label">CLI Credits:</div>
+    <div id="cli-credits" class="stat-value">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label" id="ide-sessions-label">IDE Sessions:</div>
+    <div id="ide-sessions" class="stat-value pending">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label" id="ide-credits-label">IDE Credits:</div>
+    <div id="ide-credits" class="stat-value pending">—</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Tracked Total</div>
     <div id="source-total" class="stat-value">—</div>
   </div>
 </div>
-<p id="ide-note" class="source-note">IDE (VS Code Chat) usage is not tracked yet — Phase 6. The tracked total reflects CLI sessions only.</p>
+<p id="ide-note" class="source-note">No IDE sessions were discovered under the standard VS Code user-data paths yet, so the dashboard is showing CLI only.</p>
 
   <h2>Forecast</h2>
-  <div class="budget-grid">
+  <div class="forecast-grid">
     <div class="stat-card">
       <div class="stat-label">Daily Burn Rate</div>
       <div id="forecast-burn" class="stat-value">—</div>
@@ -505,43 +693,45 @@ function buildHtml(webview: vscode.Webview): string {
   </p>
 
   <h2>Top Consumers</h2>
-  <div class="consumers-grid">
+  <div class="consumers-row primary">
     <div class="consumer-block">
-      <h3>Top Sessions</h3>
+      <h3 class="heading-sessions">Top Sessions</h3>
       <table>
         <thead><tr><th>Project</th><th>Model</th><th>Credits</th></tr></thead>
         <tbody id="top-session-rows"></tbody>
       </table>
     </div>
     <div class="consumer-block">
-      <h3>Top Models</h3>
+      <h3 class="heading-models">Top Models</h3>
       <table>
         <thead><tr><th>Model</th><th>In K</th><th>Out K</th><th>Credits</th></tr></thead>
         <tbody id="top-model-rows"></tbody>
       </table>
-      <div id="model-cache-note"></div>
     </div>
+  </div>
+  <div class="consumers-row secondary">
     <div class="consumer-block">
-      <h3>Top Projects</h3>
+      <h3 class="heading-projects">Top Projects</h3>
       <table>
         <thead><tr><th>Project</th><th>Model</th><th>Credits</th></tr></thead>
         <tbody id="top-project-rows"></tbody>
       </table>
     </div>
+    <div class="consumer-block">
+      <h3 class="heading-summary">Model Consumption Summary</h3>
+      <table class="cache-table">
+        <thead><tr><th>Model</th><th>Credits</th><th>In K</th><th>Out K</th></tr></thead>
+        <tbody id="model-summary-rows"></tbody>
+      </table>
+    </div>
+    <div class="consumer-block">
+      <h3 class="heading-cache">Prompt Cache Tokens</h3>
+      <table class="cache-table">
+        <thead><tr><th>Model</th><th>Read</th><th>Write</th><th>Reasoning</th></tr></thead>
+        <tbody id="prompt-cache-rows"></tbody>
+      </table>
+    </div>
   </div>
-
-  <h2>Sessions This Month</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Project</th><th>Model</th>
-        <th>Input K</th><th>Output K</th>
-        <th>Context %</th>
-        <th>Credits</th><th>Source</th><th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="session-rows"></tbody>
-  </table>
 
   <h2>Instruction File Overhead</h2>
   <table>
@@ -573,20 +763,43 @@ function buildHtml(webview: vscode.Webview): string {
     <tbody id="opt-rows"></tbody>
   </table>
 
-  <p class="footer">AT&T Copilot Enterprise promo — 7,000 cr/month until 2026-09-01</p>
+  <details class="collapsible-section">
+    <summary>Sessions This Month</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>Project</th><th>Model</th>
+          <th>Input K</th><th>Output K</th>
+          <th>Context %</th>
+          <th>Credits</th><th>Source</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="session-rows"></tbody>
+    </table>
+  </details>
+
+  <p class="footer">AT&T Copilot Enterprise · Local-only telemetry</p>
 </div>
 <div id="no-data">Waiting for data…</div>
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
+  let latestMessage = null;
+  let allowanceOverride = null;
 
   window.addEventListener('message', event => {
     const msg = event.data;
+    latestMessage = msg;
     render(msg);
   });
 
   function render(msg) {
-    const bs = msg.budgetState;
+    const allowanceInput = document.getElementById('allowance-input');
+    const allowance =
+      allowanceOverride != null
+        ? allowanceOverride
+        : msg.budgetState.allowedCredits;
+    const bs = computeBudgetState(msg.budgetState.usedCredits, allowance);
     const pct = Math.min(bs.usedPct, 100);
     const statusClass = bs.status.toLowerCase();
 
@@ -604,44 +817,56 @@ function buildHtml(webview: vscode.Webview): string {
     usedEl.textContent = formatCreditsDisplay(bs.usedCredits);
     usedEl.className = 'stat-value ' + statusClass;
 
+    if (document.activeElement !== allowanceInput) {
+      allowanceInput.value = String(Math.round(bs.allowedCredits));
+    }
     document.getElementById('allowed-credits').textContent = formatCreditsDisplay(bs.allowedCredits);
 
     const remEl = document.getElementById('remaining-credits');
     remEl.textContent = formatCreditsDisplay(bs.remainingCredits);
     remEl.className = 'stat-value ' + (bs.remainingCredits < 0 ? 'critical' : 'ok');
+    const billingNote = document.getElementById('billing-note');
+    billingNote.textContent = 'Live billing source: ' + liveBillingLabel(msg.orgBillingSnapshot);
 
-    // Source breakdown — CLI is the real tracked total. IDE is NOT a live source yet
-    // (VS Code Chat is separate, Phase 6), so its figure is shown as "not tracked yet"
-    // and is NEVER summed into the tracked total. ideTracked flips on automatically once
-    // a live IDE collector contributes sessions, at which point it reads as a real value.
-    const cliEl = document.getElementById('cli-total');
-    cliEl.textContent = formatCreditsDisplay(msg.cliTotal);
-    const ideEl = document.getElementById('ide-total');
+    // Source breakdown — CLI is the authoritative tracked total. IDE is only shown as
+    // pending when the collector found no local IDE sessions, and it is not summed into
+    // the tracked total until that source is present.
+    const cliSessionsEl = document.getElementById('cli-sessions');
+    const cliCreditsEl = document.getElementById('cli-credits');
+    cliSessionsEl.textContent = Number(msg.cliSessionCount || 0).toLocaleString();
+    cliCreditsEl.textContent = formatCreditsDisplay(msg.cliTotal);
+    const ideSessionsEl = document.getElementById('ide-sessions');
+    const ideCreditsEl = document.getElementById('ide-credits');
     const ideNote = document.getElementById('ide-note');
     if (msg.ideTracked) {
-      ideEl.textContent = formatCreditsDisplay(msg.ideTotal);
-      ideEl.className = 'stat-value';
+      ideSessionsEl.textContent = Number(msg.ideSessionCount || 0).toLocaleString();
+      ideSessionsEl.className = 'stat-value';
+      ideCreditsEl.textContent = formatCreditsDisplay(msg.ideTotal);
+      ideCreditsEl.className = 'stat-value';
       ideNote.style.display = 'none';
       document.getElementById('source-total').textContent =
         formatCreditsDisplay(msg.cliTotal + msg.ideTotal);
     } else {
-      // No live IDE source: do not present a measured "0". Label as pending and keep the
+      // No IDE source found: do not present a measured "0". Label as pending and keep the
       // tracked total = CLI only so it is not implied to include IDE.
-      ideEl.textContent = 'not tracked yet';
-      ideEl.className = 'stat-value pending';
+      ideSessionsEl.textContent = 'not tracked yet';
+      ideSessionsEl.className = 'stat-value pending';
+      ideCreditsEl.textContent = 'not tracked yet';
+      ideCreditsEl.className = 'stat-value pending';
       ideNote.style.display = '';
       document.getElementById('source-total').textContent = formatCreditsDisplay(msg.cliTotal);
     }
 
     // Forecast block — daily burn rate, projected month-end total, over/under allowance.
     const fc = msg.forecast;
-    const overClass = fc.exceedsAllowance ? 'critical' : 'ok';
+    const exceedsAllowance = fc.projectedMonthEndTotal > bs.allowedCredits;
+    const overClass = exceedsAllowance ? 'critical' : 'ok';
     document.getElementById('forecast-burn').textContent = formatCreditsDisplay(fc.dailyBurn) + '/day';
     const totalEl = document.getElementById('forecast-total');
     totalEl.textContent = formatCreditsDisplay(fc.projectedMonthEndTotal);
     totalEl.className = 'stat-value ' + overClass;
     const verdictEl = document.getElementById('forecast-verdict');
-    verdictEl.textContent = fc.exceedsAllowance
+    verdictEl.textContent = exceedsAllowance
       ? 'OVER ' + formatCreditsDisplay(fc.projectedMonthEndTotal - bs.allowedCredits)
       : 'within ' + formatCreditsDisplay(bs.allowedCredits - fc.projectedMonthEndTotal);
     verdictEl.className = 'stat-value ' + overClass;
@@ -663,7 +888,7 @@ function buildHtml(webview: vscode.Webview): string {
         <td>\${s.inputTokensK}</td>
         <td>\${s.outputTokensK}</td>
         <td>\${s.contextPct.toFixed(1)}%</td>
-        <td>\${s.totalCredits.toFixed(2)}</td>
+        <td>\${formatCreditsDisplay(s.totalCredits)}</td>
         <td>\${sourceLabel}</td>
         <td>\${active}</td>
       </tr>\`;
@@ -677,9 +902,8 @@ function buildHtml(webview: vscode.Webview): string {
     renderConsumers('top-model-rows',   msg.topModels   || [], 'model');
     renderConsumers('top-project-rows', msg.topProjects || [], 'project');
 
-    // Per-model prompt-cache / reasoning tokens — parity with the Go report's
-    // renderModelCacheReads. Only models with cache reads appear; empty otherwise.
-    renderModelCache(msg.modelCache || []);
+    renderModelSummary('model-summary-rows', msg.modelSummary || []);
+    renderPromptCache('prompt-cache-rows', msg.modelCache || []);
 
     // Instruction rows
     const itbody = document.getElementById('instr-rows');
@@ -708,7 +932,7 @@ function buildHtml(webview: vscode.Webview): string {
     document.getElementById('opt-always').textContent = String(opt.alwaysLoadedTokens || 0);
     document.getElementById('opt-target').textContent = String(opt.targetTokens || 0);
     const savingsEl = document.getElementById('opt-savings');
-    savingsEl.textContent = (opt.potentialCreditsPerSession || 0).toFixed(2) + ' cr';
+    savingsEl.textContent = formatCreditsDisplay(opt.potentialCreditsPerSession || 0) + ' cr';
     savingsEl.className = 'stat-value ' + ((opt.potentialCreditsPerSession || 0) > 0 ? 'warning' : 'ok');
 
     const optRows = document.getElementById('opt-rows');
@@ -752,9 +976,9 @@ function buildHtml(webview: vscode.Webview): string {
       const h = (d.credits / maxCredits) * plotH;
       const x = padL + i * slot + (slot - barW) / 2;
       const y = padT + (plotH - h);
-      const cls = d.anomaly ? 'trend-bar anomaly' : 'trend-bar';
+      const cls = d.anomalous ? 'trend-bar anomaly' : 'trend-bar';
       const day = d.key.slice(8); // DD from YYYY-MM-DD
-      const title = esc(d.key) + ': ' + formatCreditsDisplay(d.credits) + (d.anomaly ? ' (anomalous)' : '');
+      const title = esc(d.key) + ': ' + formatCreditsDisplay(d.credits) + (d.anomalous ? ' (anomalous)' : '');
       bars += '<rect class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) +
               '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '">' +
               '<title>' + title + '</title></rect>';
@@ -789,41 +1013,51 @@ function buildHtml(webview: vscode.Webview): string {
     tbody.innerHTML = rows.map(c => {
       if (kind === 'model') {
         return '<tr><td>' + esc(modelShort(c.model)) + '</td><td>' + c.inputTokensK +
-               '</td><td>' + c.outputTokensK + '</td><td>' + c.credits.toFixed(2) + '</td></tr>';
+               '</td><td>' + c.outputTokensK + '</td><td>' + formatCreditsDisplay(c.credits) + '</td></tr>';
       }
       return '<tr><td>' + esc(c.name) + '</td><td>' + esc(modelShort(c.model)) +
-             '</td><td>' + c.credits.toFixed(2) + '</td></tr>';
+               '</td><td>' + formatCreditsDisplay(c.credits) + '</td></tr>';
     }).join('');
   }
 
-  // renderModelCache lists prompt-cache read tokens (plus write/reasoning) per model
-  // under the Top Models table — surfacing data captured on ModelMetric that was
-  // otherwise never shown. Mirrors the Go renderModelCacheReads section: one line per
-  // model with cache reads, flagged when cache reads dominate raw input. All text is
-  // esc()'d; this whole script runs under the nonce, so it is CSP-safe.
-  function renderModelCache(rows) {
-    const host = document.getElementById('model-cache-note');
+  function renderModelSummary(tbodyId, rows) {
+    const tbody = document.getElementById(tbodyId);
     if (!rows.length) {
-      host.innerHTML = '';
+      tbody.innerHTML = '<tr><td colspan="4">No model usage data</td></tr>';
       return;
     }
-    const lines = rows.map(r => {
-      const extras = [];
-      if (r.cacheWriteTokens) extras.push(fmtK(r.cacheWriteTokens) + ' write');
-      if (r.reasoningTokens)  extras.push(fmtK(r.reasoningTokens) + ' reasoning');
-      const extra = extras.length ? ' (' + esc(extras.join(', ')) + ')' : '';
-      const dom = r.dominatesInput
-        ? ' <span class="dominant">cache reads dominate</span>'
-        : '';
-      return esc(modelShort(r.model)) + ': ' + esc(fmtK(r.cacheReadTokens)) +
-             ' cache-read tokens' + extra + dom;
-    });
-    host.innerHTML = '<p class="cache-note">' + lines.join('<br/>') + '</p>';
+    tbody.innerHTML = rows.map(r =>
+      '<tr>' +
+        '<td>' + esc(modelShort(r.model)) + '</td>' +
+        '<td>' + esc(formatCreditsDisplay(r.credits)) + '</td>' +
+        '<td>' + esc(String(r.inputTokensK)) + '</td>' +
+        '<td>' + esc(String(r.outputTokensK)) + '</td>' +
+      '</tr>'
+    ).join('');
   }
 
-  // fmtK renders a token count compactly (e.g. 12,345 → "12.3K"); small counts stay raw.
-  function fmtK(n) {
+  function renderPromptCache(tbodyId, rows) {
+    const tbody = document.getElementById(tbodyId);
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="4">No cache token data</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r =>
+      '<tr>' +
+        '<td>' + esc(modelShort(r.model)) + '</td>' +
+        '<td>' + esc(fmtTokenCompact(r.cacheReadTokens)) + '</td>' +
+        '<td>' + esc(fmtTokenCompact(r.cacheWriteTokens)) + '</td>' +
+        '<td>' + esc(fmtTokenCompact(r.reasoningTokens)) + '</td>' +
+      '</tr>'
+    ).join('');
+  }
+
+  // fmtTokenCompact renders token counts as M/K for readability.
+  function fmtTokenCompact(n) {
     n = Number(n) || 0;
+    if (n >= 1000000) {
+      return (n / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M';
+    }
     if (n >= 1000) {
       return (n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'K';
     }
@@ -832,10 +1066,21 @@ function buildHtml(webview: vscode.Webview): string {
 
   // formatCreditsDisplay must be defined HERE, in webview (browser) scope — the inline
   // script runs in an isolated context and cannot see the extension-host module function
-  // of the same name. Renders raw credits with thousands separators, up to two decimals
-  // (parity with the Go side, e.g. "8,554.03"). No scaling, no "B" unit.
+  // of the same name. Renders raw credits with thousands separators and no decimals.
   function formatCreditsDisplay(credits) {
-    return Number(credits).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return Number(credits).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  // Webview-local copy of the live-billing label formatter. The webview script runs
+  // in an isolated context and cannot call extension-host TypeScript helpers directly.
+  function liveBillingLabel(snapshot) {
+    if (!snapshot) return '(estimated)';
+    if (snapshot.availability === 'unavailable') return '(unavailable)';
+    if (snapshot.sourceLabel) return snapshot.sourceLabel;
+    const refreshed = new Date(snapshot.lastRefreshedAt || 0);
+    const ms = Date.now() - refreshed.getTime();
+    const h = ms > 0 ? Math.max(1, Math.floor(ms / (60 * 60 * 1000))) : 1;
+    return '(org aggregate, ~' + h + 'h ago)';
   }
 
   function modelShort(m) {
@@ -861,6 +1106,68 @@ function buildHtml(webview: vscode.Webview): string {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
   }
+
+  function computeBudgetState(usedCredits, allowedCredits) {
+    const allowed = Number(allowedCredits);
+    const safeAllowed = Number.isFinite(allowed) && allowed > 0 ? allowed : 1;
+    const usedPct = (usedCredits / safeAllowed) * 100;
+    const remainingCredits = safeAllowed - usedCredits;
+    return {
+      usedCredits,
+      allowedCredits: safeAllowed,
+      usedPct,
+      remainingCredits,
+      status: budgetStatusFor(usedPct),
+    };
+  }
+
+  function budgetStatusFor(pct) {
+    if (pct > 90) return 'CRITICAL';
+    if (pct >= 60) return 'WARNING';
+    return 'OK';
+  }
+
+  function readAllowanceInput() {
+    const input = document.getElementById('allowance-input');
+    const value = Number(input.value);
+    if (!Number.isFinite(value) || value <= 0) {
+      return null;
+    }
+    return value;
+  }
+
+  function showAllowanceError(message) {
+    document.getElementById('allowance-error').textContent = message || '';
+  }
+
+  function applyAllowance(updateSetting) {
+    const value = readAllowanceInput();
+    if (value === null) {
+      showAllowanceError('Enter a positive allowance value.');
+      return;
+    }
+    showAllowanceError('');
+    allowanceOverride = value;
+    if (latestMessage) {
+      render(latestMessage);
+    }
+    if (updateSetting) {
+      vscode.postMessage({ type: 'setAllowance', allowanceCredits: value });
+    }
+  }
+
+  document.getElementById('allowance-input').addEventListener('input', () => {
+    applyAllowance(false);
+  });
+  document.getElementById('allowance-apply').addEventListener('click', () => {
+    applyAllowance(true);
+  });
+  document.getElementById('allowance-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyAllowance(true);
+    }
+  });
 </script>
 </body>
 </html>`;

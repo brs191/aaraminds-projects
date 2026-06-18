@@ -11,6 +11,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"github.com/aaraminds/copilot-token-budget/internal/cli"
 	"github.com/aaraminds/copilot-token-budget/internal/export"
 	"github.com/aaraminds/copilot-token-budget/internal/instructions"
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/pricing"
 	"github.com/aaraminds/copilot-token-budget/internal/render"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
@@ -58,6 +60,16 @@ func main() {
 	if err != nil {
 		cli.Fatalf("cannot read sessions: %v", err)
 	}
+
+	// Refresh live billing data from cache or GitHub (Phase 8.7).
+	// This is non-blocking; failures degrade to estimated mode.
+	cfg2, _ := livebilling.Load()
+	auth := livebilling.ResolveAuth(cfg2, nil)
+	refresher := livebilling.NewRefresher(cfg2, auth)
+	refresher.Refresh(context.Background())
+
+	// Print per-source breakdown (Phase 6.2: multi-source reader)
+	printSourceBreakdown(allSessions)
 
 	// Machine-readable modes: emit only the requested format, then exit 0.
 	if *jsonOut {
@@ -98,13 +110,74 @@ func buildReport(allSessions []session.Session, cfg pricing.Config) export.Repor
 
 	const topN = 5
 	return export.Report{
-		GeneratedAt:     time.Now(),
-		BudgetState:     budget.Calculate(nano, cfg.AllowanceCredits),
-		PremiumRequests: premiumRequests,
-		Daily:           analytics.DailySeries(allSessions),
-		TopSessions:     analytics.TopSessions(allSessions, topN),
-		TopModels:       analytics.TopModels(allSessions, topN),
-		TopProjects:     analytics.TopProjects(allSessions, topN),
-		Sessions:        export.SessionViews(allSessions),
+		GeneratedAt:        time.Now(),
+		BudgetState:        budget.Calculate(nano, cfg.AllowanceCredits),
+		PremiumRequests:    premiumRequests,
+		OrgBillingSnapshot: export.LatestOrgBillingSnapshot(allSessions),
+		Daily:              analytics.DailySeries(allSessions),
+		TopSessions:        analytics.TopSessions(allSessions, topN),
+		TopModels:          analytics.TopModels(allSessions, topN),
+		TopProjects:        analytics.TopProjects(allSessions, topN),
+		Sessions:           export.SessionViews(allSessions),
 	}
+}
+
+// printSourceBreakdown displays per-source session and cost statistics.
+// This provides visibility into which tools (CLI vs IDE) are generating usage.
+// Phase 6: IDE costs are estimated (TokenCostSource="estimated"); Phase 7 will enrich with GitHub API.
+func printSourceBreakdown(sessions []session.Session) {
+	// Aggregate by source
+	sourceStats := make(map[string]struct {
+		count           int
+		totalNanoAIU    int64
+		tokenCostSource string
+	})
+
+	for _, s := range sessions {
+		stats := sourceStats[s.Source]
+		stats.count++
+		stats.totalNanoAIU += s.TotalNanoAIU
+		stats.tokenCostSource = s.TokenCostSource
+		sourceStats[s.Source] = stats
+	}
+
+	// Print summary
+	fmt.Printf("\n  Session Sources (Phase 6: IDE costs estimated)\n")
+	fmt.Printf("  ──────────────────────────────────────────────\n")
+
+	// Print each source
+	sourceOrder := []string{"cli", "ide-chat", "ide-edit", "ide-agent"} // stable order
+	for _, source := range sourceOrder {
+		if stats, ok := sourceStats[source]; ok && stats.count > 0 {
+			costLabel := ""
+			if stats.tokenCostSource == "authoritative" {
+				costLabel = fmt.Sprintf("%.2f cr (authoritative)", budget.FromNanoAIU(stats.totalNanoAIU))
+			} else if stats.tokenCostSource == "estimated" {
+				costLabel = fmt.Sprintf("%.2f cr (estimated - Phase 6)", budget.FromNanoAIU(stats.totalNanoAIU))
+			} else {
+				costLabel = "costs unavailable"
+			}
+
+			sourceLabel := source
+			switch source {
+			case "cli":
+				sourceLabel = "CLI"
+			case "ide-chat":
+				sourceLabel = "IDE Chat"
+			case "ide-edit":
+				sourceLabel = "IDE Edit"
+			case "ide-agent":
+				sourceLabel = "IDE Agent"
+			}
+
+			fmt.Printf("  %s: %d sessions (%s)\n", sourceLabel, stats.count, costLabel)
+		}
+	}
+
+	fmt.Printf("  ──────────────────────────────────────────────\n")
+	totalSessions := 0
+	for _, stats := range sourceStats {
+		totalSessions += stats.count
+	}
+	fmt.Printf("  Total: %d sessions\n", totalSessions)
 }

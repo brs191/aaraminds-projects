@@ -3,7 +3,7 @@
   "displayName": "Copilot Token Budget",
   "description": "Local credit tracker for GitHub Copilot CLI — AT&T Enterprise edition.",
   "publisher": "att-internal",
-  "version": "0.1.0",
+  "version": "1.0.3",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
@@ -16,9 +16,20 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "Visualization"],
-  "keywords": ["copilot", "token", "budget", "credits", "AT&T"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "copilot",
+    "token",
+    "budget",
+    "credits",
+    "AT&T"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension",
   "contributes": {
     "commands": [
@@ -41,6 +52,11 @@
         "command": "copilotBudget.exportUsage",
         "title": "Copilot Budget: Export Usage Report",
         "icon": "$(export)"
+      },
+      {
+        "command": "copilotBudget.enableLiveBilling",
+        "title": "Copilot Budget: Enable Live Billing (Setup Wizard)",
+        "icon": "$(cloud-download)"
       }
     ],
     "viewsContainers": {
@@ -114,9 +130,9 @@
     "package": "npx vsce package --no-dependencies"
   },
   "devDependencies": {
-    "typescript": "~5.4.0",
-    "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
-    "@vscode/vsce": "^3.2.0"
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "~5.4.0"
   }
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/aaraminds/copilot-token-budget/internal/analytics"
 	"github.com/aaraminds/copilot-token-budget/internal/budget"
 	"github.com/aaraminds/copilot-token-budget/internal/instructions"
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/pricing"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
@@ -167,6 +168,7 @@ func printSection3(sessions []session.Session, cfg pricing.Config) budget.Budget
 	}
 	state := budget.Calculate(nanoValues, cfg.AllowanceCredits)
 	color := colorForStatus(state.Status)
+	label := liveBillingLabel(sessions)
 
 	fmt.Printf("  Status:    %s%s%s%s\n", ansiBold, color, state.Status, ansiReset)
 	fmt.Printf("  Used:      %s%.2f%s / %d credits  (%s$%.2f%s)\n",
@@ -177,6 +179,7 @@ func printSection3(sessions []session.Session, cfg pricing.Config) budget.Budget
 	fmt.Printf("  Remaining: %.2f credits\n", state.RemainingCredit)
 	fmt.Printf("  Usage:     %.1f%%\n", state.UsedPct)
 	fmt.Printf("  Premium requests this month: %d\n\n", premiumRequests)
+	fmt.Printf("  Live billing source: %s\n", label)
 
 	filled := int(state.UsedPct / 100 * progressBarWidth)
 	if filled > progressBarWidth {
@@ -495,4 +498,22 @@ func modelShort(model string) string {
 		return string(r[:16])
 	}
 	return model
+}
+
+func liveBillingLabel(sessions []session.Session) string {
+	return livebilling.DisplayLabel(latestOrgBillingSnapshot(sessions), time.Now())
+}
+
+func latestOrgBillingSnapshot(sessions []session.Session) *livebilling.OrgBillingSnapshot {
+	var latest *livebilling.OrgBillingSnapshot
+	for i := range sessions {
+		snap := sessions[i].OrgBillingSnapshot
+		if snap == nil {
+			continue
+		}
+		if latest == nil || snap.LastRefreshedAt.After(latest.LastRefreshedAt) {
+			latest = snap
+		}
+	}
+	return latest
 }

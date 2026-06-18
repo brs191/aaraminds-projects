@@ -96,6 +96,9 @@ jobs:
       contents: write       # softprops/action-gh-release creates the release
       id-token: write        # JFrog OIDC exchange (and provenance, if enabled)
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
@@ -107,6 +110,14 @@ jobs:
         with:
           name: vsix
           path: dist-vsix
+
+      - name: Build macOS out-of-the-box bundle
+        run: |
+          bash ./scripts/package_macos_oob.sh \
+            --artifact-dir dist \
+            --vsix dist-vsix/*.vsix \
+            --version "${{ github.ref_name }}" \
+            --output-dir distr/${{ github.ref_name }}
 
       # ---- JFrog Artifactory upload (ADR-005) over OIDC ----
       # Configure the OIDC provider 'github-oidc' in the JFrog Platform
@@ -130,6 +141,8 @@ jobs:
             "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/" --flat=true
           jf rt upload "dist/checksums.txt" \
             "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/" --flat=true
+          jf rt upload "distr/${{ github.ref_name }}/*.zip*" \
+            "${{ vars.JF_BINARY_REPO }}/binaries/${{ github.ref_name }}/macos-oob/" --flat=true
 
       - name: Upload VSIX to Artifactory
         run: |
@@ -151,14 +164,18 @@ jobs:
             - Go binaries (darwin/linux amd64+arm64, windows amd64): `*.tar.gz` / `*.zip`
             - `checksums.txt` (sha256) for all archives
             - VS Code extension: `copilot-token-budget-${{ github.ref_name }}.vsix`
+            - macOS out-of-the-box bundle: `copilot-token-budget-macos-${{ github.ref_name }}.zip`
 
             All artifacts are also mirrored to JFrog Artifactory under
-            `binaries/${{ github.ref_name }}/` and `vsix/${{ github.ref_name }}/`.
+            `binaries/${{ github.ref_name }}/`, `binaries/${{ github.ref_name }}/macos-oob/`
+            and `vsix/${{ github.ref_name }}/`.
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/checksums.txt
             dist-vsix/*.vsix
+            distr/${{ github.ref_name }}/*.zip
+            distr/${{ github.ref_name }}/*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aaraminds/copilot-token-budget/internal/platform"
 )
 
 // useTempConfig points platform.ConfigDir at a temp dir for the duration of a
@@ -13,12 +15,16 @@ import (
 func useTempConfig(t *testing.T) string {
 	t.Helper()
 	tmp := t.TempDir()
-	// Linux/macOS: os.UserConfigDir uses XDG_CONFIG_HOME, else $HOME/.config.
+	// Force the platform helper to resolve into the temp tree on every OS.
 	t.Setenv("XDG_CONFIG_HOME", tmp)
 	t.Setenv("HOME", tmp)
 	// Windows: os.UserConfigDir uses %AppData%.
 	t.Setenv("AppData", tmp)
-	return filepath.Join(tmp, "copilot-token-budget")
+	dir, err := platform.ConfigDir()
+	if err != nil {
+		t.Fatalf("ConfigDir: %v", err)
+	}
+	return dir
 }
 
 func TestDefault(t *testing.T) {

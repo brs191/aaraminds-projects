@@ -8,6 +8,7 @@ import (
 
 	"github.com/aaraminds/copilot-token-budget/internal/analytics"
 	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/pricing"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
@@ -61,6 +62,7 @@ func Statusline(sessions []session.Session, cfg pricing.Config, now time.Time, c
 		nano = append(nano, s.TotalNanoAIU)
 	}
 	state := budget.Calculate(nano, cfg.AllowanceCredits)
+	label := livebilling.DisplayLabel(latestOrgBillingSnapshot(sessions), now)
 
 	// Daily burn = month credits / days elapsed (clamped to >= 1 day).
 	daysElapsed := now.Day()
@@ -74,8 +76,8 @@ func Statusline(sessions []session.Session, cfg pricing.Config, now time.Time, c
 		pctField = statuslineColor(state.Status) + pctField + ansiReset
 	}
 
-	return fmt.Sprintf("🤖 %s | 💰 %.0f today / %.0f/%d (%s) | 🔥 %.0f/day%s",
-		model, todayCr, state.UsedCredits, state.AllowedCredits, pctField, burn, ctxField,
+	return fmt.Sprintf("🤖 %s | 💰 %.0f today / %.0f/%d (%s) | 🔥 %.0f/day%s | billing %s",
+		model, todayCr, state.UsedCredits, state.AllowedCredits, pctField, burn, ctxField, label,
 	)
 }
 

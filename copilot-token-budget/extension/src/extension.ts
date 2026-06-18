@@ -19,6 +19,7 @@ import { BudgetState, Session, InstructionFile } from './types';
 import { fireAlertIfNeeded } from './alerts/teamsAlert';
 import { loadPricing } from './pricing/config';
 import { reportToJson, sessionsToCsv } from './export/report';
+import { refreshLiveBilling } from './livebilling/refresher';
 
 // Latest refresh snapshot — kept module-level so the export command can serialize the
 // same data the UI is currently showing, without re-reading from disk.
@@ -83,6 +84,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('copilotBudget.exportUsage', () => {
       void exportUsage();
+    }),
+
+    vscode.commands.registerCommand('copilotBudget.enableLiveBilling', () => {
+      void enableLiveBillingWizard(context);
     }),
   );
 
@@ -209,9 +214,14 @@ async function doRefresh(
 
   try {
     sessions = await readThisMonth();
+    console.log(`[doRefresh] Read ${sessions.length} sessions this month`);
   } catch (err) {
     console.error(`copilot-budget: session read failed: ${err}`);
   }
+
+  // Refresh live billing data from cache or GitHub (Phase 8.7).
+  // This is non-blocking; failures degrade to estimated mode.
+  await refreshLiveBilling();
 
   if (workspacePath !== '') {
     try {
@@ -222,6 +232,7 @@ async function doRefresh(
   }
 
   const budgetState = calculate(sessions, allowance);
+  console.log(`[doRefresh] Budget state: used=${budgetState.usedCredits}, allowed=${budgetState.allowedCredits}, status=${budgetState.status}`);
 
   // Cache the snapshot for the export command.
   lastSessions = sessions;
@@ -236,7 +247,10 @@ async function doRefresh(
   // Update dashboard panel only if it is currently open.
   const panel = DashboardPanel.getInstance();
   if (panel) {
+    console.log(`[doRefresh] Updating dashboard panel with ${sessions.length} sessions`);
     panel.update(sessions, budgetState, instrFiles);
+  } else {
+    console.log(`[doRefresh] Dashboard panel not open`);
   }
 
   // Threshold alerts — shown at most once per threshold per VS Code session.
@@ -322,6 +336,138 @@ function maybeShowAlert(state: BudgetState): void {
     });
   } else {
     void vscode.window.showInformationMessage(msg);
+  }
+}
+
+// ── Live Billing Setup Wizard ────────────────────────────────────────────────
+
+// enableLiveBillingWizard guides users through setting up live GitHub entitlements.
+// Step 1: Confirm org slug (auto-detected or manual)
+// Step 2: Explain token setup (GitHub PAT with manage_billing:copilot scope)
+// Step 3: Ask user to set environment variable
+// Step 4: Test and confirm
+async function enableLiveBillingWizard(context: vscode.ExtensionContext): Promise<void> {
+  const step1 = await vscode.window.showQuickPick(
+    ['Auto-detect my org from `gh cli`', 'Enter my org manually'],
+    { title: 'Live Billing Setup — Step 1: Organization', canPickMany: false }
+  );
+
+  if (!step1) {
+    void vscode.window.showInformationMessage('Live billing setup cancelled.');
+    return;
+  }
+
+  let orgSlug = '';
+  if (step1.startsWith('Auto')) {
+    // Try to auto-detect via subprocess call to gh.
+    try {
+      const { execSync } = require('child_process');
+      const result = execSync('gh api user --jq .login', { encoding: 'utf8', timeout: 5000 });
+      orgSlug = result.trim();
+      if (!orgSlug) {
+        throw new Error('gh cli returned empty');
+      }
+      void vscode.window.showInformationMessage(`✅ Auto-detected org: ${orgSlug}`);
+    } catch (err) {
+      const manual = await vscode.window.showInputBox({
+        title: 'Live Billing Setup — Manual Org Entry',
+        prompt: 'Enter your GitHub organization slug (e.g., "your-org"):',
+        placeHolder: 'your-org',
+      });
+      if (!manual || manual.trim() === '') {
+        void vscode.window.showInformationMessage('Live billing setup cancelled.');
+        return;
+      }
+      orgSlug = manual.trim();
+    }
+  } else {
+    const manual = await vscode.window.showInputBox({
+      title: 'Live Billing Setup — Organization',
+      prompt: 'Enter your GitHub organization slug (e.g., "your-org"):',
+      placeHolder: 'your-org',
+    });
+    if (!manual || manual.trim() === '') {
+      void vscode.window.showInformationMessage('Live billing setup cancelled.');
+      return;
+    }
+    orgSlug = manual.trim();
+  }
+
+  // Step 2: Token setup
+  const tokenInfoChoice = await vscode.window.showQuickPick(
+    ['Show me how to get a token', 'I already have a token set up'],
+    { title: 'Live Billing Setup — Step 2: GitHub Personal Access Token', canPickMany: false }
+  );
+
+  if (!tokenInfoChoice) {
+    void vscode.window.showInformationMessage('Live billing setup cancelled.');
+    return;
+  }
+
+  if (tokenInfoChoice.startsWith('Show')) {
+    const msg = `To enable live billing, you need a GitHub Personal Access Token (PAT) with the "manage_billing:copilot" scope.
+
+AT&T GitHub Enterprise users:
+  1. Go to your GitHub Enterprise instance
+  2. Create new token at /settings/tokens/new
+  3. Add scope: manage_billing:copilot
+  4. Copy the token
+
+Then set the environment variable:
+  export COPILOT_BILLING_TOKEN="ghp_..."
+
+For more details, see: https://docs.github.com/en/rest/billing/copilot`;
+
+    void vscode.window.showInformationMessage(msg);
+  }
+
+  // Step 3: Save config to file
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+
+  const homedir = os.homedir();
+  const configDir = process.platform === 'win32'
+    ? path.join(process.env.APPDATA ?? path.join(homedir, 'AppData', 'Roaming'), 'copilot-token-budget')
+    : path.join(homedir, '.config', 'copilot-token-budget');
+  const configFile = path.join(configDir, 'config.json');
+
+  // Ensure config dir exists
+  try {
+    fs.mkdirSync(configDir, { recursive: true });
+  } catch (err) {
+    void vscode.window.showErrorMessage(`Failed to create config directory: ${err}`);
+    return;
+  }
+
+  // Write config file
+  const config = {
+    enabled: true,
+    orgSlug,
+    tokenEnvVar: 'COPILOT_BILLING_TOKEN',
+    cacheMaxAgeHours: 24,
+    requestTimeoutSecs: 10,
+    dryRun: false,
+  };
+
+  try {
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
+    void vscode.window.showInformationMessage(
+      `✅ Config saved to ${configFile}\n\nNext: Set your token in terminal:\n  export COPILOT_BILLING_TOKEN="ghp_..."\n\nThen reload VS Code.`
+    );
+  } catch (err) {
+    void vscode.window.showErrorMessage(`Failed to save config: ${err}`);
+    return;
+  }
+
+  // Suggest reload
+  const reload = await vscode.window.showInformationMessage(
+    'Reload VS Code to apply live billing?',
+    'Reload Now',
+    'Later'
+  );
+  if (reload === 'Reload Now') {
+    void vscode.commands.executeCommand('workbench.action.reloadWindow');
   }
 }
 

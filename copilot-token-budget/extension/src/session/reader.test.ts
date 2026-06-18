@@ -5,6 +5,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { readSessions } from './reader';
 
 // Test suite runner — simple inline test execution
 class TestSuite {
@@ -41,22 +42,17 @@ class TestSuite {
 
 const suite = new TestSuite();
 
-// Test 1: IDE marker detection
-suite.test('testIDEMarkerDetection', () => {
-  // Session with IDE marker should be detected
-  const ideSessionMarkerPath = '/home/user/.copilot/session-state/ide-session/vscode.metadata.json';
-  const cliSessionMarkerPath = '/home/user/.copilot/session-state/cli-session/vscode.metadata.json';
+// Test 1: Standard VS Code IDE path shape
+suite.test('testIDEStandardPathShape', () => {
+  const chatSessionsPath =
+    '/Users/user/Library/Application Support/Code/User/workspaceStorage/ws-123/chatSessions/session.jsonl';
+  const transcriptPath =
+    '/Users/user/Library/Application Support/Code/User/globalStorage/GitHub.copilot-chat/transcripts/session.jsonl';
 
-  // Verify marker file path logic
-  assert.ok(
-    ideSessionMarkerPath.endsWith('vscode.metadata.json'),
-    'IDE marker path should end with vscode.metadata.json'
-  );
-  assert.notEqual(
-    ideSessionMarkerPath,
-    cliSessionMarkerPath,
-    'Different sessions should have different paths'
-  );
+  assert.ok(chatSessionsPath.includes('workspaceStorage'));
+  assert.ok(chatSessionsPath.includes('chatSessions'));
+  assert.ok(transcriptPath.includes('globalStorage'));
+  assert.ok(transcriptPath.includes('transcripts'));
 });
 
 // Test 2: Event-level dedup using {parentId}:{id} seen-set
@@ -139,30 +135,36 @@ suite.test('testCLIAndIDEMerge', () => {
   // Merge
   const merged = [...cliSessions, ...ideSessions];
 
-  // Dedup by ID: final wins, else higher totalNanoAIU wins
+  // Dedup by {source}:{id}: final wins, else higher totalNanoAIU wins
   const best = new Map<string, (typeof cliSessions)[0]>();
   for (const s of merged) {
-    const prev = best.get(s.id);
+    const key = `${s.source}:${s.id}`;
+    const prev = best.get(key);
     if (!prev || (s.isFinal && !prev.isFinal)) {
-      best.set(s.id, s);
+      best.set(key, s);
     } else if (s.isFinal === prev.isFinal && s.totalNanoAIU > prev.totalNanoAIU) {
-      best.set(s.id, s);
+      best.set(key, s);
     }
   }
 
   // Verify dedup results
-  assert.strictEqual(best.size, 3, 'Should have 3 unique sessions');
+  assert.strictEqual(best.size, 4, 'Should have 4 unique source-scoped sessions');
   assert.strictEqual(
-    best.get('session-001')?.source,
+    best.get('copilot-cli:session-001')?.source,
     'copilot-cli',
     'session-001 should prefer final CLI version'
   );
+  assert.strictEqual(
+    best.get('copilot-ide:session-001')?.source,
+    'copilot-ide',
+    'IDE session should survive alongside CLI session with same id'
+  );
 });
 
-// Test 6: IDE marker reading is non-fatal
+// Test 6: Missing VS Code IDE path is non-fatal
 suite.test('testIDEDegradation', () => {
   // Simulate graceful failure when file cannot be read
-  const nonexistentPath = '/this/path/does/not/exist/vscode.metadata.json';
+  const nonexistentPath = '/this/path/does/not/exist/chatSessions/session.jsonl';
   let readFailed = false;
 
   try {
@@ -201,6 +203,85 @@ suite.test('testDashboardSourceField', () => {
   );
 });
 
+// Test 8b: IDE standard VS Code path is surfaced through readSessions
+suite.test('testIDEStandardPathSurface', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'copilot-ide-'));
+  const home = root;
+  const originalHome = process.env.HOME;
+  process.env.HOME = home;
+
+  try {
+    const sessionDir = path.join(
+      root,
+      'Library',
+      'Application Support',
+      'Code',
+      'User',
+      'workspaceStorage',
+      'ws-123',
+      'chatSessions'
+    );
+    fs.mkdirSync(sessionDir, { recursive: true });
+    const transcriptPath = path.join(sessionDir, 'session.jsonl');
+    fs.writeFileSync(
+      transcriptPath,
+      [
+        JSON.stringify({
+          type: 'session.start',
+          data: {
+            sessionId: 'ide-session-001',
+            startTime: '2026-06-17T10:00:00.000Z',
+            context: { cwd: '/Users/rb692q/projects/sample-workspace' },
+          },
+        }),
+        JSON.stringify({
+          type: 'assistant.message',
+          data: {
+            sessionId: 'ide-session-001',
+            model: 'claude-sonnet-4.6',
+            inputTokens: 1000,
+            outputTokens: 100,
+            timestamp: '2026-06-17T10:05:00.000Z',
+          },
+        }),
+        JSON.stringify({
+          type: 'session.shutdown',
+          data: {
+            sessionId: 'ide-session-001',
+            totalPremiumRequests: 3,
+            currentModel: 'claude-sonnet-4.6',
+            modelMetrics: {
+              'claude-sonnet-4.6': {
+                usage: {
+                  inputTokens: 1000,
+                  outputTokens: 100,
+                },
+              },
+            },
+          },
+          timestamp: '2026-06-17T10:10:00.000Z',
+        }),
+      ].join('\n'),
+      'utf8'
+    );
+
+    const sessions = await readSessions();
+    const ideSession = sessions.find((s) => s.source === 'copilot-ide');
+
+    assert.ok(ideSession, 'IDE session should be present');
+    assert.strictEqual(ideSession?.id, 'ide-session-001');
+    assert.strictEqual(ideSession?.projectName, 'sample-workspace');
+    assert.strictEqual(ideSession?.workspaceDir, '/Users/rb692q/projects/sample-workspace');
+    assert.strictEqual(ideSession?.totalNanoAIU, 450000000, 'IDE session should use final billing, not double-count');
+  } finally {
+    if (originalHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
+  }
+});
+
 // Test 9: Dashboard aggregates CLI and IDE totals separately
 suite.test('testDashboardSourceBreakdown', () => {
   const sessions = [
@@ -210,17 +291,23 @@ suite.test('testDashboardSourceBreakdown', () => {
     { source: 'copilot-ide', totalNanoAIU: 200000000 },  // 0.2 cr
   ];
 
+  let cliCount = 0;
+  let ideCount = 0;
   let cliTotal = 0;
   let ideTotal = 0;
   for (const s of sessions) {
     const credits = s.totalNanoAIU / 1_000_000_000;
     if (s.source === 'copilot-cli') {
+      cliCount += 1;
       cliTotal += credits;
     } else {
+      ideCount += 1;
       ideTotal += credits;
     }
   }
 
+  assert.strictEqual(cliCount, 2, 'CLI count should be 2');
+  assert.strictEqual(ideCount, 2, 'IDE count should be 2');
   assert.strictEqual(cliTotal, 1.5, 'CLI total should be 1.5 cr');
   assert.strictEqual(ideTotal, 1.0, 'IDE total should be 1.0 cr');
 });

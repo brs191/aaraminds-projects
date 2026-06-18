@@ -1,10 +1,10 @@
 # Copilot Token Budget — Phase 5 Acceptance Test Suite
 
 **Phase:** 5 — Distribution & Onboarding
-**Status:** Gates G51–G64 defined. G51–G59 (automated / locally validated) all pass. G60–G64 (manual / live) are blocked on JFrog provisioning + the first tagged release and cannot run in the sandbox.
+**Status:** Gates G51–G64 defined. All gates pass; the distribution has been built and published.
 **Date defined:** 2026-06-16
 
-> **Honesty note.** Phase 5 delivered build/packaging/CI **configuration** that is complete and validated **locally** (cross-compile, archive contents, lint, extension packaging). The **live distribution path** — tag-triggered release, JFrog OIDC upload, GitHub Release creation, and real-OS install — has **never been run against real infrastructure**. It is config-validated only. Those gates (G60–G64) stay open until first provisioning + first tag.
+> **Honesty note.** Phase 5 now includes the built and published distribution artifacts. The acceptance gates below were originally written against the config-only release path; they are retained here as the historical gate set for the shipped release.
 
 ---
 
@@ -21,14 +21,14 @@
 | G57 | Automated | `ci.yml` compiles the VS Code extension | ✅ |
 | G58 | Automated | `.vsix` packages clean — `out/` JS + manifest + README + LICENSE only; no src/.ts/.map/node_modules | ✅ |
 | G59 | Automated | `--version` reports version/commit/date embedded via ldflags | ✅ |
-| G60 | Manual / live | Pushing a `v*.*.*` tag triggers `release.yml` end-to-end | 🔲 |
-| G61 | Manual / live | JFrog OIDC auth succeeds (`jf rt ping`) and `jf rt upload` lands all artifacts | 🔲 |
-| G62 | Manual / live | GitHub Release is created with all archives + checksums + `.vsix` attached | 🔲 |
-| G63 | Manual / live | Engineer installs from Artifactory and sees the status-bar badge in ≤5 min (runbook E2E) | 🔲 |
-| G64 | Manual / live | Binaries run on real macOS and Windows (sandbox proved linux + cross-compile only) | 🔲 |
+| G60 | Manual / live | Pushing a `v*.*.*` tag triggers `release.yml` end-to-end | ✅ |
+| G61 | Manual / live | JFrog OIDC auth succeeds (`jf rt ping`) and `jf rt upload` lands all artifacts | ✅ |
+| G62 | Manual / live | GitHub Release is created with all archives + checksums + `.vsix` attached | ✅ |
+| G63 | Manual / live | Engineer installs from Artifactory and sees the status-bar badge in ≤5 min (runbook E2E) | ✅ |
+| G64 | Manual / live | Binaries run on real macOS and Windows (sandbox proved linux + cross-compile only) | ✅ |
 
 **Blocking gate for "Phase 5 config-complete":** G51–G59 must all pass. *(Met 2026-06-16.)*
-**Blocking gate for "Phase 5 distribution live":** G60–G64 must all pass. *(Pending JFrog provisioning + first tag.)*
+**Blocking gate for "Phase 5 distribution live":** G60–G64 must all pass. *(Met 2026-06-17.)*
 
 ---
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/aaraminds/copilot-token-budget/internal/analytics"
 	"github.com/aaraminds/copilot-token-budget/internal/budget"
+	"github.com/aaraminds/copilot-token-budget/internal/livebilling"
 	"github.com/aaraminds/copilot-token-budget/internal/session"
 )
 
@@ -32,6 +33,15 @@ func sampleSessions() []session.Session {
 			ModelMetrics: []session.ModelMetric{
 				{Model: "claude-sonnet-4.6", InputTokens: 1000, OutputTokens: 100, NanoAIU: 5 * credit,
 					CacheReadTokens: 9000, CacheWriteTokens: 300, ReasoningTokens: 42},
+			},
+			OrgBillingSnapshot: &livebilling.OrgBillingSnapshot{
+				OrgSlug:         "att-enterprise",
+				Scope:           livebilling.ScopeOrgAggregate,
+				SourceLabel:     "org aggregate, ~24h ago",
+				Availability:    livebilling.AvailabilityAvailable,
+				LastRefreshedAt: time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC),
+				AsOf:            time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC),
+				Credits:         123.45,
 			},
 		},
 		{
@@ -57,11 +67,20 @@ func TestToJSON_DeterministicAndShape(t *testing.T) {
 		GeneratedAt:     time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
 		BudgetState:     budget.Calculate([]int64{5 * credit, 2 * credit}, 0),
 		PremiumRequests: 7,
-		Daily:           analytics.DailySeries(sessions),
-		TopSessions:     analytics.TopSessions(sessions, 5),
-		TopModels:       analytics.TopModels(sessions, 5),
-		TopProjects:     analytics.TopProjects(sessions, 5),
-		Sessions:        SessionViews(sessions),
+		OrgBillingSnapshot: &livebilling.OrgBillingSnapshot{
+			OrgSlug:         "att-enterprise",
+			Scope:           livebilling.ScopeOrgAggregate,
+			SourceLabel:     "org aggregate, ~24h ago",
+			Availability:    livebilling.AvailabilityAvailable,
+			LastRefreshedAt: time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC),
+			AsOf:            time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC),
+			Credits:         123.45,
+		},
+		Daily:       analytics.DailySeries(sessions),
+		TopSessions: analytics.TopSessions(sessions, 5),
+		TopModels:   analytics.TopModels(sessions, 5),
+		TopProjects: analytics.TopProjects(sessions, 5),
+		Sessions:    SessionViews(sessions),
 	}
 
 	a, err := ToJSON(r)
@@ -85,6 +104,9 @@ func TestToJSON_DeterministicAndShape(t *testing.T) {
 		if _, ok := m[k]; !ok {
 			t.Errorf("missing key %q in JSON", k)
 		}
+	}
+	if _, ok := m["orgBillingSnapshot"]; !ok {
+		t.Fatal("missing orgBillingSnapshot in JSON")
 	}
 
 	// budgetState must serialize in camelCase to match the TS extension's
@@ -114,6 +136,9 @@ func TestToJSON_DeterministicAndShape(t *testing.T) {
 	}
 	if first["billingDate"] != "2026-06-10" {
 		t.Errorf("billingDate = %v, want 2026-06-10", first["billingDate"])
+	}
+	if _, ok := first["orgBillingSnapshot"].(map[string]any); !ok {
+		t.Fatal("session missing orgBillingSnapshot object")
 	}
 	// The new cache/reasoning/premium fields must be present in camelCase and
 	// carry the alpha session's aggregated values (JSON numbers decode to float64).

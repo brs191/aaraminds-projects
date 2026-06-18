@@ -19,9 +19,31 @@ export interface ModelMetric {
   reasoningTokens: number;      // phase 6: extended thinking tokens
 }
 
+export type LiveBillingScope = 'org aggregate';
+export type LiveBillingAvailability = 'available' | 'stale' | 'unavailable';
+
+export interface LiveBillingSnapshot {
+  orgSlug: string;
+  scope: LiveBillingScope;
+  sourceLabel: string;
+  availability: LiveBillingAvailability;
+  lastRefreshedAt: Date;
+  asOf: Date;
+  credits: number;
+  error?: string;
+}
+
+export interface LiveBillingCacheEntry {
+  snapshot: LiveBillingSnapshot;
+  payload: unknown;
+  cachedAt: Date;
+  expiresAt: Date;
+}
+
 // SessionSource identifies which collector produced a session.
 //   'copilot-cli' — GitHub Copilot CLI session-state (the only live source today).
-//   'copilot-ide' — VS Code IDE Copilot usage (Phase 6 stub; emits nothing yet).
+//   'copilot-ide' — VS Code IDE Copilot usage from local metadata (estimated until
+//                  token-level data is available).
 // Mirrors Go session.Session.Source. Kept as a string union (not a free string)
 // to stay strict-typed; the dedup step in the reader reasons about cross-source overlap.
 export type SessionSource = 'copilot-cli' | 'copilot-ide';
@@ -55,6 +77,15 @@ export interface Session {
   //         (or still zero for an active session that has not emitted billing yet).
   // A partial snapshot must never overwrite a final reading. Mirrors Go Session.IsFinal.
   isFinal: boolean;
+
+  // orgBillingSnapshot carries optional org-aggregate live billing metadata.
+  orgBillingSnapshot?: LiveBillingSnapshot;
+
+  // hasIdeActivity indicates whether this CLI session also had IDE Chat activity
+  // (detected by checking ~/.copilot/vscode.session.metadata.cache.json).
+  // Even though the CLI events are authoritative for billing, this flag helps users
+  // understand their session's IDE Chat usage.
+  hasIdeActivity?: boolean;
 }
 
 export interface InstructionFile {

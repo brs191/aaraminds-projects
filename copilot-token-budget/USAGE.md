@@ -3,6 +3,8 @@
 How to run the outcome of **each phase**. Everything here is local-first and zero-network
 (the only outbound call is the optional Teams webhook in Phase 3).
 
+**Phase 6.2 update (2026-06-17):** The tool now captures **both** GitHub Copilot CLI and VS Code IDE Chat sessions locally. The same `analyze` / `dashboard` commands show per-source breakdown (CLI with token costs, IDE sessions with metadata). No changes needed — if you have active IDE Chat sessions, they appear automatically.
+
 > **Just want to install and use it?** End users (any OS) should follow
 > [`docs/runbooks/onboarding-runbook.md`](docs/runbooks/onboarding-runbook.md) — the ≤5-minute install guide with full
 > macOS / Linux / Windows steps. **This file** is the developer/source-build reference (run each phase
@@ -278,12 +280,392 @@ npx @vscode/vsce package --no-dependencies
 
 ---
 
-## Phase 6 — Dual-source capture (Copilot CLI + VS Code IDE) · GROUNDWORK ONLY
+## How to Distribute to Your Team
 
-The Source/Collector abstraction and dedup are in place, but the **IDE collector is a stub** — today
-`ReadAll()` returns CLI sessions only. To unblock the IDE parser, run the Phase 0 discovery script
-above and share the output. No new commands until the schema is known (see `docs/history/IMPLEMENTATION_PLAYBOOK.md`
-Phase 6 and ADR-009).
+**Goal:** Build distribution artifacts (binaries + extension) and share them with your team for installation.
+
+### Quick Start (5 minutes)
+
+**macOS out-of-the-box bundle (recommended):**
+
+1. Download `copilot-token-budget-macos-<version>.zip`.
+2. Unzip it.
+3. Run `./install.sh`.
+4. Run `./launch-caveman-demo.sh` if you want the Caveman walkthrough.
+
+**To create the zip file for v1.0.0:**
+
+```bash
+# Build the release artifacts first
+goreleaser check && goreleaser build --snapshot --clean
+
+# Package the macOS bundle as v1.0.0
+bash ./scripts/package_macos_oob.sh \
+  --artifact-dir dist \
+  --vsix dist-vsix/copilot-token-budget-v1.0.0.vsix \
+  --version v1.0.0 \
+  --output-dir distr/v1.0.0
+
+# Result:
+# distr/v1.0.0/copilot-token-budget-macos-v1.0.0.zip
+# distr/v1.0.0/copilot-token-budget-macos-v1.0.0.zip.sha256
+```
+
+**One-command build + package everything:**
+
+```bash
+# Build all release artifacts (binaries for macOS/Linux/Windows + extension .vsix)
+goreleaser check && \
+goreleaser build --snapshot --clean && \
+cd extension && npm install --registry https://registry.npmjs.org && \
+npx @vscode/vsce package --no-dependencies && \
+cd .. && \
+echo "✅ Distribution artifacts ready in dist/ and extension/"
+```
+
+**Result:** All binaries + `.vsix` in `dist/` and `extension/` ready to distribute.
+
+---
+
+### Distribution Methods
+
+#### **Option 1: Local File Share (Quickest for Small Teams)**
+
+**Step 1: Build locally**
+```bash
+cd /path/to/copilot-token-budget
+goreleaser build --snapshot --clean    # creates dist/copilot-token-budget_*/
+cd extension && npm install --registry https://registry.npmjs.org
+npx @vscode/vsce package --no-dependencies   # creates copilot-token-budget-*.vsix
+```
+
+**Step 2: Share files with your team**
+
+Create a shared folder (e.g., AT&T Sharepoint, Teams Files, or internal file server):
+
+```
+shared/copilot-token-budget-v1.0.0/
+├── README.md                           (copy from repo root)
+├── USAGE.md                            (copy from repo root)
+├── docs/runbooks/onboarding-runbook.md (detailed install steps)
+├── binaries/
+│   ├── copilot-analyze-darwin-amd64              (macOS Intel)
+│   ├── copilot-analyze-darwin-arm64              (macOS Apple Silicon)
+│   ├── copilot-analyze-linux-amd64               (Linux x64)
+│   ├── copilot-analyze-windows-amd64.exe         (Windows)
+│   ├── copilot-dashboard-*                       (same platforms)
+│   ├── copilot-statusline-*                      (same platforms)
+│   ├── copilot-alert-*                           (same platforms)
+│   └── copilot-budget-mcp-*                      (same platforms)
+├── extension/
+│   ├── copilot-token-budget-1.0.0.vsix           (VS Code extension)
+│   └── copilot-token-budget-1.0.0.vsix.sha256sum (integrity check)
+└── checksums.txt                       (SHA256 hashes for all binaries)
+```
+
+**Step 3: Team installs**
+
+Each team member follows [`docs/runbooks/onboarding-runbook.md`](docs/runbooks/onboarding-runbook.md):
+- Download binaries for their OS from `shared/binaries/`
+- Install extension `.vsix` via VS Code
+- Register MCP server
+- Configure Teams webhook (optional)
+
+---
+
+#### **Option 2: GitHub Releases (Best for Public / Open-Source Teams)**
+
+**Step 1: Tag and push**
+```bash
+# On main branch, create a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Step 2: GitHub Actions builds + releases**
+
+The `.github/workflows/release.yml` workflow automatically:
+1. Detects the `v*.*.*` tag
+2. Builds 25 binaries (5 platforms × 5 binaries)
+3. Packages extension `.vsix`
+4. Creates a GitHub Release with all artifacts
+5. (If JFrog provisioned) Uploads to Artifactory
+
+**Step 3: Team downloads**
+
+Navigate to `https://github.com/<your-org>/copilot-token-budget/releases/v1.0.0` and download:
+- Platform-specific binary (or use package installer if built)
+- Extension `.vsix`
+- README + onboarding runbook
+
+---
+
+#### **Option 3: JFrog Artifactory (Recommended for AT&T)**
+
+**Prerequisites:**
+- JFrog instance URL (e.g., `artifactory.company.com`)
+- Repository created for binaries (`copilot-token-budget-binaries`) and extension (`copilot-token-budget-vsix`)
+- OIDC or API token configured (see `.github/workflows/README.md`)
+
+**Step 1: Configure GitHub Actions**
+
+Set repo Variables in `.github/settings/variables`:
+- `JF_URL`: `https://artifactory.company.com`
+- `JF_BINARY_REPO`: `copilot-token-budget-binaries`
+- `JF_VSIX_REPO`: `copilot-token-budget-vsix`
+
+(OIDC setup in `.github/workflows/README.md`)
+
+**Step 2: Tag and push (same as GitHub Releases)**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Step 3: Workflow publishes**
+
+`.github/workflows/release.yml` automatically uploads to JFrog:
+- `https://artifactory.company.com/artifactory/copilot-token-budget-binaries/v1.0.0/...`
+- `https://artifactory.company.com/artifactory/copilot-token-budget-vsix/v1.0.0/...`
+
+**Step 4: Share Artifactory download links with team**
+
+```
+Install Guide for Copilot Token Budget v1.0.0
+─────────────────────────────────────────────
+
+1. Download for your OS:
+   macOS (Intel):     https://artifactory.company.com/.../copilot-analyze-darwin-amd64
+   macOS (Apple Si):  https://artifactory.company.com/.../copilot-analyze-darwin-arm64
+   Linux x64:         https://artifactory.company.com/.../copilot-analyze-linux-amd64
+   Windows:           https://artifactory.company.com/.../copilot-analyze-windows-amd64.exe
+
+2. Follow: https://artifactory.company.com/.../onboarding-runbook.md
+```
+
+---
+
+### Step-by-Step: Build & Share Artifacts (All Options)
+
+#### **Step 1: Prepare repo**
+```bash
+cd /path/to/copilot-token-budget
+git status                                 # ensure clean repo
+go version                                 # check Go 1.25+
+goreleaser --version                       # check GoReleaser v2
+node --version                             # check Node 18+
+```
+
+#### **Step 2: Build binaries**
+```bash
+cd /path/to/copilot-token-budget
+
+# Validate config
+goreleaser check
+
+# Build snapshot (no publish) — creates dist/
+goreleaser build --snapshot --clean
+
+# Verify output
+ls -lh dist/copilot-token-budget_*/bin/
+# Output: copilot-analyze, copilot-dashboard, copilot-statusline, copilot-alert, copilot-budget-mcp
+```
+
+#### **Step 3: Package extension**
+```bash
+cd extension
+
+# Install dependencies
+npm install --registry https://registry.npmjs.org
+
+# Package .vsix
+npx @vscode/vsce package --no-dependencies
+
+# Verify
+ls -lh copilot-token-budget-*.vsix
+```
+
+#### **Step 4a (Local Share): Copy to shared folder**
+```bash
+# Create distribution folder
+mkdir -p /Volumes/shared/copilot-token-budget-v1.0.0/{binaries,extension,docs}
+
+# Copy binaries
+find dist/ -name "copilot-*" -type f -exec cp {} /Volumes/shared/copilot-token-budget-v1.0.0/binaries/ \;
+
+# Copy extension
+cp extension/copilot-token-budget-*.vsix /Volumes/shared/copilot-token-budget-v1.0.0/extension/
+
+# Copy docs
+cp USAGE.md README.md docs/runbooks/onboarding-runbook.md /Volumes/shared/copilot-token-budget-v1.0.0/docs/
+
+# Generate checksums
+cd /Volumes/shared/copilot-token-budget-v1.0.0
+sha256sum binaries/* extension/* > checksums.txt
+
+# Share via email, Sharepoint, Teams Files, or post link
+echo "✅ Distribution ready at: /Volumes/shared/copilot-token-budget-v1.0.0/"
+```
+
+#### **Step 4b (GitHub Release): Create release**
+```bash
+cd /path/to/copilot-token-budget
+
+# Tag version
+git tag v1.0.0
+git push origin v1.0.0
+
+# GitHub Actions workflow runs automatically.
+# Monitor: https://github.com/<your-org>/copilot-token-budget/actions
+
+# Once complete, release available at:
+# https://github.com/<your-org>/copilot-token-budget/releases/v1.0.0
+```
+
+#### **Step 4c (JFrog): Publish to Artifactory**
+
+Same as GitHub Release (Step 4b), but `.github/workflows/release.yml` also uploads to JFrog (if configured).
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+
+# Workflow runs. Check:
+# https://artifactory.company.com/artifactory/webapp/#/artifacts/browse/tree/General/copilot-token-budget-binaries/v1.0.0
+```
+
+---
+
+### What to Share with Your Team
+
+Send each team member:
+
+```markdown
+# Copilot Token Budget v1.0.0 — Installation Guide
+
+**What is it:** Local tool to track GitHub Copilot CLI + IDE Chat token usage, 
+set monthly budgets, and get Teams alerts.
+
+**Platforms:** macOS (Intel + Apple Silicon), Linux, Windows
+
+**What you get:**
+- `copilot-analyze` — one-shot usage report
+- `copilot-dashboard` — live refresh (10s) with WezTerm badge support
+- `copilot-alert` — Teams notifications (optional webhook)
+- `copilot-statusline` — status line for shell prompt
+- VS Code extension — inline dashboard + commands
+
+**Install Steps:**
+
+1. **Download binaries for your OS**
+   [ Link to shared folder / GitHub Releases / JFrog ]
+
+2. **Install extension**
+   VS Code → Extensions → "Install from VSIX" → select copilot-token-budget-*.vsix
+
+3. **Quick start**
+   Terminal: copilot-analyze
+   VS Code: Ctrl+Shift+P → "Copilot Budget: Show Dashboard"
+
+4. **Configure Teams alerts (optional)**
+   See: onboarding-runbook.md
+
+**Support:** Post questions in #copilot-budget (Teams channel)
+
+**Detailed guide:** Read USAGE.md and onboarding-runbook.md
+```
+
+---
+
+### Verification Checklist (Before Sharing)
+
+- [ ] All binaries build without errors (`goreleaser build --snapshot --clean`)
+- [ ] Extension `.vsix` packages without warnings (`npm run package`)
+- [ ] Test on real machine: `./copilot-analyze` shows sessions
+- [ ] Test extension: Install `.vsix`, command palette works
+- [ ] README + USAGE.md + onboarding-runbook.md in distribution folder
+- [ ] `checksums.txt` generated and verified
+- [ ] Distribution link/folder is accessible to all team members
+- [ ] If GitHub Release: artifacts appear at release page
+- [ ] If JFrog: artifacts appear in Artifactory repo
+
+---
+
+### Cross-Platform Notes
+
+**macOS:**
+- Both Intel (`darwin-amd64`) and Apple Silicon (`darwin-arm64`) binaries included
+- Team members download correct binary for their chip (`uname -m`)
+
+**Linux:**
+- Tested on Ubuntu 20.04+ (`linux-amd64` and `linux-arm64`)
+- Builds for standard glibc; no musl variant
+
+**Windows:**
+- `.exe` binaries ready-to-run (no dependencies)
+- `copilot-analyze.exe`, `copilot-dashboard.exe`, etc.
+- VS Code extension works identically
+
+---
+
+### Troubleshooting Distribution
+
+| Issue | Solution |
+|-------|----------|
+| "GoReleaser not found" | Install: `brew install goreleaser` (macOS) or download from github.com/goreleaser/goreleaser |
+| "vsce package fails" | Update Node to 22+: `nvm install 22 && nvm use 22` |
+| Binaries don't run on team's machine | Verify architecture matches: `uname -m` (macOS/Linux) or `wmic os get osarchitecture` (Windows) |
+| Team can't download from shared folder | Check permissions; if using Teams: Files → Sync to local drive first |
+| Checksum mismatch | Re-download from source; network corruption during transfer; verify with: `sha256sum -c checksums.txt` |
+
+
+
+---
+
+## Phase 6 — Dual-source capture (Copilot CLI + VS Code IDE) · IDE SESSIONS LIVE (Phase 6.2 ✅)
+
+**What's new (Phase 6.2, 2026-06-17):**
+- ✅ VS Code IDE Chat sessions now visible alongside CLI sessions
+- ✅ Multi-source reader: CLI (authoritative token costs) + IDE (metadata, costs deferred)
+- ✅ Automatic dedup: `{source}:{sessionId}` prevents cross-source ID collisions
+- ✅ Per-source reporting: analyze/dashboard show breakdown (CLI vs. IDE)
+- ✅ Token cost labels: "authoritative" (CLI from billing) vs. "estimated" (IDE metadata)
+
+**What's included:**
+- **CLI sessions:** all local data, token costs authoritative (from session.shutdown events)
+- **IDE sessions:** ~116 sessions from `~/.config/github-copilot/ic/` (Xodus DB via Nitrite SDK) or JSON metadata fallback
+- **Conversation history:** Session timestamps, turn counts, model names
+- **Costs:** IDE costs marked "unavailable" for Phase 6 (Phase 7 will add GitHub API enrichment)
+
+**Run the same commands as Phase 1** — they now include IDE sessions:
+
+```bash
+cd core
+
+# One-shot report — now includes IDE Chat sessions + breakdown
+go run ./cmd/analyze [workspace-root]
+
+# Live dashboard — refreshes IDE sessions every 10s
+go run ./cmd/dashboard [workspace-root]
+```
+
+**Example output (with IDE sessions):**
+```
+CLI Sessions: 53 (14,144.66 cr / authoritative)
+IDE Chat Sessions: 116 (costs unavailable / Phase 6 limitation)
+─────────────────────────────────────────────────────────────
+Total: 169 sessions
+```
+
+**Known Phase 6 limitations (by design):**
+- IDE token costs are estimated/unavailable (server-side only on GitHub)
+- Per-turn granularity limited to metadata (Phase 7: Nitrite SDK integration for full detail)
+- Model names in IDE metadata only (no cost per model for IDE)
+
+**Phase 7 (coming soon):**
+- GitHub API integration will populate real IDE token costs
+- IDE cost labels will change from "estimated" to "authoritative"
+- Per-turn granularity restored (Nitrite SDK + API data)
 
 ---
 

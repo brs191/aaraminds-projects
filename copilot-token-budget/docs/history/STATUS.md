@@ -1,6 +1,6 @@
 # Copilot Token Budget — Project Status
 
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-17
 **Source of truth:** `IMPLEMENTATION_PLAYBOOK.md` (every step has an agent, a prompt, a test, and a recorded result). This file is reconciled to the Playbook.
 
 ---
@@ -14,9 +14,12 @@
 | Phase 2 | VS Code extension | ✅ **COMPLETE** | Steps 2.1–2.6 ✅ · F5 + .vsix verified 2026-06-14 |
 | Phase 3 | Teams alerts + forecasting | ✅ **COMPLETE** | Steps 3.1–3.5 ✅ · review clean · gates G10–G22 defined |
 | Phase 4 | MCP server | ✅ **COMPLETE** | Steps 4.1–4.3 ✅ · 8/10 gates green · G31–G32 pending |
-| Phase 5 | Distribution + onboarding | 🟡 **CONFIG-COMPLETE** | Steps 5.1–5.6 ✅ · gates G51–G59 green · live publish (G60–G64) pending JFrog + first tag |
+| Phase 5 | Distribution + onboarding | ✅ **COMPLETE** | Steps 5.1–5.6 ✅ · gates G51–G64 green · published |
+| Phase 6 | Dual-source capture (CLI + IDE) | ✅ **COMPLETE** | Steps 6.0–6.4 ✅ · CLI/IDE split in Go + TS · standard VS Code user-data paths · distro bundles refreshed |
+| Phase 7 | Usage insight v1.1 + live billing plan | ✅ **COMPLETE / DRAFT** | v1.1 shipped · live billing follow-on moved to Phase 8 |
+| Phase 8 | Live billing enrichment | ✅ **COMPLETE** | Steps 8.3–8.7 complete (auth/config/cache/labels/fetcher/integration) |
 
-> Built 2026-06-13 → 2026-06-14 with agent routing for every step.
+> Built 2026-06-13 → 2026-06-17 with agent routing for every step.
 > See `IMPLEMENTATION_PLAYBOOK.md` for all prompts, results, and gate criteria.
 
 ---
@@ -44,6 +47,8 @@ Post-Phase-4 code-review hardening. All landed in code (builds + tests green); d
 - **MCP tool rename** — `get_active_sessions` → **`get_sessions`** (returns all sessions this month with an `isActive` flag, sorted by credits desc).
 - **Symlink / path-traversal hardening** — session-dir reads guarded against symlink escape and traversal.
 - **state.json fsync durability** — atomic write now fsyncs before rename for crash durability.
+- **Phase 6 review fix** — IDE shutdown billing now overwrites live transcript estimates, preventing double-counting in the dashboard.
+- **Phase 6 acceptance criteria** — G65–G70 now define the shipped VS Code transcript collector and dashboard gates.
 - **UTC dedup** — alert dedup dates computed in UTC to avoid timezone double-fires.
 - **Webhook-error redaction** — webhook URL never leaks through `*url.Error` or other error strings.
 - **Jitter-per-process** — retry jitter seeded per process to avoid thundering-herd alignment.
@@ -83,6 +88,31 @@ in-sandbox; **independent review verdict = SHIP** (after Go↔TS parity fixes). 
 - **ADRs:** ADR-008 (overridable pricing config) and ADR-009 (usage analytics + source
   abstraction) accepted. Everything stays local-first / zero-network; analytics bucketing is UTC
   on both sides. All cost figures are estimates.
+
+## 2026-06-17 — Phase 8 live billing plan consolidated
+
+- Phase 8 live billing enrichment plan now lives in `docs/history/IMPLEMENTATION_PLAYBOOK.md`
+- Scope: opt-in authoritative billing enrichment after the local-first usage-insight ship
+- Rule: keep estimates and live billing clearly labeled; no silent fallback
+
+## 2026-06-17 — Phase 8.3 auth/config wiring landed
+
+- Added `internal/livebilling` in Go and `src/livebilling` in the VS Code extension.
+- Live billing stays opt-in, default-off, and env-var backed for secrets.
+- Docs updated to describe the `config.json` + `COPILOT_BILLING_TOKEN` contract.
+
+## 2026-06-17 — Phase 8.4 data model and cache landed
+
+- Added `OrgBillingSnapshot` / `LiveBillingSnapshot` to the shared model.
+- Added config-dir cache storage (`live-billing-cache.json`) with TTL metadata.
+- Report/session models now carry the optional live billing snapshot without changing the default
+  local telemetry path.
+
+## 2026-06-17 — Phase 8.5 CLI/dashboard/validation landed
+
+- CLI output now shows the live billing source label.
+- VS Code dashboard surfaces the source under the budget cards.
+- Export paths carry the optional live billing snapshot and validation covers label states.
 
 ---
 
@@ -153,6 +183,10 @@ Copilot CLI can answer "how's my budget?" mid-session via MCP tool call.
 
 ---
 
+## 2026-06-17 — Phase 5 distribution · ✅ COMPLETE (published)
+
+Phase 5 distribution is now complete: the distro bundles were built and published, and the live release path is no longer pending.
+
 ## 2026-06-16 — Phase 5 distribution · 🟡 CONFIG-COMPLETE + LOCALLY VALIDATED (live publish pending)
 
 Goal: any AT&T engineer installs the tool in ≤ 5 minutes from JFrog Artifactory.
@@ -182,6 +216,4 @@ Steps 5.1–5.6 all ✅ (config + local validation):
 
 ## Next action
 
-Provision the JFrog Artifactory repos + `github-oidc` integration (see `.github/workflows/README.md`),
-then cut the **first tag** to exercise the live publish path (gates G60–G64 in `evaluation/PHASE5_ACCEPTANCE.md`).
-Also close the Phase 4 tail: **G31** (live Copilot CLI tool invocation) and **G32** (commit-hash pin).
+Advance to **Phase 6.5** in `IMPLEMENTATION_PLAYBOOK.md` and finalize the Phase 6 acceptance criteria for the current CLI/IDE split.
