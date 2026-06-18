@@ -167,6 +167,11 @@ These are honest limitations, not things a better prompt fixes:
 3. **Subscription containers + non-Internet trust-boundary bands** (Data / Corporate) — partial.
 4. **`svg` / `mermaid` output** — only `.drawio` today.
 
+5. **Full-estate / BCLM-parity view** — one canvas covering network + workloads + **data
+   services** (SQL/Storage/Redis/…) + DNS + NAT + boundary, like the hand-drawn reference.
+   **Designed** in `phase-4/design/FULL_ESTATE_VIEW_REQUIREMENTS.md` (its biggest piece —
+   data-service discovery — needs new ARG queries + adapter/twin work).
+
 See `phase-4/design/ADR-001-visualization-strategy.md` and `GRAPH_IR.md` for how a new view or
 output backend plugs in without touching discovery or the engine.
 
