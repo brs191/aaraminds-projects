@@ -115,6 +115,7 @@ on one fixture, no Azure required.
 | `phase-4/viz/views.py` · `test_views.py` | View-family projections (HLD/MLD/risk/boundary/cross-sub/finding) + their gate |
 | `phase-4/design/VISUALIZATION_MODEL.md` | Enterprise visualization design + OSS decision + root causes |
 | `phase-4/PHASE_4_ACCEPTANCE_MEMO.md` | Phase 4 acceptance (in-session) + 4-round audit trail + engineering fixes |
+| `docs/INSTRUCTING_ANTR.md` | How to instruct antr to produce a topology diagram — the scoped input contract, the framework mapping, and what's built vs. gaps |
 | `docs/diagrams/architecture.svg` · `gen_architecture.py` | Brand-style architecture diagram (regenerable) |
 | `engine/go/adapter/recorded_estate_test.go` | Offline recorded-ARM harness driving the full fetch fan-out (audit C-2) |
 | `phase-2/PHASE_2_STATUS.md` | Phase 2 de-ambiguation (engines done; MCP wiring + acceptance pending) |
