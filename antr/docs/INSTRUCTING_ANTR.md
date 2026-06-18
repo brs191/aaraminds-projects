@@ -158,8 +158,9 @@ nothing and risks implying the model should improvise structure.
 
 These are honest limitations, not things a better prompt fixes:
 
-1. **Logical / Executive view** — a Users→App→Data abstraction independent of Azure resource
-   types. antr is physical + security today. (Highest-value "view" gap.)
+1. **Application / Logical view** — a Users→App→Data dependency chain, reachability-annotated.
+   **Designed** in `phase-4/design/ADR-002-application-view.md` (v1 builds on today's IR via
+   NIC-tag membership propagation + existing backend-pool / private-endpoint edges).
 2. **Change-Impact diagram** — `simulate_change` + `forecast_cost` produce the delta as data;
    rendering a before/after diagram (current → proposed → reachability Δ → cost Δ) is not built.
    This is antr's sharpest differentiator and the engine already has the data.
