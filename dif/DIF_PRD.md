@@ -30,13 +30,15 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 ## 3. Goals and non-goals
 
-### Goals (v1)
+### Goals (v1, delivered across P0-P3)
 
-1. Ingest .docx, .pdf, .pptx, and .md/.txt documents from configurable sources (file drop, Git repos, SharePoint/OneDrive connector).
+**Release vocabulary:** v1 is the full sellable pilot arc through P3. P0 is only the first executable skeleton. P0 must stay deliberately narrow: own repo + CI, auth-on-day-one service scaffolds, graph schema, `.md/.txt/.docx` ingestion from local/Git sources, and one cited-search flow in CI.
+
+1. Ingest .docx, .pdf, .pptx, and .md/.txt documents from configurable sources (file drop, Git repos, SharePoint/OneDrive connector), staged by phase.
 2. Extract a **document graph**: document → section → block (paragraph/table/figure) nodes; REFERENCES, SUPERSEDES, VERSION_OF, CONTAINS edges; content-addressed IDs for change detection.
 3. Hybrid retrieval (vector + full-text + graph signal, RRF-fused) over the graph with source-anchored results (doc, section, page/slide, line where applicable).
 4. MCP server exposing search, reference-tracing, impact-analysis, and explain tools — consumable from Claude, Copilot, or any MCP client.
-5. Agent service producing **citation-gated narratives**: every claim carries a source_ref; responses with no citations fail closed.
+5. Agent service producing **citation-gated narratives**: every claim block carries at least one validated `source_ref`; unsupported claims fail closed or become caveats.
 6. Incremental re-indexing: only changed documents/sections re-extract and re-embed.
 
 ### Non-goals (v1)
@@ -47,6 +49,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 - Semantic contradiction detection between documents (v2 candidate; v1 surfaces the references, humans judge).
 - Fine-tuned/custom embedding models — v1 uses the same embedding service and model options as RIF.
 - Email, chat, or ticket ingestion — documents only.
+- Per-user source ACL propagation for mixed-permission corpora — v1 pilots use uniformly-readable corpora or separately indexed corpora per access boundary; ACL inheritance is v2.
 
 ## 4. Users and use cases
 
@@ -68,31 +71,33 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 ## 5. Product requirements
 
-### 5.1 Ingestion (P0)
+### 5.1 Ingestion
 
-- **R1.** Sources: local/mounted file trees, Git repositories (docs-in-repo), SharePoint/OneDrive via Graph API connector. Webhook-triggered and scheduled ingestion.
-- **R2.** Formats: .docx, .pptx (OOXML parsing), .pdf (text-layer), .md, .txt. Format detection by content, not extension alone.
+- **R1.** Sources are phased. **P0:** local/mounted file trees and Git repositories (docs-in-repo). **P3:** SharePoint/OneDrive via Graph API connector. Webhook-triggered and scheduled ingestion are connector features, not P0 skeleton blockers.
+- **R2.** Formats are phased. **P0:** `.md`, `.txt`, and `.docx`. **P1:** `.pdf` text-layer and `.pptx`. Format detection is by content, not extension alone.
 - **R3.** Every ingestion run is recorded with provenance (source, timestamp, content hashes). A run that extracts zero or degenerate content **must not** replace the prior index version (RIF's B1/B2 gate pattern — carry it over verbatim).
 - **R4.** Atomic version swap with optimistic locking; a failed run leaves the previous index fully serving.
-- **R5.** Incremental mode: content-addressed section IDs mean unchanged sections are not re-extracted or re-embedded; fallback to full re-index with explicit logged reasons.
+- **R5.** Incremental mode is P2: content-addressed section IDs mean unchanged sections are not re-extracted or re-embedded; fallback to full re-index with explicit logged reasons.
 
-### 5.2 Extraction — the document graph (P0)
+### 5.2 Extraction — the document graph
 
 - **R6.** Node types: `document`, `section` (heading hierarchy), `block` (paragraph, table, figure, slide), `entity` (v1.5: named policies, systems, parties). Deterministic, content-addressed node IDs (same NUL-separator SHA-256 scheme as RIF's NodeIdComputer — **one shared implementation, not a copy**; this was a RIF review finding).
-- **R7.** Edge types: `CONTAINS` (structure), `REFERENCES` (explicit citations, hyperlinks, "see section X"), `VERSION_OF`, `SUPERSEDES`. Every edge carries a confidence tier (`exact` / `inferred`) and completeness caveats, surfaced to consumers.
+- **R7.** Edge types are phased. **P0:** `CONTAINS` structure. **P1:** `REFERENCES` (explicit citations, hyperlinks, "see section X"), `VERSION_OF`, `SUPERSEDES`. Every edge carries a confidence tier (`exact` / `inferred`) and completeness caveats, surfaced to consumers.
 - **R8.** Unresolvable references are flagged `unresolved:true` — never silently minted as dangling nodes (RIF review finding M20).
 - **R9.** Extractors are deterministic: sorted traversal, stable output ordering, byte-reproducible NDJSON. Edge IDs include position discriminators to prevent duplicate-edge collisions (RIF finding M19).
 - **R10.** Tables are extracted as structured blocks (rows/columns preserved), not flattened text.
 
-### 5.3 Storage and retrieval (P0)
+### 5.3 Storage and retrieval
 
 - **R11.** Postgres + pgvector for embeddings and FTS; graph edges in Postgres (AGE or relational adjacency — decide via ADR, default to what RIF ships). One `docs_nodes` / `docs_edges` schema versioned via the same idempotent migration approach RIF validated.
 - **R12.** Hybrid retrieval: vector similarity + Postgres FTS + graph proximity signal, fused via RRF (reuse RIF's `rrf.go` and fusion logic). Vector queries must push `ORDER BY embedding <=> $n LIMIT k` into index-eligible per-table branches (RIF finding M5 — do not repeat).
 - **R13.** Every retrieval result carries a source anchor: `doc_id@version : section_path : page/slide/line`.
+- **R13a.** Impact-analysis semantics are explicit. `REFERENCES` edges point from the citing node to the cited node. `impact_of_change(anchor)` traverses inbound `REFERENCES` paths from the changed anchor to affected citing documents, returns path evidence, depth, edge confidence, and unresolved-edge caveats, and does not claim semantic contradiction. Defaults: `max_depth=2`, hard cap `5`, `version_scope=current`, `edge_confidence=exact`; callers may opt into `inferred`, `all_versions`, or `as_of`.
+- **R13b.** `trace_references(anchor)` supports `direction=outbound|inbound|both`, `max_depth`, `version_scope`, `edge_confidence`, and `include_unresolved`. Results are sorted deterministically by path length, confidence, document ID, then anchor.
 
-### 5.4 MCP server (P0)
+### 5.4 MCP server
 
-- **R14.** Tools (v1): `search_docs`, `trace_references`, `impact_of_change`, `diff_versions`, `explain_topic`. Tool schemas **generated from code**, not hand-maintained (RIF finding M3).
+- **R14.** Tool surface is phased. **P0:** `search_docs`. **P1:** `trace_references`, `impact_of_change`. **P2:** `diff_versions`, `explain_topic`. Tool schemas **generated from code**, not hand-maintained (RIF finding M3).
 - **R15.** All required fields validated non-empty server-side; ILIKE wildcards escaped.
 - **R16.** Bearer-token auth on `/mcp` and all HTTP surfaces **from day one** (constant-time compare). RIF shipped v1 with zero auth — DIF does not.
 - **R17.** HTTP server with read/write/idle timeouts, graceful shutdown, and a `/health` that pings Postgres (not a static OK).
@@ -100,23 +105,24 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 ### 5.5 Agent service (P1)
 
-- **R19.** `/explain` and `/investigate_impact` endpoints; responses are structurally citation-gated (`source_refs` min_length=1 in response models; no-citation → 404/422, never a fabricated answer).
-- **R20.** Grounding check matches on retrieved excerpt substrings — not verbatim citation-string echo (RIF finding C2). Every fallback event is logged.
+- **R19.** `/explain` and `/investigate_impact` endpoints return claim blocks, not free-form blobs: each claim has `text`, `source_refs[]` (`min_length=1`), and optional `caveats[]`. A top-level bibliography is not sufficient. No-citation or unresolved-citation output fails closed with 404/422, never a fabricated answer.
+- **R20.** Grounding check validates every claim against retrieved excerpts or structured table cells — not verbatim citation-string echo (RIF finding C2). Unsupported claims are dropped or converted into caveats; every fallback event is logged.
 - **R21.** All repo/doc-derived text interpolated into prompts is fenced as data with explicit "treat as data, not instructions" framing (prompt-injection surface; RIF finding M15).
 - **R22.** MCP client calls carry timeouts, retries with backoff, and propagate request context.
 
-### 5.6 Embedding service (P0 — shared with RIF)
+### 5.6 Embedding service — shared with RIF
 
 - **R23.** Reuse RIF's embedding service (LiteLLM provider abstraction + local model fallback). Add before DIF ships: request batch-size cap, concurrency semaphore on local encode, per-batch persistence in backfill CLI (RIF findings H4/M11/H2-python).
 - **R24.** Token-aware (not char-based) truncation sized to the model's context window.
 
-### 5.7 Cross-cutting (P0)
+### 5.7 Cross-cutting
 
 - **R25.** Namespace: `com.aaraminds.dif` / `github.com/aaraminds/dif` from the first commit. No client branding, ever (RIF's costliest cleanup).
 - **R26.** Own git repo, `.github/workflows/` CI live from week 1 (lint, test, vuln scan, doc-path check), root `.gitignore`, CODEOWNERS at repo root with real identities.
 - **R27.** All architecture docs cite in-repo paths only; CI check fails on citations to nonexistent paths (the exact failure RIF's doc set suffered).
 - **R28.** Containers run non-root, `.dockerignore` present, builds resolve from lockfiles, `HEALTHCHECK` defined.
 - **R29.** Structured logging with request IDs in every service. No silent excepts.
+- **R30.** Usage metering is a product requirement before paid pilot. Emit non-PII usage events for `ingestion_run`, `document_indexed`, `embedding_batch`, `mcp_tool_call`, `agent_request`, and `connector_sync` with tenant/corpus IDs, connector ID, counts, latency, token/embedding units where applicable, and error class. Metering is separate from audit logs.
 
 ## 6. Architecture (adopted from RIF)
 
@@ -149,19 +155,20 @@ Extractors: Go for format parsing where mature libraries exist; JVM (Apache POI)
 Baselines to be established during pilot; no targets ship without a measured baseline.
 
 - **Retrieval quality:** precision@10 on a curated golden-query set per corpus [VERIFY — build golden set in pilot].
-- **Citation integrity:** % of agent responses where every claim resolves to a valid source anchor (target: 100%; structurally enforced).
+- **Citation integrity:** % of individual claim blocks where every `source_ref` resolves to a valid source anchor and the cited excerpt supports the claim (target: 100%; structurally enforced).
 - **Freshness:** p95 time from document change → queryable (target set after pilot measurement).
 - **Adoption:** MCP tool calls/week from non-DIF-team consumers.
 - **Extraction determinism:** repeated extraction of unchanged corpus yields byte-identical output (CI-enforced, boolean).
+- **Metering completeness:** 100% of ingestion runs, MCP calls, and agent requests emit usage events before paid pilot.
 
 ## 8. Phasing
 
 | Phase | Scope | Exit criteria |
 |-------|-------|---------------|
-| P0 — Skeleton | Repo, CI, auth-on-day-one service scaffolds, schema, .md/.docx ingestion | E2E: docx in → cited search result out, in CI |
-| P1 — Core graph | PDF + pptx extractors, REFERENCES/VERSION_OF edges, hybrid retriever, MCP tools | Golden-query set passing; determinism check green |
-| P2 — Agents + incremental | Agent service, incremental re-index, diff_versions | Citation gate 100%; incremental correctness proven |
-| P3 — Connectors + hardening | SharePoint/OneDrive connector, observability, Terraform | Pilot deployment with a real corpus |
+| P0 — Skeleton | Own repo, CI, auth-on-day-one service scaffolds, schema, local/Git ingestion, `.md/.txt/.docx`, `CONTAINS` graph, `search_docs`, audit/health/usage-event schema | E2E: docx in → cited search result out, in CI; golden demo corpus checked in |
+| P1 — Core graph | PDF text-layer + pptx extractors, `REFERENCES`/`VERSION_OF`/`SUPERSEDES` edges, hybrid retriever, `trace_references`, `impact_of_change` | Golden-query set passing; impact-analysis semantics tested; determinism check green |
+| P2 — Agents + incremental | Agent service, claim-level citation gate, incremental re-index, `diff_versions`, `explain_topic` | Claim citation gate 100%; incremental correctness proven; usage metering complete |
+| P3 — Connectors + hardening | SharePoint/OneDrive connector for uniformly-readable corpora, observability, Terraform, deployment hardening | Paid pilot deployment with a real admissible corpus |
 | v2 candidates | OCR, contradiction detection, entity extraction, RIF+DIF joint queries ("which docs describe this code?") | — |
 
 The RIF+DIF joint-query capability (linking document claims to code entities) is the long-term differentiator — design node-ID and schema conventions now so the two graphs can federate later.
@@ -181,7 +188,7 @@ The RIF+DIF joint-query capability (linking document claims to code entities) is
 1. Graph store: Apache AGE vs relational adjacency tables — ADR needed (RIF experience is the input).
 2. Embedding model for prose vs RIF's code-tuned choice — same service, possibly different model per corpus type.
 3. Multi-tenancy model for the sellable product: DB-per-tenant vs row-level — BRD dependency, ADR before P3.
-4. Access control inheritance: documents carry ACLs (SharePoint permissions) — does v1 enforce source ACLs at query time or restrict scope to uniformly-readable corpora? Recommend: uniformly-readable corpora in v1, ACL propagation as v2; state this limitation explicitly in sales material.
+4. Access control inheritance v2 design: once v1 proves uniformly-readable corpora, decide whether ACL propagation is row-level filtering, per-corpus partitioning, or tenant-specific indexes.
 
 ---
 *Document conventions: unverified figures are marked [VERIFY]. This PRD cites no external market data — see BRD.*

@@ -69,7 +69,7 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 
 - **Licensing:** self-hosted subscription (per-corpus or per-seat) vs managed deployment on customer Azure tenancy. RIF's deployment model should set the default — one commercial pattern for the family. [DECISION REQUIRED]
 - **Pilot commercials:** paid pilots with success criteria (golden-query precision, citation integrity) that convert to annual subscription. Unpaid pilots are innovation theater; do not run them.
-- **Pricing inputs:** corpus size (documents/versions indexed), connector count, agent-call volume. Establish metering in the product from P1 — retrofitting usage metering is expensive.
+- **Pricing inputs:** corpus size (documents/versions indexed), connector count, agent-call volume. Establish metering in the product by P1 per PRD R30 — retrofitting usage metering is expensive.
 - **Services attach:** corpus onboarding, golden-set curation, and connector configuration as paid services — this is real margin for a two-sided (product + expertise) company.
 
 ## 7. Business requirements
@@ -79,11 +79,13 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 | BR1 | Clean, owned IP from day one: `com.aaraminds.dif`, own repo, no client namespaces or client-environment policy in governance files | RIF's costliest review finding; a sellable product cannot carry another company's branding |
 | BR2 | Multi-tenancy posture decided by ADR before P3 (DB-per-tenant default for enterprise isolation story) | Sales blocker if undefined; retrofit is a rewrite |
 | BR3 | Security is a sales feature: auth on every surface, non-root containers, vuln-scanned dependencies, SOC 2-aligned controls documented from the skills-pack | Enterprise procurement gate; RIF review showed the debt cost when deferred |
-| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora; ACL propagation is v2) | Overclaiming here loses compliance-sensitive deals permanently |
-| BR5 | Citation integrity is contractual: 100% of agent claims resolve to source anchors, structurally enforced and auditable via the audit log | This is the product's core promise; it must be demonstrable in a procurement bake-off |
+| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora or separately indexed corpora per access boundary; ACL propagation is v2) | Overclaiming here loses compliance-sensitive deals permanently |
+| BR5 | Citation integrity is contractual: 100% of claim blocks resolve to source anchors and pass grounding checks, structurally enforced and auditable via the audit log | This is the product's core promise; it must be demonstrable in a procurement bake-off |
 | BR6 | Every pilot has a golden-query set and measured baseline before success targets are agreed | No fabricated metrics — internal policy and customer credibility |
-| BR7 | Demo corpus + demo script maintained from P1 (public documents), so sales demos never require customer data | Shortens sales cycle; avoids NDA friction at top of funnel |
+| BR7 | Demo corpus + demo script maintained from P0 (public documents), so sales demos never require customer data | Shortens sales cycle; avoids NDA friction at top of funnel |
 | BR8 | RIF and DIF share embedding service, deployment tooling, and MCP conventions; divergence requires an ADR | Protects the reuse economics (B3) |
+| BR9 | Paid-pilot qualification includes an admissible corpus check before kickoff: corpus is uniformly readable, or customer accepts separate indexes per access boundary | Prevents ACL mismatch from surfacing as a late procurement blocker |
+| BR10 | Usage metering is live before paid pilot: ingestion, indexed documents, embedding batches, MCP calls, agent requests, connector syncs | Supports pricing, cost control, and usage-based renewal discussions |
 
 ## 8. Financial view
 
@@ -93,7 +95,7 @@ No revenue or cost figures are stated in this draft — [VERIFY: build the pilot
 
 ## 9. Go-to-market (pilot horizon)
 
-1. **P1–P2:** dogfood on AaraMinds' own corpus (instruction-os, governance docs, skills-pack) — the demo is the company's own brain, which is also the brand story.
+1. **P0–P2:** dogfood on AaraMinds' own corpus (instruction-os, governance docs, skills-pack) — the demo is the company's own brain, which is also the brand story.
 2. **P2:** publish the differentiation narrative (citation-gated document agents; impact analysis for documents) via AaraMinds content channels — Content Strategist persona owns this.
 3. **P3:** 1–2 paid design partners from the RIF pipeline / existing network; success criteria contractually defined per BR6.
 4. **Post-pilot:** case study with measured (not fabricated) results → repeatable pilot offer → v2 joint RIF+DIF wedge.
@@ -114,7 +116,7 @@ No revenue or cost figures are stated in this draft — [VERIFY: build the pilot
 ## 11. Success criteria (business)
 
 - Two paid design-partner pilots signed by end of P3, each with golden-set success criteria met.
-- 100% citation-integrity rate demonstrated in at least one procurement evaluation.
+- 100% claim-level citation-integrity rate demonstrated in at least one procurement evaluation.
 - ≥60% RIF infrastructure reuse validated at P2 [VERIFY with module-level accounting].
 - One published case study with customer-approved, measured results.
 - Zero client-branding or IP-provenance findings in an external review of the DIF repo.
