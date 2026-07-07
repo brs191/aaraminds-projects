@@ -210,15 +210,26 @@ func evidenceQuality(in Input) int {
 }
 
 // Progress reports target progress in [0,1]; ok=false when not computable.
+// Non-finite inputs (NaN/Inf, e.g. from a malformed metric source) are not
+// computable — they must never reach the score, where NaN passes the range
+// clamps and produces a garbage MinInt result.
 func Progress(in Input) (float64, bool) {
 	if in.BaselineValue == nil || in.CurrentValue == nil || in.TargetValue == nil {
 		return 0, false
 	}
-	den := *in.TargetValue - *in.BaselineValue
+	b, c, t := *in.BaselineValue, *in.CurrentValue, *in.TargetValue
+	if math.IsNaN(b) || math.IsNaN(c) || math.IsNaN(t) ||
+		math.IsInf(b, 0) || math.IsInf(c, 0) || math.IsInf(t, 0) {
+		return 0, false
+	}
+	den := t - b
 	if den == 0 {
 		return 0, false
 	}
-	p := (*in.CurrentValue - *in.BaselineValue) / den
+	p := (c - b) / den
+	if p != p { // NaN guard on the quotient
+		return 0, false
+	}
 	if p < 0 {
 		p = 0
 	}

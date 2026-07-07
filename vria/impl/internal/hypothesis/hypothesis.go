@@ -130,21 +130,40 @@ func missingRequired(h Hypothesis) []string {
 	return m
 }
 
-// CreateDraft validates a proposed change set. Disallowed fields reject the
-// draft outright; the original record is never touched (09 §3.4 failure rule).
+// numberFields must arrive as JSON numbers; a mistyped value (e.g. a string
+// "42") would otherwise pass field-name validation, commit, and then be
+// silently dropped by applyChanges' type assertion — a data-loss trap.
+var numberFields = map[string]bool{"baseline_value": true, "target_value": true}
+
+// CreateDraft validates a proposed change set. Disallowed fields and type
+// mismatches reject the draft outright; the original record is never touched
+// (09 §3.4 failure rule). Deep-copies the proposed map so a caller mutating
+// it after the call cannot bypass validation or race the commit read.
 func (s *Service) CreateDraft(useCaseID, actorID string, proposed map[string]interface{}) (Draft, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	cp := make(map[string]interface{}, len(proposed))
+	for k, v := range proposed {
+		cp[k] = v
+	}
 	d := Draft{
-		DraftID: s.nextID("drf"), UseCaseID: useCaseID, Proposed: proposed,
+		DraftID: s.nextID("drf"), UseCaseID: useCaseID, Proposed: cp,
 		RequiresApproval: true, CreatedBy: actorID, CreatedAt: time.Now().UTC(),
 		ValidationStatus: "Valid",
 	}
-	for field := range proposed {
+	for field, val := range cp {
 		if !allowedFields[field] {
 			d.ValidationStatus = "Invalid"
 			d.ValidationErrors = append(d.ValidationErrors,
 				fmt.Sprintf("%s: %v", ErrDisallowedField, field))
+			continue
+		}
+		if numberFields[field] {
+			if _, ok := val.(float64); !ok && val != nil {
+				d.ValidationStatus = "Invalid"
+				d.ValidationErrors = append(d.ValidationErrors,
+					fmt.Sprintf("%s must be a number, got %T", field, val))
+			}
 		}
 	}
 	s.drafts[d.DraftID] = &d
@@ -165,7 +184,8 @@ func (s *Service) SubmitForApproval(draftID, requestedBy string) (approval.Reque
 	}
 	req := approval.Request{
 		ApprovalID: s.nextID("apr"), ActionType: "RegistryUpdate",
-		TargetID: draftID, State: enums.ReqSubmitted,
+		TargetID: draftID, TargetType: "UseCase",
+		RequestedBy: requestedBy, State: enums.ReqSubmitted,
 	}
 	s.requests[req.ApprovalID] = &req
 	s.audit("approval.submitted", "ApprovalRequest", req.ApprovalID, requestedBy)
@@ -180,6 +200,12 @@ func (s *Service) Decide(approvalID, action, decidedBy string) (approval.Request
 	req, ok := s.requests[approvalID]
 	if !ok {
 		return approval.Request{}, ErrNotFound
+	}
+	// Separation of duties: the requester cannot approve their own request
+	// (contracts/18 §3). Checked before the transition so a self-approval
+	// attempt leaves the request untouched.
+	if err := approval.CheckApprover(req, action, decidedBy); err != nil {
+		return *req, err
 	}
 	next, err := approval.RequestTransition(req.State, action)
 	if err != nil {

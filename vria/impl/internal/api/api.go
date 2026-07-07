@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aaraminds/vria/internal/approval"
 	"github.com/aaraminds/vria/internal/assessment"
 	"github.com/aaraminds/vria/internal/enums"
 	"github.com/aaraminds/vria/internal/hypothesis"
@@ -102,7 +103,28 @@ func NewServer(store registry.Store, opts ...Option) *Server {
 	s.mux.HandleFunc("/api/v1/assessments/", s.handleAssessmentByID)
 	s.mux.HandleFunc("/api/v1/scorecards", s.handleScorecards)
 	s.mux.HandleFunc("/api/v1/scorecards/", s.handleScorecardAction)
+	s.mux.HandleFunc("/api/v1/decision-log", s.handleDecisionLog)
 	return s
+}
+
+// GET /api/v1/decision-log — read the append-only decision log (contracts/21
+// §2a). Role-filtered at the gateway; read-only here.
+func (s *Server) handleDecisionLog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", r.Method, "NoActionTaken")
+		return
+	}
+	records := s.sc.DecisionRecords()
+	if target := r.URL.Query().Get("target_id"); target != "" {
+		filtered := records[:0:0]
+		for _, rec := range records {
+			if rec.TargetID == target {
+				filtered = append(filtered, rec)
+			}
+		}
+		records = filtered
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"decision_records": records})
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.mux.ServeHTTP(w, r) }
@@ -242,9 +264,13 @@ func (s *Server) handleDraftUpdate(w http.ResponseWriter, r *http.Request, id st
 
 type decisionRequest struct {
 	Decision string `json:"decision"` // approve | reject | request_changes
-	DraftID  string `json:"draft_id"` // required for approve: commit target
 	Comments string `json:"comments"`
 }
+
+// decisionVerbs are the only transitions an approver may drive through this
+// endpoint (contracts/21: "Approver only"). Requester-only verbs (resubmit,
+// withdraw) must not be reachable here.
+var decisionVerbs = map[string]bool{"approve": true, "reject": true, "request_changes": true}
 
 // POST /api/v1/approvals/{id}/decision — approve_or_reject_draft (18 §4).
 // decided_by is always the authenticated principal, never payload data.
@@ -265,23 +291,33 @@ func (s *Server) handleApprovalDecision(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, http.StatusBadRequest, "INVALID_PAYLOAD", err.Error(), "NoActionTaken")
 		return
 	}
+	if !decisionVerbs[req.Decision] {
+		writeErr(w, http.StatusBadRequest, "INVALID_DECISION",
+			"decision must be approve, reject, or request_changes", "NoActionTaken")
+		return
+	}
 	ar, err := s.hyp.Decide(parts[0], req.Decision, actor)
 	if errors.Is(err, hypothesis.ErrNotFound) {
 		// Not a registry-update approval: try the scorecard lifecycle.
 		ar, err = s.sc.Decide(parts[0], req.Decision, actor)
 	}
-	if errors.Is(err, scorecard.ErrNotFound) {
+	switch {
+	case errors.Is(err, scorecard.ErrNotFound):
 		writeErr(w, http.StatusNotFound, "NOT_FOUND", parts[0], "NoActionTaken")
 		return
-	}
-	if err != nil {
+	case errors.Is(err, approval.ErrSelfApproval), errors.Is(err, approval.ErrNotDesignatedApprover):
+		writeErr(w, http.StatusForbidden, "SEPARATION_OF_DUTIES", err.Error(), "NoActionTaken")
+		return
+	case err != nil:
 		writeErr(w, http.StatusConflict, "INVALID_TRANSITION", err.Error(), "NoActionTaken")
 		return
 	}
 	resp := map[string]interface{}{"approval_id": ar.ApprovalID, "approval_state": ar.State}
-	// Approved RegistryUpdate decisions commit the draft in the same action.
-	if req.Decision == "approve" && req.DraftID != "" {
-		h, err := s.hyp.Commit(req.DraftID, ar.ApprovalID, actor)
+	// An approved RegistryUpdate commits its draft in the same action. The
+	// commit target is the request's own TargetID — never trusted from the
+	// payload — so a valid approval can always be committed (no wedge).
+	if req.Decision == "approve" && ar.ActionType == "RegistryUpdate" {
+		h, err := s.hyp.Commit(ar.TargetID, ar.ApprovalID, actor)
 		if err != nil {
 			writeErr(w, http.StatusConflict, "COMMIT_FAILED", err.Error(), "NoActionTaken")
 			return
@@ -343,6 +379,9 @@ func (s *Server) handleBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, registry.ErrDuplicateUseCase):
 		writeErr(w, http.StatusConflict, "DUPLICATE_USE_CASE", err.Error(), "NoActionTaken")
+		return
+	case errors.Is(err, registry.ErrNothingToPromote):
+		writeErr(w, http.StatusUnprocessableEntity, "NOTHING_TO_PROMOTE", err.Error(), "NoActionTaken")
 		return
 	case err != nil:
 		writeErr(w, http.StatusInternalServerError, "PROMOTION_FAILED", err.Error(), "NoActionTaken")

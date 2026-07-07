@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -9,15 +10,19 @@ import (
 // staging never auto-promotes; promotion is an explicit, audited action.
 type Service struct {
 	store Store
-	newID func(prefix string) string
+	seq   int64
 }
 
 func NewService(store Store) *Service {
-	n := 0
-	return &Service{store: store, newID: func(p string) string {
-		n++
-		return fmt.Sprintf("%s-%06d", p, n)
-	}}
+	return &Service{store: store}
+}
+
+// newID is safe under net/http's goroutine-per-request concurrency: the
+// counter is bumped atomically so concurrent imports cannot collide on a
+// batch ID (which would silently overwrite a staged batch).
+func (s *Service) newID(prefix string) string {
+	n := atomic.AddInt64(&s.seq, 1)
+	return fmt.Sprintf("%s-%06d", prefix, n)
 }
 
 // ImportResult mirrors the load_use_cases output payload.

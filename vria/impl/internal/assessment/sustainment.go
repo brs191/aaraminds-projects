@@ -6,6 +6,7 @@
 package assessment
 
 import (
+	"sync"
 	"time"
 
 	"github.com/aaraminds/vria/internal/enums"
@@ -37,6 +38,7 @@ type CheckOutcome struct {
 // It holds no goroutines: callers drive it with RunDue(now), which keeps
 // the whole flow deterministic and testable.
 type Scheduler struct {
+	mu      sync.Mutex
 	svc     *Service
 	window  time.Duration
 	notify  Notifier
@@ -67,6 +69,10 @@ func NewScheduler(svc *Service, window time.Duration, notify Notifier) *Schedule
 //     the regressed sustainment status to ValueState Regressed and
 //     recommendation Fix. Prior assessments are never mutated.
 func (sch *Scheduler) RunDue(now time.Time) []CheckOutcome {
+	// Serialize the whole sweep: overlapping timer invocations must not race
+	// the nextDue map or interleave a use case's check/regenerate sequence.
+	sch.mu.Lock()
+	defer sch.mu.Unlock()
 	var out []CheckOutcome
 	for _, uc := range sch.svc.useCases() {
 		latest, ok := sch.svc.Latest(uc)
@@ -86,7 +92,7 @@ func (sch *Scheduler) RunDue(now time.Time) []CheckOutcome {
 			chk = scoring.SustainmentCheck{}
 		}
 		status := sch.svc.appendCheck(uc, chk)
-		sch.nextDue[uc] = now.Add(sch.window)
+		sch.nextDue[uc] = sch.advance(uc, now)
 		oc := CheckOutcome{
 			UseCaseID:   uc,
 			Status:      status,
@@ -106,8 +112,25 @@ func (sch *Scheduler) RunDue(now time.Time) []CheckOutcome {
 	return out
 }
 
+// advance computes the next due time anchored to the prior schedule so a
+// late RunDue does not let the cadence drift forward from "now" (contracts/20
+// §7 checks once per reporting window). Assumes sch.mu is held.
+func (sch *Scheduler) advance(uc string, now time.Time) time.Time {
+	prev, seen := sch.nextDue[uc]
+	if !seen || prev.IsZero() {
+		return now.Add(sch.window)
+	}
+	next := prev.Add(sch.window)
+	for !next.After(now) {
+		next = next.Add(sch.window)
+	}
+	return next
+}
+
 // NextCheckAt reports when the next check for a use case is due; zero time
 // means no check has run yet (due immediately).
 func (sch *Scheduler) NextCheckAt(useCaseID string) time.Time {
+	sch.mu.Lock()
+	defer sch.mu.Unlock()
 	return sch.nextDue[useCaseID]
 }

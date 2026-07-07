@@ -18,9 +18,14 @@ import (
 	"github.com/aaraminds/vria/internal/scoring"
 )
 
-// ScoringRuleVersion pins every persisted assessment to the rule set that
-// produced it (contracts/17 §7 scoring_rule_version, contracts/21 §4).
-const ScoringRuleVersion = "v1.3"
+// Version stamps pinned on every persisted assessment (contracts/17 §7,
+// contracts/21 §4). ModelVersion/PromptVersion make an assessment reproducible
+// and let a regression be attributed to a rules, model, or prompt change.
+const (
+	ScoringRuleVersion = "v1.3"
+	ModelVersion       = "deterministic-engine-v1.3" // no LLM in scoring; pinned for audit
+	PromptVersion      = "vria-prompt-v1.0"          // agentprompt/vria_system_prompt_v1.md
+)
 
 var ErrNotFound = errors.New("not found")
 
@@ -73,6 +78,8 @@ type UseCaseContext struct {
 	DeliveryComplete         bool
 	ApprovalBoundaryRecorded bool
 	PolicyIssueUnresolved    bool
+	DeliveryOwnerNamed       bool // Gate A §2 delivery-owner component
+	DependenciesIdentified   bool // Gate A §2 dependencies component
 }
 
 // UseCaseLookup resolves registry context; ok=false when the use case is
@@ -91,14 +98,23 @@ type Assessment struct {
 	ValueState         enums.ValueState        `json:"value_state"`
 	RealizationScore   int                     `json:"realization_score"`
 	PreCapScore        int                     `json:"pre_cap_score"`
+	IntakeScore        int                     `json:"intake_score"` // Gate A readiness (contracts/20 §2)
 	ScoreBreakdown     scoring.Breakdown       `json:"score_breakdown"`
 	AppliedCaps        []string                `json:"applied_caps"`
 	Recommendation     enums.Recommendation    `json:"recommendation"`
 	Confidence         enums.Confidence        `json:"confidence"`
+	AttributionMethod  enums.AttributionMethod `json:"attribution_method"`
+	KnownConfounders   []string                `json:"known_confounders"`
+	NetValueCheck      enums.NetValueCheck     `json:"net_value_check"`
 	SustainmentStatus  enums.SustainmentStatus `json:"sustainment_status"`
+	SustainmentThresh  *float64                `json:"sustainment_threshold,omitempty"`
+	EvidenceSourceIDs  []string                `json:"evidence_source_ids"`
 	MissingEvidence    []string                `json:"missing_evidence"`
+	Rationale          string                  `json:"rationale"`
 	ApprovalState      enums.ArtifactState     `json:"approval_state"`
 	ScoringRuleVersion string                  `json:"scoring_rule_version"`
+	ModelVersion       string                  `json:"model_version"`
+	PromptVersion      string                  `json:"prompt_version"`
 	CreatedAt          time.Time               `json:"created_at"`
 }
 
@@ -172,7 +188,8 @@ func (s *Service) GenerateAssessment(useCaseID, actorID string) (Assessment, err
 		}
 	}
 	sus := scoring.EvaluateSustainment(s.checks[useCaseID])
-	r := scoring.Score(buildInput(h, ctx, snap, sus))
+	in := buildInput(h, ctx, snap, sus)
+	r := scoring.Score(in)
 
 	a := &Assessment{
 		AssessmentID:       s.nextID("asm"),
@@ -181,15 +198,26 @@ func (s *Service) GenerateAssessment(useCaseID, actorID string) (Assessment, err
 		ValueState:         r.ValueState,
 		RealizationScore:   r.Score,
 		PreCapScore:        r.PreCapScore,
+		IntakeScore:        scoring.GateAScore(gateAFrom(h, ctx, snap)),
 		ScoreBreakdown:     r.Breakdown,
 		AppliedCaps:        r.AppliedCaps,
 		Recommendation:     r.Recommendation,
 		Confidence:         r.Confidence,
+		AttributionMethod:  h.AttributionMethod,
+		KnownConfounders:   append([]string(nil), h.KnownConfounders...),
+		NetValueCheck:      h.NetValueCheck,
 		SustainmentStatus:  sus,
+		EvidenceSourceIDs:  append([]string(nil), snap.EvidenceSourceIDs...),
 		MissingEvidence:    r.MissingEvidence,
+		Rationale:          rationale(r, sus),
 		ApprovalState:      enums.ArtDraft,
 		ScoringRuleVersion: ScoringRuleVersion,
+		ModelVersion:       ModelVersion,
+		PromptVersion:      PromptVersion,
 		CreatedAt:          s.now(),
+	}
+	if t := s.sustainmentThreshold(useCaseID); t != nil {
+		a.SustainmentThresh = t
 	}
 	s.byID[a.AssessmentID] = a
 	if len(s.byUC[useCaseID]) == 0 {
@@ -198,6 +226,62 @@ func (s *Service) GenerateAssessment(useCaseID, actorID string) (Assessment, err
 	s.byUC[useCaseID] = append(s.byUC[useCaseID], a.AssessmentID)
 	s.audit("assessment.generated", "ValueAssessment", a.AssessmentID, actorID)
 	return *a, nil
+}
+
+// gateAFrom derives the Gate A intake-readiness signals (contracts/20 §2)
+// from the assembled record. "Present and declared", not numeric value.
+func gateAFrom(h hypothesis.Hypothesis, ctx UseCaseContext, snap MetricSnapshot) scoring.GateAInput {
+	return scoring.GateAInput{
+		ValueOwnerNamed:        h.ValueOwner != "",
+		DeliveryOwnerNamed:     ctx.DeliveryOwnerNamed,
+		SponsorResolved:        ctx.Sponsor != "",
+		ScopeAndTierClear:      ctx.Tier != "" && ctx.Tier != enums.TierUnclassified && h.BusinessObjective != "",
+		ExpectedBenefitStated:  h.ExpectedBenefit != "" || h.BusinessObjective != "",
+		PrimaryMetricNamed:     h.PrimaryMetricID != "",
+		BaselineVerified:       h.BaselineValue != nil && snap.EvidenceAuthority == enums.Authoritative,
+		BaselinePlanApproved:   snap.BaselinePlanApproved,
+		TargetAndWindowDefined: h.TargetValue != nil,
+		EvidenceSourceNamed:    snap.HasEvidenceSource,
+		ApprovalBoundaryLogged: ctx.ApprovalBoundaryRecorded,
+		DependenciesIdentified: ctx.DependenciesIdentified,
+	}
+}
+
+// rationale renders a short, deterministic explanation string for the
+// assessment (contracts/17 §7 rationale). The model may elaborate on this in
+// prose, but the persisted rationale is rule-derived, never invented.
+func rationale(r scoring.Result, sus enums.SustainmentStatus) string {
+	msg := "state=" + string(r.ValueState) +
+		"; recommendation=" + string(r.Recommendation) +
+		"; confidence=" + string(r.Confidence)
+	if len(r.AppliedCaps) > 0 {
+		msg += "; caps="
+		for i, c := range r.AppliedCaps {
+			if i > 0 {
+				msg += ","
+			}
+			msg += c
+		}
+	}
+	if sus != enums.SustainNotStarted {
+		msg += "; sustainment=" + string(sus)
+	}
+	return msg
+}
+
+// sustainmentThreshold returns the effective threshold recorded on the latest
+// check for this use case, if any. Assumes s.mu is held.
+func (s *Service) sustainmentThreshold(useCaseID string) *float64 {
+	hist := s.checks[useCaseID]
+	if len(hist) == 0 {
+		return nil
+	}
+	th := hist[len(hist)-1].Threshold
+	if th == 0 {
+		return nil // default (contracts/20 §7 80%); nil means "not overridden"
+	}
+	v := th
+	return &v
 }
 
 // buildInput maps hypothesis + registry context + metric snapshot onto the

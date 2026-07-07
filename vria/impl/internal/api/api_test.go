@@ -208,3 +208,87 @@ func TestHypothesisWorkflowOverHTTP(t *testing.T) {
 		t.Fatalf("unexpected gaps: %v", missing)
 	}
 }
+
+// Fix #2 over HTTP: self-approval is rejected with 403 and no commit.
+func TestSelfApprovalRejectedHTTP(t *testing.T) {
+	srv := NewServer(registry.NewMemStore())
+	rec := doJSON(t, srv, http.MethodPost, "/api/v1/use-cases/UC-SA/draft-update", "mallory",
+		map[string]interface{}{
+			"proposed_changes": map[string]interface{}{"value_owner": "mallory", "expected_benefit": "x"},
+			"submit":           true,
+		})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("draft: %d %s", rec.Code, rec.Body.String())
+	}
+	var draft map[string]interface{}
+	json.Unmarshal(rec.Body.Bytes(), &draft)
+	approvalID, _ := draft["approval_id"].(string)
+	// Same principal approves their own request.
+	rec = doJSON(t, srv, http.MethodPost, "/api/v1/approvals/"+approvalID+"/decision", "mallory",
+		map[string]interface{}{"decision": "approve"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("self-approval code = %d, want 403", rec.Code)
+	}
+	var env ErrorEnvelope
+	json.Unmarshal(rec.Body.Bytes(), &env)
+	if env.ErrorCode != "SEPARATION_OF_DUTIES" {
+		t.Fatalf("error = %s, want SEPARATION_OF_DUTIES", env.ErrorCode)
+	}
+	// The hypothesis must not have been committed.
+	rec = doJSON(t, srv, http.MethodGet, "/api/v1/use-cases/UC-SA/hypothesis", "viewer", nil)
+	if rec.Code == http.StatusOK {
+		var got map[string]interface{}
+		json.Unmarshal(rec.Body.Bytes(), &got)
+		if got["approval_state"] == "Approved" {
+			t.Fatal("self-approval must not commit the hypothesis")
+		}
+	}
+}
+
+// Fix #5 over HTTP: requester-only verbs are rejected at the decision endpoint.
+func TestDecisionVerbWhitelistHTTP(t *testing.T) {
+	srv := NewServer(registry.NewMemStore())
+	rec := doJSON(t, srv, http.MethodPost, "/api/v1/use-cases/UC-VB/draft-update", "owner",
+		map[string]interface{}{
+			"proposed_changes": map[string]interface{}{"value_owner": "owner", "expected_benefit": "x"},
+			"submit":           true,
+		})
+	var draft map[string]interface{}
+	json.Unmarshal(rec.Body.Bytes(), &draft)
+	approvalID, _ := draft["approval_id"].(string)
+	rec = doJSON(t, srv, http.MethodPost, "/api/v1/approvals/"+approvalID+"/decision", "owner",
+		map[string]interface{}{"decision": "withdraw"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("withdraw via decision endpoint code = %d, want 400", rec.Code)
+	}
+}
+
+// Fix #13: a mistyped numeric field invalidates the draft instead of silently
+// dropping on commit.
+func TestTypeMismatchInvalidatesDraftHTTP(t *testing.T) {
+	srv := NewServer(registry.NewMemStore())
+	rec := doJSON(t, srv, http.MethodPost, "/api/v1/use-cases/UC-TY/draft-update", "owner",
+		map[string]interface{}{
+			"proposed_changes": map[string]interface{}{"baseline_value": "not-a-number"},
+		})
+	var draft map[string]interface{}
+	json.Unmarshal(rec.Body.Bytes(), &draft)
+	if draft["validation_status"] != "Invalid" {
+		t.Fatalf("mistyped baseline_value must invalidate draft: %v", draft)
+	}
+}
+
+// Fix #12: an all-rejected batch does not report success.
+func TestAllRejectedBatchHTTP(t *testing.T) {
+	srv := NewServer(registry.NewMemStore())
+	rec := doJSON(t, srv, http.MethodPost, "/api/v1/use-cases/import", "lead",
+		importRequest{SourceID: "s", Rows: []map[string]string{
+			{"use_case_id": "UC-1", "name": "A", "tier": "Tool", "delivery_status": "PTB/PTO mixed"},
+		}})
+	var res registry.ImportResult
+	json.Unmarshal(rec.Body.Bytes(), &res)
+	rec = doJSON(t, srv, http.MethodPost, "/api/v1/import-batches/"+res.ImportBatchID+"/promote", "lead", nil)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("all-rejected promote code = %d, want 422", rec.Code)
+	}
+}

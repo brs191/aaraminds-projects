@@ -173,7 +173,8 @@ func (s *Service) SubmitForApproval(scorecardID, actionType, requestedBy string)
 	// routes by ID across both services.
 	req := &approval.Request{
 		ApprovalID: s.nextID("scapr"), ActionType: actionType,
-		TargetID: scorecardID, State: enums.ReqSubmitted,
+		TargetID: scorecardID, TargetType: "Scorecard",
+		RequestedBy: requestedBy, State: enums.ReqSubmitted,
 	}
 	s.requests[req.ApprovalID] = req
 	s.audit("approval.submitted", "ApprovalRequest", req.ApprovalID, requestedBy)
@@ -190,6 +191,11 @@ func (s *Service) Decide(approvalID, action, decidedBy string) (approval.Request
 	req, ok := s.requests[approvalID]
 	if !ok {
 		return approval.Request{}, ErrNotFound
+	}
+	// Separation of duties: the requester cannot approve their own scorecard
+	// action (contracts/18 §3).
+	if err := approval.CheckApprover(req, action, decidedBy); err != nil {
+		return *req, err
 	}
 	next, err := approval.RequestTransition(req.State, action)
 	if err != nil {
@@ -233,6 +239,7 @@ func (s *Service) Publish(scorecardID, approvalID, actorID string) (Scorecard, e
 		DecisionRecordID: s.nextID("dec"),
 		DecisionType:     ActionPublication,
 		TargetID:         scorecardID,
+		TargetType:       "Scorecard",
 		Decision:         "Approved",
 		DecidedBy:        req.DecidedBy,
 		ApprovalID:       approvalID,
@@ -277,6 +284,7 @@ func (s *Service) Supersede(oldID, replacementID, approvalID, actorID string) (S
 		DecisionRecordID: s.nextID("dec"),
 		DecisionType:     ActionSupersession,
 		TargetID:         oldID,
+		TargetType:       "Scorecard",
 		Decision:         "Approved",
 		Rationale:        "superseded by " + replacementID,
 		DecidedBy:        req.DecidedBy,
@@ -319,6 +327,7 @@ func (s *Service) Invalidate(scorecardID, approvalID, reason, actorID string) (S
 		DecisionRecordID: s.nextID("dec"),
 		DecisionType:     ActionInvalidation,
 		TargetID:         scorecardID,
+		TargetType:       "Scorecard",
 		Decision:         "Approved",
 		Rationale:        reason,
 		DecidedBy:        req.DecidedBy,

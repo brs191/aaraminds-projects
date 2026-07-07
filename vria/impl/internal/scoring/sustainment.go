@@ -23,29 +23,47 @@ func (c SustainmentCheck) Failed() bool {
 	if th == 0 {
 		th = DefaultSustainmentThreshold
 	}
-	return *c.MeasuredBenefit < th*c.TargetValue
+	if c.TargetValue == 0 {
+		// No target to sustain against: a present measurement passes.
+		return false
+	}
+	// Fail only when the ratio is clearly below threshold. The epsilon
+	// absorbs float rounding so a measurement exactly at the threshold (e.g.
+	// 0.3 against 10% of 3) is not spuriously failed.
+	const epsilon = 1e-9
+	return *c.MeasuredBenefit/c.TargetValue+epsilon < th
 }
 
 // EvaluateSustainment folds the post-Realized check history into a status:
 // first failed check → AtRisk (state stays Realized, owner notified);
 // two consecutive failures → Regressed (contracts/20 §7, GE-006).
+//
+// The status reflects the TRAILING run of checks, not the whole history: a
+// passing check after a regression clears it (recovery), so Regressed is not
+// a permanent latch. The fold does not early-return for this reason.
 func EvaluateSustainment(history []SustainmentCheck) enums.SustainmentStatus {
 	if len(history) == 0 {
 		return enums.SustainNotStarted
 	}
 	consecutive := 0
-	status := enums.SustainOk
+	regressed := false
 	for _, c := range history {
 		if c.Failed() {
 			consecutive++
 			if consecutive >= 2 {
-				return enums.SustainRegressed
+				regressed = true
 			}
-			status = enums.SustainAtRisk
 		} else {
 			consecutive = 0
-			status = enums.SustainOk
+			regressed = false // a passing check recovers the claim
 		}
 	}
-	return status
+	switch {
+	case regressed:
+		return enums.SustainRegressed
+	case consecutive == 1:
+		return enums.SustainAtRisk
+	default:
+		return enums.SustainOk
+	}
 }

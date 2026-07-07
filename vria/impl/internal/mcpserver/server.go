@@ -124,6 +124,11 @@ type errorResponse struct {
 // error response and serving continues.
 func (s *Server) Serve(r io.Reader, w io.Writer) error {
 	scanner := bufio.NewScanner(r)
+	// A single oversized request line must not kill the whole server: raise
+	// the token limit well above the default 64KB so large-but-valid payloads
+	// parse, and lines beyond even this are reported per-request below rather
+	// than terminating Serve.
+	scanner.Buffer(make([]byte, 0, 64*1024), maxRequestBytes)
 	enc := json.NewEncoder(w)
 
 	for scanner.Scan() {
@@ -133,8 +138,20 @@ func (s *Server) Serve(r io.Reader, w io.Writer) error {
 		}
 		s.handleLine(line, enc)
 	}
-	return scanner.Err()
+	if err := scanner.Err(); err == bufio.ErrTooLong {
+		// One request exceeded maxRequestBytes. Report it and keep the
+		// process alive by restarting the scan on the remaining stream.
+		_ = enc.Encode(errorResponse{Error: errorBody{Code: ErrInvalidInput,
+			Message: "request line exceeds size limit"}})
+		return s.Serve(r, w)
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
+
+// maxRequestBytes bounds a single JSON request line (10 MB).
+const maxRequestBytes = 10 * 1024 * 1024
 
 // ServeStdio is a convenience wrapper over os.Stdin / os.Stdout.
 func (s *Server) ServeStdio() error {

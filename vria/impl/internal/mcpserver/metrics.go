@@ -15,12 +15,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/aaraminds/vria/internal/enums"
 )
+
+// parseFinite parses a CSV numeric cell, rejecting blanks, non-numbers, and
+// non-finite values (NaN/Inf). An empty cell is treated as 0 only when the
+// column legitimately allows it — here every numeric column is required, so a
+// blank is an error. Threads the first error through so callers report once.
+func parseFinite(s, field, prevErr string) (float64, string) {
+	if prevErr != "" {
+		return 0, prevErr
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	if err != nil {
+		return 0, fmt.Sprintf("unparsable %s: %q", field, s)
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, fmt.Sprintf("non-finite %s: %q", field, s)
+	}
+	return v, ""
+}
 
 // MetricsConfig configures the get_metric_snapshot handler.
 type MetricsConfig struct {
@@ -201,10 +220,17 @@ func findMetricRow(path, metricID, useCaseID string, period *periodInput) (*csvM
 			freshness:    record[csvColFreshness],
 			currency:     record[csvColCurrency],
 		}
-		row.baselineVal, _ = strconv.ParseFloat(record[csvColBaselineVal], 64)
-		row.currentVal, _ = strconv.ParseFloat(record[csvColCurrentVal], 64)
-		row.targetVal, _ = strconv.ParseFloat(record[csvColTargetVal], 64)
-		row.cost, _ = strconv.ParseFloat(record[csvColCost], 64)
+		// Reject unparsable or non-finite cells rather than coercing them to
+		// 0.0 (a fabricated value — violates GE-013) or letting NaN/Inf reach
+		// the scorer, where NaN silently corrupts the score.
+		var perr string
+		row.baselineVal, perr = parseFinite(record[csvColBaselineVal], "baseline_value", perr)
+		row.currentVal, perr = parseFinite(record[csvColCurrentVal], "current_value", perr)
+		row.targetVal, perr = parseFinite(record[csvColTargetVal], "target_value", perr)
+		row.cost, perr = parseFinite(record[csvColCost], "cost", perr)
+		if perr != "" {
+			return nil, perr
+		}
 		return row, ""
 	}
 

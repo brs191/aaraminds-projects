@@ -43,3 +43,33 @@ GE-007 gate logic exact (target binding, action-type check, artifact state machi
 5. Mediums batched behind those.
 
 Full reviewer transcripts available in session; re-run `-race` suite and golden evals after each batch.
+
+---
+
+## Resolution Log (2026-07-07, same day)
+
+All Critical/High findings fixed and locked with regression tests. Full suite green under `go test -race ./...` (10/10 packages).
+
+| # | Status | Fix |
+|---|---|---|
+| 1 Scheduler race | ✅ Fixed | `sync.Mutex` on `Scheduler`; `RunDue`/`NextCheckAt` locked. Test `TestConcurrentRunDueNoRace` (8 goroutines, asserts exactly 1 check) fails without the mutex. |
+| 2 Self-approval | ✅ Fixed | `approval.Request` gained `RequestedBy`/`ApproverIDs` (+7 more §8 fields); `approval.CheckApprover` rejects requester==approver and enforces the allowlist; wired into both `Decide` methods. HTTP test `TestSelfApprovalRejectedHTTP` → 403, no commit. |
+| 3 registry newID race | ✅ Fixed | Closure replaced with `atomic.AddInt64` counter method. |
+| 4 MCP scanner kill | ✅ Fixed | `scanner.Buffer` 10MB in `server.go` + `documents.go`; oversized line now returns `INVALID_INPUT` and keeps serving. |
+| 5 Approve-commit wedge + verb leak | ✅ Fixed | Commit target resolved from `req.TargetID` (no payload trust, no wedge); `decisionVerbs` whitelist rejects requester-only verbs (400). Test `TestDecisionVerbWhitelistHTTP`. |
+| 6 Gate A score absent | ✅ Fixed | `scoring.GateAScore` implements §2 (100 pts, verified/planned baseline split); persisted as `Assessment.IntakeScore`. Test `TestGateAScore`. |
+| 7 Schema fields | ✅ Fixed | Assessment gained `intake_score`, `attribution_method`, `known_confounders`, `net_value_check`, `sustainment_threshold`, `evidence_source_ids`, `rationale`, `model_version`, `prompt_version`; `UseCase.primary_metric_id`; `DecisionRecord` JSON tags + `target_type`; `approval.Request` expanded to §8. |
+| 8 Schedule drift | ✅ Fixed | `advance()` anchors next due to prior schedule. Test `TestSustainmentScheduleDoesNotDrift`. |
+| 11 NaN into score | ✅ Fixed | `Progress` rejects NaN/Inf; CSV adapter `parseFinite` rejects non-finite/unparsable cells. Test `TestProgressRejectsNonFinite`. |
+| 7-latch Regressed permanence | ✅ Fixed | `EvaluateSustainment` reflects the trailing run; a passing check recovers. Test `TestSustainmentRecoversAfterRegression`. |
+| 12 Rejected-row stranding | ✅ Fixed | Flag renamed `failOnRejected`; all-rejected batch returns `ErrNothingToPromote` (422), no false success. Test `TestAllRejectedBatchHTTP`. |
+| 13 Silent type drop | ✅ Fixed | `CreateDraft` type-checks number fields and deep-copies the proposed map; mismatch → Invalid draft. Test `TestTypeMismatchInvalidatesDraftHTTP`. |
+| 14 Threshold rounding | ✅ Fixed | Ratio comparison with epsilon; at-threshold measurement passes. Test `TestSustainmentThresholdBoundary`. |
+| decision-log endpoint | ✅ Added | `GET /api/v1/decision-log` (target_id filter) over the append-only log. |
+
+**Deferred with rationale (tracked, not defects blocking merge of the above):**
+
+- **5 remaining `contracts/21` endpoints** (`/approvals/pending`, `/assessments/{id}/invalidate`, `/follow-up-actions`, `/metric-snapshots`, `/evidence-sources`) and **cursor pagination** — feature work needing new service methods and the persistence layer, not corrections to existing behavior. Track as P-next.
+- **Volume dataset seeded from real inventory (07 §4)** — deliberately not done: real use-case data is quarantined in `internal/99` and must not enter `impl/`. The synthetic-but-engine-consistent dataset is an accepted tradeoff; independent labels require SME input at pilot. Documented, not silently skipped.
+- **#10 callback-under-lock** — verified not a live deadlock (acyclic lock graph). No-reentrancy contract should be documented on `MetricProvider`/`AuditSink`/`Store` before the Postgres store lands. Low risk.
+- **#15 late-timeout audit gap** (Low) — a handler completing after its deadline skips the audit hook; acceptable for the reference adapters.

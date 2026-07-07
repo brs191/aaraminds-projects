@@ -203,6 +203,10 @@ func scoreFile(path string, terms []string) (candidateDoc, error) {
 
 	c := candidateDoc{path: path}
 	scanner := bufio.NewScanner(f)
+	// Evidence documents can contain long lines (minified exports, wide
+	// tables); the default 64KB token limit would silently drop the whole
+	// file. Raise it so such documents are still searchable.
+	scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
 	lineNum := 0
 	bestLineScore := 0
 

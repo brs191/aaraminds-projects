@@ -11,18 +11,19 @@ import (
 
 // UseCase mirrors contracts/17 §3.
 type UseCase struct {
-	UseCaseID      string               `json:"use_case_id"`
-	Name           string               `json:"name"`
-	Tier           enums.UseCaseTier    `json:"tier"`
-	Domain         string               `json:"domain,omitempty"`
-	ValueOwner     string               `json:"value_owner,omitempty"`
-	DeliveryOwner  string               `json:"delivery_owner,omitempty"`
-	Sponsor        string               `json:"sponsor,omitempty"`
-	DeliveryStatus enums.DeliveryStatus `json:"delivery_status"`
-	ApprovalState  enums.ArtifactState  `json:"approval_state"`
-	RecordVersion  int                  `json:"record_version"`
-	CreatedAt      time.Time            `json:"created_at"`
-	UpdatedAt      time.Time            `json:"updated_at"`
+	UseCaseID       string               `json:"use_case_id"`
+	Name            string               `json:"name"`
+	Tier            enums.UseCaseTier    `json:"tier"`
+	Domain          string               `json:"domain,omitempty"`
+	ValueOwner      string               `json:"value_owner,omitempty"`
+	DeliveryOwner   string               `json:"delivery_owner,omitempty"`
+	Sponsor         string               `json:"sponsor,omitempty"`
+	DeliveryStatus  enums.DeliveryStatus `json:"delivery_status"`
+	PrimaryMetricID string               `json:"primary_metric_id,omitempty"`
+	ApprovalState   enums.ArtifactState  `json:"approval_state"`
+	RecordVersion   int                  `json:"record_version"`
+	CreatedAt       time.Time            `json:"created_at"`
+	UpdatedAt       time.Time            `json:"updated_at"`
 }
 
 // AuditEvent mirrors contracts/19 audit_events. Append-only.
@@ -51,6 +52,7 @@ var (
 	ErrAlreadyPromoted  = errors.New("batch already promoted")
 	ErrRejectedRecords  = errors.New("batch has rejected records; resolve or exclude before promotion")
 	ErrDuplicateUseCase = errors.New("use case already exists in registry")
+	ErrNothingToPromote = errors.New("batch has no promotable records; correct rejects and re-import")
 )
 
 // Store is the persistence boundary. The in-memory implementation backs
@@ -59,9 +61,12 @@ var (
 type Store interface {
 	StageBatch(b ImportBatch) error
 	GetBatch(id string) (ImportBatch, error)
-	// PromoteBatch moves staged records into the active registry. It fails
-	// atomically: partial promotion is never permitted (09 §3.1).
-	PromoteBatch(id, actorID string, includeRejected bool) ([]UseCase, error)
+	// PromoteBatch moves clean staged records into the active registry. It
+	// fails atomically: partial promotion is never permitted (09 §3.1). When
+	// failOnRejected is true, any rejected row aborts the whole promotion;
+	// when false, rejected rows are skipped and left for re-import after
+	// triage. A batch with no promotable rows returns ErrNothingToPromote.
+	PromoteBatch(id, actorID string, failOnRejected bool) ([]UseCase, error)
 	ListUseCases() []UseCase
 	GetUseCase(id string) (UseCase, error)
 	AppendAudit(e AuditEvent)
@@ -110,7 +115,7 @@ func (s *MemStore) GetBatch(id string) (ImportBatch, error) {
 	return *b, nil
 }
 
-func (s *MemStore) PromoteBatch(id, actorID string, includeRejected bool) ([]UseCase, error) {
+func (s *MemStore) PromoteBatch(id, actorID string, failOnRejected bool) ([]UseCase, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	b, ok := s.batches[id]
@@ -124,15 +129,19 @@ func (s *MemStore) PromoteBatch(id, actorID string, includeRejected bool) ([]Use
 	var toPromote []StagedRecord
 	for _, r := range b.Staged {
 		if len(r.Errors) > 0 {
-			if !includeRejected {
-				continue // rejected records stay in staging for triage
+			if failOnRejected {
+				return nil, fmt.Errorf("%w: %s", ErrRejectedRecords, r.UseCaseID)
 			}
-			return nil, fmt.Errorf("%w: %s", ErrRejectedRecords, r.UseCaseID)
+			continue // rejected records are skipped; re-import after triage
 		}
 		if _, exists := s.useCases[r.UseCaseID]; exists {
 			return nil, fmt.Errorf("%w: %s", ErrDuplicateUseCase, r.UseCaseID)
 		}
 		toPromote = append(toPromote, r)
+	}
+	if len(toPromote) == 0 {
+		// An all-rejected batch must not report success with an empty list.
+		return nil, ErrNothingToPromote
 	}
 	now := time.Now().UTC()
 	var promoted []UseCase
