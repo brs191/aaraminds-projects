@@ -1,0 +1,163 @@
+name: "Services CI"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/ingestion/**"
+      - "services/retriever/**"
+      - "services/mcp-server/**"
+      - "services/embedding-service/**"
+      - "services/agent-service/**"
+      - "libs/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/ingestion/**"
+      - "services/retriever/**"
+      - "services/mcp-server/**"
+      - "services/embedding-service/**"
+      - "services/agent-service/**"
+      - "libs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  go-services:
+    name: "Go Services Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Test ingestion service
+        run: |
+          cd services/ingestion
+          go test ./...
+
+      - name: Test retriever service
+        run: |
+          cd services/retriever
+          go test ./...
+
+      - name: Test MCP server
+        run: |
+          cd services/mcp-server
+          go test ./...
+
+  agent-service:
+    name: "Agent Service Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Run targeted agent tests
+        run: |
+          cd services/agent-service
+          uv sync --system-certs --quiet
+          uv run python -m pytest tests/test_agents.py -q
+          uv run python -m pytest tests/test_e2e.py -q
+
+      - name: Run embedding service tests
+        run: |
+          cd services/embedding-service
+          uv sync --system-certs --quiet
+          uv run pytest -q
+
+  supply-chain-gates:
+    name: "SBOM + Dependency Vulnerability Gates"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: ingestion
+            path: services/ingestion
+            ecosystem: go
+          - service: retriever
+            path: services/retriever
+            ecosystem: go
+          - service: mcp-server
+            path: services/mcp-server
+            ecosystem: go
+          - service: agent-service
+            path: services/agent-service
+            ecosystem: python
+          - service: embedding-service
+            path: services/embedding-service
+            ecosystem: python
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Go
+        if: matrix.ecosystem == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Set up Python
+        if: matrix.ecosystem == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        if: matrix.ecosystem == 'python'
+        uses: astral-sh/setup-uv@v4
+
+      - name: Restore Python dependency lock
+        if: matrix.ecosystem == 'python'
+        run: |
+          cd ${{ matrix.path }}
+          uv sync --system-certs --quiet
+
+      - name: Generate SBOM
+        id: sbom
+        uses: anchore/sbom-action@v0
+        with:
+          path: ${{ matrix.path }}
+          format: cyclonedx-json
+          output-file: ${{ runner.temp }}/${{ matrix.service }}-sbom.cdx.json
+
+      - name: Gate dependency vulnerabilities (High/Critical)
+        uses: anchore/scan-action@v6
+        with:
+          sbom: ${{ runner.temp }}/${{ matrix.service }}-sbom.cdx.json
+          fail-build: true
+          severity-cutoff: high
+          output-format: table
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service }}-sbom
+          path: ${{ runner.temp }}/${{ matrix.service }}-sbom.cdx.json
+          if-no-files-found: error

@@ -1,0 +1,256 @@
+# =============================================================================
+# deploy-ingestion.yml — Ingestion Service Deploy
+#
+# Purpose: On every push to main that touches the ingestion service or its
+#          infrastructure manifest, build and push the container image to the
+#          AT&T JFrog Artifactory Docker registry, then update the Container
+#          App and health-poll until the new revision is serving.
+#
+# Why JFrog, not ACR:
+#   Azure Container Registry is an anti-pattern for AT&T workloads.
+#   All container images are published to JFrog Artifactory, which is the
+#   AT&T-standard artefact store (audit trail, vulnerability scanning via
+#   Xray, retention policy, and pull-through cache all live there).
+#
+# AT&T RevUp compliance:
+#   - Azure auth via OIDC federated credential — no client_secret stored
+#   - JFrog auth via short-lived access token (JFROG_ACCESS_TOKEN secret)
+#   - id-token: write permission scoped to the deploy job only
+#   - Concurrency guard: one deploy at a time per branch
+#   - Environment protection gate (requires "production" environment approval)
+#   - All job and step timeouts are set
+#   - Image tagged with both short SHA and "latest" for traceability
+#
+# Required repository secrets (Settings → Secrets → Actions):
+#   AZURE_CLIENT_ID        — App Registration client_id (OIDC federated cred)
+#   AZURE_TENANT_ID        — Azure AD tenant_id
+#   AZURE_SUBSCRIPTION_ID  — Azure subscription_id
+#   JFROG_ACCESS_TOKEN     — JFrog identity token with write:docker scope
+#                            (rotate via JFrog Platform → User Management)
+#
+# Required repository variables (Settings → Variables → Actions):
+#   JFROG_URL              — e.g. attoss.jfrog.io
+#   JFROG_DOCKER_REPO      — local Docker repo name, e.g. rif-docker-local
+#   CONTAINER_APP_NAME     — e.g. rif-ingestion
+#   RESOURCE_GROUP         — e.g. rg-rif-dev
+#
+# Container App pull-secret pre-requisite:
+#   The Container App must be configured with a registry credential so it
+#   can pull images from JFrog.  Run once per environment:
+#
+#   az containerapp registry set \
+#     --name              <CONTAINER_APP_NAME> \
+#     --resource-group    <RESOURCE_GROUP> \
+#     --server            <JFROG_URL> \
+#     --username          <jfrog-service-account> \
+#     --password          <jfrog-access-token>
+#
+# Azure OIDC federated credential setup (one-time):
+#   az ad app federated-credential create \
+#     --id <APP_OBJECT_ID> \
+#     --parameters '{
+#       "name": "github-deploy",
+#       "issuer": "https://token.actions.githubusercontent.com",
+#       "subject": "repo:<ORG>/<REPO>:ref:refs/heads/main",
+#       "audiences": ["api://AzureADTokenExchange"]
+#     }'
+# =============================================================================
+
+name: "Deploy — Ingestion Service"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/ingestion/**"
+      - "extractors/core-java/**"
+      - "libs/graphstore/**"
+      - "libs/phase5/**"
+      - ".dockerignore"
+      - ".github/workflows/deploy-ingestion.yml"
+      - "platform/deploy/deploy-ingestion.yml"
+
+# One deploy at a time; queue rather than cancel so no deploy is lost.
+concurrency:
+  group: deploy-ingestion-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  JAVA_DISTRIBUTION: "temurin"
+  IMAGE_NAME: "rif-ingestion"
+
+jobs:
+  build-and-push:
+    name: "Build + Push to JFrog"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # OIDC token permission — scoped to this job only.
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      image_ref: ${{ steps.image-tag.outputs.image_ref }}
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── Build extractor JAR (required by Dockerfile stage 2) ─────────────
+      - name: Set up JDK ${{ env.JAVA_VERSION }} (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      - name: Build extractor JAR (bundled into container image)
+        run: mvn -f extractors/core-java/pom.xml package -q -DskipTests
+        timeout-minutes: 8
+
+      - name: Verify extractor JAR
+        run: |
+          JAR=extractors/core-java/target/rif-extractor-1.0.0-SNAPSHOT-shaded.jar
+          [[ -f "$JAR" ]] || { echo "ERROR: JAR missing — $JAR"; exit 1; }
+          echo "JAR ready: $(du -sh $JAR | cut -f1)"
+
+      # ── Compute image tag ─────────────────────────────────────────────────
+      - name: Compute image tag
+        id: image-tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_REF="${{ vars.JFROG_URL }}/${{ vars.JFROG_DOCKER_REPO }}/${{ env.IMAGE_NAME }}"
+          echo "tag=${SHORT_SHA}"          >> "$GITHUB_OUTPUT"
+          echo "image_ref=${IMAGE_REF}"   >> "$GITHUB_OUTPUT"
+          echo "Image ref: ${IMAGE_REF}:${SHORT_SHA}"
+
+      # ── JFrog CLI setup + Docker login ────────────────────────────────────
+      # Uses a short-lived JFrog access token (JFROG_ACCESS_TOKEN secret).
+      # The CLI configures the Docker credential helper automatically.
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: https://${{ vars.JFROG_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JFROG_ACCESS_TOKEN }}
+
+      - name: Authenticate Docker with JFrog
+        run: |
+          jf docker login "${{ vars.JFROG_URL }}"
+
+      # ── Docker build ───────────────────────────────────────────────────────
+      # Build context is repository root so services/, libs/, and extractors/
+      # are all reachable from the Dockerfile COPY paths.
+      - name: Build Docker image
+        run: |
+          TAG="${{ steps.image-tag.outputs.tag }}"
+          IMAGE_REF="${{ steps.image-tag.outputs.image_ref }}"
+
+          docker build \
+            --file  "services/ingestion/Dockerfile" \
+            --tag   "${IMAGE_REF}:${TAG}" \
+            --tag   "${IMAGE_REF}:latest" \
+            "."
+        timeout-minutes: 12
+
+      # ── Push to JFrog ──────────────────────────────────────────────────────
+      # jf docker push integrates with Xray scan results and build info.
+      - name: Push image to JFrog Artifactory
+        run: |
+          TAG="${{ steps.image-tag.outputs.tag }}"
+          IMAGE_REF="${{ steps.image-tag.outputs.image_ref }}"
+
+          jf docker push "${IMAGE_REF}:${TAG}"
+          jf docker push "${IMAGE_REF}:latest"
+
+          echo "Pushed: ${IMAGE_REF}:${TAG}"
+          echo "Pushed: ${IMAGE_REF}:latest"
+        timeout-minutes: 8
+
+      # ── Publish build info to Artifactory (traceability) ─────────────────
+      - name: Publish build info
+        run: |
+          jf build-publish
+        env:
+          JFROG_CLI_BUILD_NAME: rif-ingestion
+          JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
+
+  deploy:
+    name: "Deploy to Container App"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build-and-push
+
+    # Require manual approval in the "production" environment if configured.
+    environment: production
+
+    # OIDC token permission — scoped to this job only.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # ── Azure OIDC login ──────────────────────────────────────────────────
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ── Deploy Container App ───────────────────────────────────────────────
+      # The Container App must already have a registry credential for the
+      # JFrog server (see header comment for one-time setup command).
+      - name: Update Container App with new image
+        run: |
+          TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_REF="${{ needs.build-and-push.outputs.image_ref }}"
+
+          az containerapp update \
+            --name              "${{ vars.CONTAINER_APP_NAME }}" \
+            --resource-group    "${{ vars.RESOURCE_GROUP }}" \
+            --image             "${IMAGE_REF}:${TAG}"
+
+          echo "Container App updated to: ${IMAGE_REF}:${TAG}"
+        timeout-minutes: 5
+
+      # ── Health poll ────────────────────────────────────────────────────────
+      - name: Wait for health check to pass
+        run: |
+          FQDN=$(az containerapp show \
+            --name           "${{ vars.CONTAINER_APP_NAME }}" \
+            --resource-group "${{ vars.RESOURCE_GROUP }}" \
+            --query          "properties.configuration.ingress.fqdn" \
+            --output         tsv)
+
+          HEALTH_URL="https://${FQDN}/healthz"
+          echo "Polling: ${HEALTH_URL}"
+
+          MAX_ATTEMPTS=12   # 12 × 5 s = 60 s
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            HTTP_CODE=$(curl --silent --output /dev/null \
+                             --write-out "%{http_code}" \
+                             --max-time 5 \
+                             "${HEALTH_URL}" || echo "000")
+
+            echo "Attempt ${i}/${MAX_ATTEMPTS} — HTTP ${HTTP_CODE}"
+
+            if [[ "${HTTP_CODE}" == "200" ]]; then
+              echo "Health check passed."
+              exit 0
+            fi
+
+            [[ $i -lt $MAX_ATTEMPTS ]] && sleep 5
+          done
+
+          echo "ERROR: Container App did not become healthy within 60 s."
+          exit 1
+        timeout-minutes: 3

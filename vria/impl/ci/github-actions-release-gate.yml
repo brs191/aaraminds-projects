@@ -1,0 +1,45 @@
+name: VRIA Release Gate
+
+on:
+  push:
+    branches: ["main", "release/*"]
+  pull_request:
+    branches: ["main", "release/*"]
+
+jobs:
+  release-gate:
+    name: Release Gate (07_VRIA_Golden_Eval_Set §3)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: impl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      # Step 1 — Critical golden tests.
+      # Any failure here blocks the merge (criticality C, 07 §3).
+      - name: Critical golden tests (100% pass required)
+        run: go test ./goldeneval/ -run "Critical" -v
+
+      # Step 2 — Full test suite including non-critical golden tests.
+      # All packages must pass.
+      - name: Full test suite
+        run: go test ./...
+
+      # Step 3 — Volume dataset release gates.
+      # Prints per-gate percentages; fails if any gate misses its threshold:
+      #   value-state classification accuracy  >= 90%
+      #   schema validation pass rate          100%
+      #   recommendation accuracy              >= 90%
+      #   normalize accuracy                   >= 95%
+      - name: Volume dataset gates
+        run: go test ./goldeneval/ -run TestVolume -v

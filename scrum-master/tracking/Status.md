@@ -1,8 +1,16 @@
 # Status — Scrum Master Agent
 
-**Updated:** 2026-06-03 · **Open this each session.**
+**Updated:** 2026-07-03 · **Open this each session.**
 
 ## Active phase
+
+**2026-07-03 — Governance pack added (ba-agent-style gated artifacts, adapted to this project's brownfield reality):**
+- `requirements/Scrum_Master_Agent_Requirements.md` — stable SM-* IDs derived from the accepted PRD/Blueprint (no new scope); cite IDs, not prose, in tests and PRs.
+- `design/MCP_Tool_Contracts.md` — jira-mcp read/write contracts, closed write-surface allowlist, per-tool validation register (all tools unvalidated against real Jira until OAuth lands).
+- `evaluation/Evaluation_Harness.md` — SM-EM metrics + golden test sets (GTS-*); hard gates: silent writes = 0, write-surface violations = 0, Done-item false positives = 0. `test_gate.py`/`test_doc_invariant.py` already cover most of GTS-GATE.
+- `operations/Operations_Model.md` — solo-operator-honest ops: kill switch, three rollback axes, release gates, P2 preconditions (named backup operator).
+- `planning/Decision_Log.md` — DEC-001..008 port the locked decisions; new: DEC-009 (governance pack), DEC-010 (dual-layer write enforcement, conditional), DEC-011 (advisory-post gating, deferred), DEC-012 (pilot boundary + data classification, deferred — blocks P0 live ingest).
+- `.github/copilot-instructions.md` — repo conventions for AI assistants.
 
 **P0 — Foundations** (in progress — key decisions locked). PRD + ADR-0001 accepted; design hardened via a persona/skill/agent pass (see `../Persona_Skill_Agent_Usage.md`): added `design/Agent_Blueprint.md` + `evaluation/Test_Strategy.md`, corrected the Teams + JQL facts, applied 5 code fixes.
 

@@ -1,0 +1,72 @@
+{
+  "server": {
+    "name": "rif-mcp-server",
+    "version": "v0.1.0"
+  },
+  "tools": [
+    {
+      "name": "search_code",
+      "description": "Hybrid code search",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo_id", "query"],
+        "properties": {
+          "repo_id": { "type": "string" },
+          "query": { "type": "string" },
+          "top_k": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    {
+      "name": "find_callers",
+      "description": "Find direct callers",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo_id", "qualified_name"],
+        "properties": {
+          "repo_id": { "type": "string" },
+          "qualified_name": { "type": "string" },
+          "depth": { "type": "integer", "minimum": 1, "maximum": 5 }
+        }
+      }
+    },
+    {
+      "name": "impact_analysis",
+      "description": "Rank impacted nodes",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo_id", "changed_entity"],
+        "properties": {
+          "repo_id": { "type": "string" },
+          "changed_entity": { "type": "string" },
+          "depth": { "type": "integer", "minimum": 1, "maximum": 5 }
+        }
+      }
+    },
+    {
+      "name": "explain_architecture",
+      "description": "Summarise architecture",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo_id", "component"],
+        "properties": {
+          "repo_id": { "type": "string" },
+          "component": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "dependency_analysis",
+      "description": "Analyze dependencies",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo_id", "entity"],
+        "properties": {
+          "repo_id": { "type": "string" },
+          "entity": { "type": "string" },
+          "depth": { "type": "integer", "minimum": 1, "maximum": 5 }
+        }
+      }
+    }
+  ]
+}

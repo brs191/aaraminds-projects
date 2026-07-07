@@ -1,0 +1,14 @@
+# Default ownership
+* @rb692q_ATT
+
+# Core services
+/phase-1/ingestion/ @rb692q_ATT
+/phase-3/retriever/ @rb692q_ATT
+/phase-4/mcp-server/ @rb692q_ATT
+/phase-4/agent-service/ @rb692q_ATT
+/phase-5/ @rb692q_ATT
+
+# Platform and documentation
+/.github/workflows/ @rb692q_ATT
+/database/ @rb692q_ATT
+/doc/ @rb692q_ATT

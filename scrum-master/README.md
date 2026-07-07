@@ -15,21 +15,30 @@ scrum-master/
 ├── Scrum_Master_Agent_PRD.md    the anchor spec — open for the full picture
 ├── Raja_Instructions.md         drop-zone for your own notes/overrides
 ├── Persona_Skill_Agent_Usage.md how the persona/skill/agent pass shaped this
+├── .github/
+│   └── copilot-instructions.md  repo conventions for AI assistants working here
 ├── product/                     the "why" — stable reference
 │   └── Product_Brief.md
+├── requirements/                stable requirement IDs (cite these, not prose)
+│   └── Scrum_Master_Agent_Requirements.md   SM-* baseline derived from the PRD
 ├── design/                      the "what & how"
 │   ├── Architecture.md          components, stack, Jira integration, data model
 │   ├── Agent_Blueprint.md       Module 8 blueprint — boundary, DOC, controls, FMEA
+│   ├── MCP_Tool_Contracts.md    jira-mcp/teams-adapter contracts + validation register
 │   └── adr/
 │       └── 0001-langgraph-orchestration.md
 ├── planning/                    the "when and in what order"
 │   ├── Roadmap.md               four phases (P0 → P3), each with a gate
+│   ├── Decision_Log.md          DEC-### locked decisions — reverse via new entry only
 │   └── Open_Questions.md        unresolved decisions
 ├── evaluation/                  the "how we know it's good"
 │   ├── Acceptance_Criteria.md   per-feature, testable
 │   ├── Success_Metrics.md       leading + lagging indicators
 │   ├── Eval_Rubric.md           quality bar / Definition of Done
+│   ├── Evaluation_Harness.md    SM-EM metrics, hard gates, golden test sets (GTS-*)
 │   └── Test_Strategy.md         test pyramid, DOC-weighted coverage, cases
+├── operations/                  how it's run once live
+│   └── Operations_Model.md      solo-operator ops: incidents, rollback, release, cadence
 ├── tracking/                    live execution state
 │   ├── Status.md                the dashboard — open this each session
 │   └── milestones/

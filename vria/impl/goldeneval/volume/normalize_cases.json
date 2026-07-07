@@ -1,0 +1,202 @@
+{
+  "dataset_version": "v1.0",
+  "description": "Normalization test cases for NormalizeDeliveryStatus. Status strings are from real data shapes (internal/99) — they carry no employer identity. Expected error_class: 'ok'=successful mapping, 'ambiguous'=ErrAmbiguousStatus, 'unmapped'=ErrUnmappedStatus.",
+  "cases": [
+    {
+      "case_id": "NC-001",
+      "raw": "Training; PTB not started; pending",
+      "expected_status": "Training",
+      "expected_error_class": "ok",
+      "notes": "Exact key from statusMapping — maps to DSTraining"
+    },
+    {
+      "case_id": "NC-002",
+      "raw": "Training; PTB/PTO not started/completed/pending mixed",
+      "expected_status": "Unknown",
+      "expected_error_class": "ambiguous",
+      "notes": "Contains 'not started/completed' and 'mixed' markers — must be flagged ambiguous"
+    },
+    {
+      "case_id": "NC-003",
+      "raw": "PTB",
+      "expected_status": "PTB_InProgress",
+      "expected_error_class": "ok",
+      "notes": "Short form — maps to DSPTBInProgress"
+    },
+    {
+      "case_id": "NC-004",
+      "raw": "PTB not started",
+      "expected_status": "PTB_NotStarted",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-005",
+      "raw": "PTB in progress",
+      "expected_status": "PTB_InProgress",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-006",
+      "raw": "PTB approved",
+      "expected_status": "PTB_Approved",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-007",
+      "raw": "PTO not started",
+      "expected_status": "PTO_NotStarted",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-008",
+      "raw": "PTO in progress",
+      "expected_status": "PTO_InProgress",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-009",
+      "raw": "PTO approved",
+      "expected_status": "PTO_Approved",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-010",
+      "raw": "In Progress",
+      "expected_status": "InProgress",
+      "expected_error_class": "ok",
+      "notes": "Case-insensitive match after ToLower"
+    },
+    {
+      "case_id": "NC-011",
+      "raw": "pilot",
+      "expected_status": "Pilot",
+      "expected_error_class": "ok",
+      "notes": "Lowercase already"
+    },
+    {
+      "case_id": "NC-012",
+      "raw": "Production",
+      "expected_status": "Production",
+      "expected_error_class": "ok",
+      "notes": "Direct mapping"
+    },
+    {
+      "case_id": "NC-013",
+      "raw": "Not captured",
+      "expected_status": "Unknown",
+      "expected_error_class": "ok",
+      "notes": "Maps to DSUnknown — not an error, explicit mapping"
+    },
+    {
+      "case_id": "NC-014",
+      "raw": "",
+      "expected_status": "Unknown",
+      "expected_error_class": "ok",
+      "notes": "Empty string maps to DSUnknown (GE-008 scenario)"
+    },
+    {
+      "case_id": "NC-015",
+      "raw": "Training",
+      "expected_status": "Training",
+      "expected_error_class": "ok",
+      "notes": "Clean training status"
+    },
+    {
+      "case_id": "NC-016",
+      "raw": "Discovery",
+      "expected_status": "Discovery",
+      "expected_error_class": "ok",
+      "notes": "Discovery phase"
+    },
+    {
+      "case_id": "NC-017",
+      "raw": "Draft",
+      "expected_status": "Draft",
+      "expected_error_class": "ok",
+      "notes": "Draft status"
+    },
+    {
+      "case_id": "NC-018",
+      "raw": "Blocked",
+      "expected_status": "Blocked",
+      "expected_error_class": "ok",
+      "notes": "Blocked status"
+    },
+    {
+      "case_id": "NC-019",
+      "raw": "Stopped",
+      "expected_status": "Stopped",
+      "expected_error_class": "ok",
+      "notes": "Stopped status"
+    },
+    {
+      "case_id": "NC-020",
+      "raw": "Training; PTB/PTO not started/completed/pending mixed",
+      "expected_status": "Unknown",
+      "expected_error_class": "ambiguous",
+      "notes": "Duplicate of NC-002 pattern to ensure coverage of the /completed/pending marker alone"
+    },
+    {
+      "case_id": "NC-021",
+      "raw": "PTB/PTO mixed status",
+      "expected_status": "Unknown",
+      "expected_error_class": "ambiguous",
+      "notes": "Contains 'mixed' marker — ambiguous"
+    },
+    {
+      "case_id": "NC-022",
+      "raw": "status not started/completed unclear",
+      "expected_status": "Unknown",
+      "expected_error_class": "ambiguous",
+      "notes": "Contains 'not started/completed' marker — ambiguous"
+    },
+    {
+      "case_id": "NC-023",
+      "raw": "TRAINING",
+      "expected_status": "Training",
+      "expected_error_class": "ok",
+      "notes": "All-caps input — ToLower normalizes it"
+    },
+    {
+      "case_id": "NC-024",
+      "raw": "  In Progress  ",
+      "expected_status": "InProgress",
+      "expected_error_class": "ok",
+      "notes": "Leading/trailing whitespace — TrimSpace normalizes it"
+    },
+    {
+      "case_id": "NC-025",
+      "raw": "partially complete",
+      "expected_status": "Unknown",
+      "expected_error_class": "unmapped",
+      "notes": "Free-text status with no mapping — must return ErrUnmappedStatus"
+    },
+    {
+      "case_id": "NC-026",
+      "raw": "on hold",
+      "expected_status": "Unknown",
+      "expected_error_class": "unmapped",
+      "notes": "Common informal status not in table — unmapped"
+    },
+    {
+      "case_id": "NC-027",
+      "raw": "complete",
+      "expected_status": "Unknown",
+      "expected_error_class": "unmapped",
+      "notes": "Ambiguous informal term not in mapping table"
+    },
+    {
+      "case_id": "NC-028",
+      "raw": "pending approval",
+      "expected_status": "Unknown",
+      "expected_error_class": "unmapped",
+      "notes": "Informal status not in table"
+    }
+  ]
+}
