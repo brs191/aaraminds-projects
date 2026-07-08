@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +13,10 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+// maxRawBodyBytes caps how much of a request body the raw-tool-call shim will
+// buffer before handing off to the SDK handler.
+const maxRawBodyBytes = 1 << 20 // 1 MiB, matching ingestion's decodeBody cap
 
 func main() {
 	var addr string
@@ -35,6 +41,19 @@ func main() {
 		return server
 	}, nil)
 
+	mux := newMux(app, streamableHandler)
+
+	log.Printf("rif mcp server listening on %s", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// newMux builds the production HTTP mux: raw-tool-call shim first, SDK
+// streamable handler as fall-through. Extracted so integration tests exercise
+// the same routing the deployed binary uses (the C1 regression lived in the
+// gap between the test mux and this one).
+func newMux(app *App, streamableHandler http.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -48,11 +67,7 @@ func main() {
 		}
 		streamableHandler.ServeHTTP(w, r)
 	})
-
-	log.Printf("rif mcp server listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Fatal(err)
-	}
+	return mux
 }
 
 func envOr(key, fallback string) string {
@@ -80,10 +95,28 @@ type rawToolResponse struct {
 }
 
 func serveRawToolCall(app *App, w http.ResponseWriter, r *http.Request) bool {
-	var req rawToolRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON-RPC payload", http.StatusBadRequest)
+	// Buffer the body before sniffing. The previous implementation decoded
+	// r.Body directly, so when the request was NOT a raw tools/call (e.g. an
+	// MCP SDK client sending initialize or tools/list) it fell through to the
+	// SDK handler with an already-drained body, breaking the MCP session
+	// handshake for every real client. Buffering lets us restore the body for
+	// the fall-through path.
+	body, readErr := io.ReadAll(io.LimitReader(r.Body, maxRawBodyBytes+1))
+	if readErr != nil {
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
 		return true
+	}
+	if int64(len(body)) > maxRawBodyBytes {
+		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+		return true
+	}
+	// Restore the body so the SDK handler sees the full request if we decline.
+	r.Body = io.NopCloser(bytes.NewReader(body))
+
+	var req rawToolRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		// Not decodable as our raw shape — let the SDK handler judge it.
+		return false
 	}
 	if req.Method != "tools/call" || strings.TrimSpace(req.Params.Name) == "" {
 		return false

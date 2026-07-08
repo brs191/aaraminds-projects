@@ -3,16 +3,16 @@
 #
 # Purpose: On every push to main that touches the ingestion service or its
 #          infrastructure manifest, build and push the container image to the
-#          AT&T JFrog Artifactory Docker registry, then update the Container
+#          JFrog Artifactory Docker registry, then update the Container
 #          App and health-poll until the new revision is serving.
 #
 # Why JFrog, not ACR:
-#   Azure Container Registry is an anti-pattern for AT&T workloads.
+#   This deployment standardizes on JFrog Artifactory as the artifact store.
 #   All container images are published to JFrog Artifactory, which is the
-#   AT&T-standard artefact store (audit trail, vulnerability scanning via
+#   designated artefact store (audit trail, vulnerability scanning via
 #   Xray, retention policy, and pull-through cache all live there).
 #
-# AT&T RevUp compliance:
+# CI/CD security posture:
 #   - Azure auth via OIDC federated credential — no client_secret stored
 #   - JFrog auth via short-lived access token (JFROG_ACCESS_TOKEN secret)
 #   - id-token: write permission scoped to the deploy job only
@@ -29,7 +29,7 @@
 #                            (rotate via JFrog Platform → User Management)
 #
 # Required repository variables (Settings → Variables → Actions):
-#   JFROG_URL              — e.g. attoss.jfrog.io
+#   JFROG_URL              — e.g. your-org.jfrog.io
 #   JFROG_DOCKER_REPO      — local Docker repo name, e.g. rif-docker-local
 #   CONTAINER_APP_NAME     — e.g. rif-ingestion
 #   RESOURCE_GROUP         — e.g. rg-rif-dev

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.att.rif</groupId>
+    <groupId>com.aaraminds.rif</groupId>
     <artifactId>rif-extractor-phase2-parent</artifactId>
     <version>2.0.0-SNAPSHOT</version>
   </parent>
@@ -16,7 +16,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.att.rif</groupId>
+      <groupId>com.aaraminds.rif</groupId>
       <artifactId>rif-extractor-phase2-common</artifactId>
     </dependency>
     <dependency>
@@ -61,7 +61,7 @@
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.att.rif.extractor.crossservice.CrossServiceMain</mainClass>
+                  <mainClass>com.aaraminds.rif.extractor.crossservice.CrossServiceMain</mainClass>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>

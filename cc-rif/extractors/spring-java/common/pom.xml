@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.att.rif</groupId>
+    <groupId>com.aaraminds.rif</groupId>
     <artifactId>rif-extractor-phase2-parent</artifactId>
     <version>2.0.0-SNAPSHOT</version>
   </parent>

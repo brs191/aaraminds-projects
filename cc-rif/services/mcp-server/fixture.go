@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/att/rif/graphstore"
-	"github.com/att/rif/retriever"
+	"github.com/aaraminds/rif/graphstore"
+	"github.com/aaraminds/rif/retriever"
 )
 
 const fixtureRepoID = "demo-repo"

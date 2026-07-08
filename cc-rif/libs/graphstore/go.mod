@@ -1,4 +1,4 @@
-module github.com/att/rif/graphstore
+module github.com/aaraminds/rif/graphstore
 
 go 1.25.0
 

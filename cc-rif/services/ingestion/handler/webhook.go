@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/att/rif/phase5/ingestion/diff"
-	"github.com/att/rif/phase5/ingestion/queue"
+	"github.com/aaraminds/rif/phase5/ingestion/diff"
+	"github.com/aaraminds/rif/phase5/ingestion/queue"
 )
 
 type githubPushPayload struct {

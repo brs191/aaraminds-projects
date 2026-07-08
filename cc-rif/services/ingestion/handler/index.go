@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/att/rif/ingestion/service"
-	"github.com/att/rif/ingestion/store"
+	"github.com/aaraminds/rif/ingestion/service"
+	"github.com/aaraminds/rif/ingestion/store"
 )
 
 // triggerIndexRequest is the optional JSON body for POST /repos/{repoID}/index.

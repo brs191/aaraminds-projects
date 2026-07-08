@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+
+# The service previously had zero logging configuration, so narrator fallback
+# warnings (C2) and agent errors were invisible. Basic structured-ish config;
+# uvicorn's handlers take over when present.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logger = logging.getLogger("agent_service.app")
 
 from agents import ArchitectureAgent, ImpactInvestigationAgent
 from config import Settings
@@ -45,9 +52,11 @@ def create_app(settings: Settings | None = None, mcp_client: MCPClient | None = 
         try:
             explanation, refs = await architecture_agent.run(req.repo_id, req.component)
         except MCPToolError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            logger.error("explain_failed kind=mcp repo_id=%s component=%s", req.repo_id, req.component, exc_info=True)
+            raise HTTPException(status_code=502, detail="upstream MCP tool call failed") from exc
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            logger.error("explain_failed kind=internal repo_id=%s component=%s", req.repo_id, req.component, exc_info=True)
+            raise HTTPException(status_code=500, detail="internal error") from exc
         return ExplainResponse(explanation=explanation, source_refs=refs)
 
     @app.post("/investigate_impact", response_model=InvestigateImpactResponse)
@@ -55,9 +64,15 @@ def create_app(settings: Settings | None = None, mcp_client: MCPClient | None = 
         try:
             narrative, tiers, refs = await impact_agent.run(req.repo_id, req.changed_entity)
         except MCPToolError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            logger.error(
+                "investigate_impact_failed kind=mcp repo_id=%s entity=%s", req.repo_id, req.changed_entity, exc_info=True
+            )
+            raise HTTPException(status_code=502, detail="upstream MCP tool call failed") from exc
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            logger.error(
+                "investigate_impact_failed kind=internal repo_id=%s entity=%s", req.repo_id, req.changed_entity, exc_info=True
+            )
+            raise HTTPException(status_code=500, detail="internal error") from exc
         return InvestigateImpactResponse(narrative=narrative, tiers=tiers, source_refs=refs)
 
     return app

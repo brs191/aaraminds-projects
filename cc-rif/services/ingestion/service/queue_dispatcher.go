@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/att/rif/phase5/ingestion/queue"
+	"github.com/aaraminds/rif/phase5/ingestion/queue"
 )
 
 // QueueDispatcher bridges Phase 5 queue worker dispatches into lane-aware

@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/att/rif/graphstore"
-	"github.com/att/rif/retriever"
+	"github.com/aaraminds/rif/graphstore"
+	"github.com/aaraminds/rif/retriever"
 )
 
 type depthPayload struct {

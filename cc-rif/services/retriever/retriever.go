@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/att/rif/graphstore"
+	"github.com/aaraminds/rif/graphstore"
 )
 
 const (

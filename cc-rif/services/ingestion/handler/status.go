@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/att/rif/ingestion/store"
+	"github.com/aaraminds/rif/ingestion/store"
 )
 
 // runStatusResponse is the JSON body returned by GET /repos/{repoID}/status.

@@ -25,7 +25,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	graphstore "github.com/att/rif/graphstore"
+	graphstore "github.com/aaraminds/rif/graphstore"
 )
 
 // ─── container / connection setup ─────────────────────────────────────────────

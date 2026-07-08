@@ -3,7 +3,7 @@ package retriever
 import (
 	"sort"
 
-	"github.com/att/rif/graphstore"
+	"github.com/aaraminds/rif/graphstore"
 )
 
 func impactMetadata(rootID string, br *graphstore.BlastRadiusResult) (map[string]int, map[string]string, map[string]int) {

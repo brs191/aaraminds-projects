@@ -2,7 +2,7 @@
 
 - **version:** 1.0  
 - **date:** 2026-07-01  
-- **repository:** `rb692q_ATT/repo-intelligence-factory`  
+- **repository:** `aaraminds/repo-intelligence-factory`  
 - **commit_sha:** `60ae600a89304a51cea70426d583e23b589ff828`  
 - **owner:** `[VERIFY]`  
 - **review_cadence:** `[VERIFY]`  
@@ -44,7 +44,7 @@
 - **Risk:** Production-readiness is not evidenced as complete: no verified SLO/alert/runbook ownership metadata, and governance owner/cadence fields are absent. (source: this document metadata; [VERIFY])
 - **Risk:** Ingestion health endpoint is `/healthz`, but deploy workflow polls `/health`; deployment health checks are inconsistent. (source: phase-1/ingestion/main.go#L116-L121, .github/workflows/deploy-ingestion.yml#L229-L243)
 - **Risk:** Webhook handler currently lacks GitHub HMAC signature verification. (source: phase-1/ingestion/handler/webhook.go#L37-L53)
-- **Risk:** Phase-2 NodeIdComputer uses space separators while phase-1 uses NUL separators; identity compatibility requires verification. (source: phase-1/extractor/src/main/java/com/att/rif/extractor/resolve/NodeIdComputer.java#L12-L18, phase-2/extractor/common/src/main/java/com/att/rif/extractor/common/NodeIdComputer.java#L23-L31)
+- **Risk:** Phase-2 NodeIdComputer uses space separators while phase-1 uses NUL separators; identity compatibility requires verification. (source: phase-1/extractor/src/main/java/com/aaraminds/rif/extractor/resolve/NodeIdComputer.java#L12-L18, phase-2/extractor/common/src/main/java/com/aaraminds/rif/extractor/common/NodeIdComputer.java#L23-L31)
 
 **Top production blockers**
 1. Governance ownership/review metadata not evidenced (`owner`, `review_cadence`, `next_review`).  
@@ -584,7 +584,7 @@ Evidence: phase-1/scripts/e2e_smoke.sh#L4-L214, .github/workflows/provenance-gat
 | C-02 | Build plan says phase-2 integration pending vs ingestion runs phase-2 extractors | RepoIntelligenceFactory-build-plan.md#L94-L97 vs phase-1/ingestion/service/index_service.go#L161-L164 | Phase-2 extractor invocation is implemented | Tier 1 | executable code outranks planning prose | Resolved | refresh build plan status |
 | C-03 | Architecture doc says webhook HMAC verify vs handler lacks signature checks | RepoIntelligenceFactory-architecture.md#L165-L167 vs phase-1/ingestion/handler/webhook.go#L37-L53 | HMAC verification not implemented | Tier 1 | behavior absent in handler | Resolved | correct architecture doc or implement feature |
 | C-04 | Deploy workflow health path `/health` vs ingestion route `/healthz` | .github/workflows/deploy-ingestion.yml#L229-L243 vs phase-1/ingestion/main.go#L116-L121 | Route mismatch exists | Tier 1 | direct code/config inconsistency | Resolved | align route/workflow |
-| C-05 | Phase-2 NodeIdComputer comment says “matches Phase 1 exactly” but separators differ | phase-2/extractor/common/src/main/java/com/att/rif/extractor/common/NodeIdComputer.java#L11-L13 vs phase-1/extractor/src/main/java/com/att/rif/extractor/resolve/NodeIdComputer.java#L12-L18 | Identity compatibility `[VERIFY]` | Tier 1 | conflicting implementations require test proof | `[VERIFY]` | add compatibility tests and fix implementation/comment |
+| C-05 | Phase-2 NodeIdComputer comment says “matches Phase 1 exactly” but separators differ | phase-2/extractor/common/src/main/java/com/aaraminds/rif/extractor/common/NodeIdComputer.java#L11-L13 vs phase-1/extractor/src/main/java/com/aaraminds/rif/extractor/resolve/NodeIdComputer.java#L12-L18 | Identity compatibility `[VERIFY]` | Tier 1 | conflicting implementations require test proof | `[VERIFY]` | add compatibility tests and fix implementation/comment |
 
 ## Claim-to-Evidence Traceability Matrix
 

@@ -1,0 +1,28 @@
+# CODEOWNERS — cc-rif (Repo Intelligence Factory)
+#
+# NOTE: GitHub reads this file from the repo root, docs/, or .github/ —
+# it previously lived in governance/, where it was inert.
+#
+# [VERIFY] Replace the placeholder handle below with the real GitHub handle
+# for this repository's owner before pushing to a remote. Single-owner model
+# recorded deliberately (bus factor 1, pre-pilot) — see governance/README.md.
+
+# Default ownership
+* @aaraminds-owner
+
+# Core services (current monorepo layout, not the legacy phase-N paths)
+/services/ingestion/ @aaraminds-owner
+/services/retriever/ @aaraminds-owner
+/services/mcp-server/ @aaraminds-owner
+/services/agent-service/ @aaraminds-owner
+/services/embedding-service/ @aaraminds-owner
+
+# Extractors and shared libraries
+/extractors/ @aaraminds-owner
+/libs/ @aaraminds-owner
+
+# Platform, schema, and documentation
+/platform/ @aaraminds-owner
+/data/schema/ @aaraminds-owner
+/docs/ @aaraminds-owner
+/governance/ @aaraminds-owner

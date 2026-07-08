@@ -196,10 +196,10 @@ The RIF+DIF joint-query capability (linking document claims to code entities) is
 
 ## 10. Open questions
 
-1. Graph store: Apache AGE vs relational adjacency tables — ADR needed (RIF experience is the input).
-2. Embedding model for prose vs RIF's code-tuned choice — same service, possibly different model per corpus type.
-3. Multi-tenancy model for the sellable product: DB-per-tenant vs row-level — BRD dependency, ADR before P3.
-4. Access control inheritance v2 design: once v1 proves uniformly-readable corpora, decide whether ACL propagation is row-level filtering, per-corpus partitioning, or tenant-specific indexes.
+1. ~~Graph store~~ — **DECIDED (D-003, 2026-07-08):** relational adjacency + recursive CTEs. See `DECISIONS.md`.
+2. ~~Embedding model for prose~~ — **DECIDED (D-002, 2026-07-08):** Voyage via shared LiteLLM service, ≤1024d Matryoshka; exact model/dimension pinned at end of P0 spike (D-005).
+3. ~~Multi-tenancy model~~ — **RESOLVED by D-001 (BYOC, 2026-07-08):** isolation by customer tenancy; no in-app row-level tenancy needed for pilot.
+4. Access control inheritance v2 design: once v1 proves uniformly-readable corpora, decide whether ACL propagation is row-level filtering, per-corpus partitioning, or tenant-specific indexes (D-006, needs a committed roadmap date per BRD BR4).
 
 ---
 *Document conventions: unverified figures are marked [VERIFY]. This PRD cites no external market data — see BRD.*

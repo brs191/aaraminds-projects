@@ -1,10 +1,10 @@
-module github.com/att/rif/mcp-server
+module github.com/aaraminds/rif/mcp-server
 
 go 1.25.0
 
 require (
-	github.com/att/rif/graphstore v0.0.0
-	github.com/att/rif/retriever v0.0.0
+	github.com/aaraminds/rif/graphstore v0.0.0
+	github.com/aaraminds/rif/retriever v0.0.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 )
@@ -24,6 +24,6 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 )
 
-replace github.com/att/rif/graphstore => ../../libs/graphstore
+replace github.com/aaraminds/rif/graphstore => ../../libs/graphstore
 
-replace github.com/att/rif/retriever => ../retriever
+replace github.com/aaraminds/rif/retriever => ../retriever

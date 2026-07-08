@@ -128,6 +128,7 @@ class ArchitectureAgent:
             api_key=self.llm_api_key,
             prompt=explanation_prompt,
             citations=_refs_for_prompt(citations),
+            anchors=[c.result_excerpt for c in citations],
         )
         return explanation, citations
 
@@ -195,6 +196,7 @@ class ImpactInvestigationAgent:
             api_key=self.llm_api_key,
             prompt=narrative_prompt,
             citations=_refs_for_prompt(citations),
+            anchors=[c.result_excerpt for c in citations],
         )
         return narrative, tiers, citations
 

@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	graphstore "github.com/att/rif/graphstore"
+	graphstore "github.com/aaraminds/rif/graphstore"
 )
 
 // randomHex64 generates a random 64-character hex string for use as a

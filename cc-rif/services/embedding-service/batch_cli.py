@@ -106,24 +106,69 @@ async def embed_batch(client: httpx.AsyncClient, service_url: str, batch: list[E
     return [EmbedResponse.model_validate(item) for item in resp.json()]
 
 
-async def run_batches(service_url: str, batches: list[list[EmbedRequest]], concurrency: int) -> list[list[EmbedResponse]]:
+async def embed_batch_with_retry(
+    client: httpx.AsyncClient,
+    service_url: str,
+    batch: list[EmbedRequest],
+    attempts: int = 3,
+    backoff_seconds: float = 2.0,
+) -> list[EmbedResponse]:
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return await embed_batch(client, service_url, batch)
+        except (httpx.HTTPError, ValueError) as exc:
+            last_exc = exc
+            if attempt < attempts:
+                await asyncio.sleep(backoff_seconds * attempt)
+    raise RuntimeError(f"batch of {len(batch)} failed after {attempts} attempts") from last_exc
+
+
+async def run_and_persist_batches(
+    conn: psycopg.Connection,
+    service_url: str,
+    batches: list[list[EmbedRequest]],
+    concurrency: int,
+    embedding_model: str,
+    metrics: Metrics,
+) -> None:
+    """Embed batches concurrently, persisting each batch as it completes.
+
+    Previous behavior gathered ALL batches before the first DB write, so one
+    failed batch discarded every completed embedding and held all vectors in
+    memory simultaneously (RIF review finding H7). Now each completed batch is
+    committed immediately; a failed batch is counted and skipped, never fatal
+    to its siblings.
+    """
     semaphore = asyncio.Semaphore(concurrency)
 
     async with httpx.AsyncClient() as client:
+
         async def run_one(batch: list[EmbedRequest]) -> list[EmbedResponse]:
             async with semaphore:
-                return await embed_batch(client, service_url, batch)
+                return await embed_batch_with_retry(client, service_url, batch)
 
-        return await asyncio.gather(*(run_one(batch) for batch in batches))
+        tasks = [asyncio.create_task(run_one(batch)) for batch in batches]
+        for completed in asyncio.as_completed(tasks):
+            try:
+                rows = await completed
+            except Exception as exc:
+                metrics.errors += 1
+                print(json.dumps({"event": "batch_failed", "error": str(exc)}))
+                continue
+            metrics.nodes_embedded += write_embeddings(conn, rows, embedding_model)
+            metrics.batches_processed += 1
 
 
 def write_embeddings(conn: psycopg.Connection, rows: list[EmbedResponse], embedding_model: str) -> int:
     with conn.cursor() as cur:
-        for row in rows:
-            cur.execute(
-                UPSERT_EMBEDDING_SQL,
-                {"node_id": row.node_id, "embedding": row.embedding, "embedding_model": embedding_model},
-            )
+        cur.executemany(
+            UPSERT_EMBEDDING_SQL,
+            [
+                {"node_id": row.node_id, "embedding": row.embedding, "embedding_model": embedding_model}
+                for row in rows
+            ],
+        )
     conn.commit()
     return len(rows)
 
@@ -142,16 +187,7 @@ async def async_main() -> None:
         async with httpx.AsyncClient() as client:
             health = await fetch_health(client, settings.service_url)
         batches = chunked(pending, batch_size)
-
-        try:
-            results = await run_batches(settings.service_url, batches, concurrency)
-            for batch_results in results:
-                metrics.nodes_embedded += write_embeddings(conn, batch_results, health.model)
-                metrics.batches_processed += 1
-        except Exception:
-            conn.rollback()
-            metrics.errors += 1
-            raise
+        await run_and_persist_batches(conn, settings.service_url, batches, concurrency, health.model, metrics)
 
     elapsed = time.monotonic() - started
     print(

@@ -22,10 +22,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/att/rif/graphstore"
-	"github.com/att/rif/ingestion/cloneurl"
-	"github.com/att/rif/ingestion/config"
-	"github.com/att/rif/ingestion/store"
+	"github.com/aaraminds/rif/graphstore"
+	"github.com/aaraminds/rif/ingestion/cloneurl"
+	"github.com/aaraminds/rif/ingestion/config"
+	"github.com/aaraminds/rif/ingestion/store"
 )
 
 // sourceRefRe validates first-party file source_refs: repo@sha40:path:line

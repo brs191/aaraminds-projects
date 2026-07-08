@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Do not open public issues for suspected vulnerabilities. Report findings privately to the repository owner (`@rb692q_ATT`) with:
+Do not open public issues for suspected vulnerabilities. Report findings privately to the repository owner (rajashekar.b@gmail.com) with:
 
 - affected component and version/commit
 - impact summary
@@ -17,7 +17,7 @@ Initial triage target: within 5 business days.
 The following controls are required for production deployments:
 
 - webhook authenticity validation for GitHub events (`X-Hub-Signature-256`)
-- no long-lived cloud credentials in CI (OIDC for Azure, short-lived JFrog tokens)
+- no long-lived cloud credentials in CI (OIDC for Azure, short-lived registry tokens)
 - container images published to JFrog Artifactory only
 - dependency and code scanning in CI before production rollout
 - audit logging enabled for ingestion and change workflows

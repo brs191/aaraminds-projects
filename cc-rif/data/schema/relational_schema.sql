@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS rif_meta.file_nodes (
     node_id        TEXT        NOT NULL,
     repo_id        TEXT        NOT NULL,
     -- Repo-relative path (no leading slash), e.g.:
-    --   src/main/java/com/att/creditcheck/routing/v1/CCRoutingService.java
+    --   src/main/java/com/example/creditcheck/routing/v1/CCRoutingService.java
     qualified_name TEXT        NOT NULL,
     -- Java package declaration; NULL for default package
     package        TEXT,
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS rif_meta.method_nodes (
     node_id        TEXT        NOT NULL,
     repo_id        TEXT        NOT NULL,
     -- Fully-qualified with erased parameter types, e.g.:
-    --   com.att...CCRoutingService#routeToCCApi(com.att...CreditCheckRequest)
+    --   com.example...CCRoutingService#routeToCCApi(com.example...CreditCheckRequest)
     qualified_name TEXT        NOT NULL,
     simple_name    TEXT        NOT NULL,
     return_type    TEXT,

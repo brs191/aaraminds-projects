@@ -1,9 +1,9 @@
-module github.com/att/rif/retriever
+module github.com/aaraminds/rif/retriever
 
 go 1.25.0
 
 require (
-	github.com/att/rif/graphstore v0.0.0
+	github.com/aaraminds/rif/graphstore v0.0.0
 	github.com/jackc/pgx/v5 v5.7.2
 )
 
@@ -16,4 +16,4 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 )
 
-replace github.com/att/rif/graphstore => ../../libs/graphstore
+replace github.com/aaraminds/rif/graphstore => ../../libs/graphstore

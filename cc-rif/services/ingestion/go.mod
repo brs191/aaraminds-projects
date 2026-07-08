@@ -1,10 +1,10 @@
-module github.com/att/rif/ingestion
+module github.com/aaraminds/rif/ingestion
 
 go 1.25.0
 
 require (
-	github.com/att/rif/graphstore v0.0.0
-	github.com/att/rif/phase5 v0.0.0
+	github.com/aaraminds/rif/graphstore v0.0.0
+	github.com/aaraminds/rif/phase5 v0.0.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/jackc/pgx/v5 v5.7.2
 	golang.org/x/sync v0.19.0
@@ -37,6 +37,6 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
 
-replace github.com/att/rif/graphstore => ../../libs/graphstore
+replace github.com/aaraminds/rif/graphstore => ../../libs/graphstore
 
-replace github.com/att/rif/phase5 => ../../libs/phase5
+replace github.com/aaraminds/rif/phase5 => ../../libs/phase5

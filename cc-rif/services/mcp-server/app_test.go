@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/att/rif/graphstore"
-	"github.com/att/rif/retriever"
+	"github.com/aaraminds/rif/graphstore"
+	"github.com/aaraminds/rif/retriever"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -183,8 +183,12 @@ func TestMCPHTTPIntegrationSearchCode(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "rif-mcp-server", Version: "v0.1.0"}, nil)
 	registerTools(server, app)
 
-	mux := http.NewServeMux()
-	mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, nil))
+	// Use the PRODUCTION mux (raw shim + SDK fall-through), not a test-local
+	// one. The C1 bug — the shim draining the body of initialize/tools/list
+	// requests before falling through — was invisible precisely because this
+	// test previously bypassed the shim.
+	streamable := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, nil)
+	mux := newMux(app, streamable)
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 

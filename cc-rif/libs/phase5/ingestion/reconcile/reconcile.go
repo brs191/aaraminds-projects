@@ -11,7 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/att/rif/phase5/ingestion/queue"
+	"github.com/aaraminds/rif/phase5/ingestion/queue"
 )
 
 type Reconciler struct {

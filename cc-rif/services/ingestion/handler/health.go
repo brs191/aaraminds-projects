@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/att/rif/graphstore"
+	"github.com/aaraminds/rif/graphstore"
 )
 
 // Health returns a handler for GET /healthz.

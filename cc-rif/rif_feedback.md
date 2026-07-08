@@ -1,5 +1,7 @@
 # cc-rif — Internal Review Feedback
 
+> **Remediation status (2026-07-08):** C1, C2 fixed (with the C1 integration test now using the production mux). Embedding service hardened (batch cap, encode semaphore, per-batch persistence with retries in batch_cli). Agent + embedding services: logging added, exception details no longer leaked to clients (M13, M7). Rebrand complete: `com.att`/`github.com/att` → `com.aaraminds`/`github.com/aaraminds`, Java package dirs moved, `attoss.jfrog.io` + AT&T comments scrubbed, client handle removed from SECURITY.md, CODEOWNERS rewritten at repo root for the current layout ([VERIFY] placeholder handle). `.DS_Store` files and `dependency-reduced-pom.xml` deleted. Still open: H1–H10 (auth, shutdown/timeouts, CI relocation, git init), doc triage, remaining Medium/Low items.
+
 **Date:** 2026-07-07
 **Scope:** Full repo — services (Go/Python), extractors (Java), docs, governance, repo hygiene
 **Method:** Four parallel review tracks; both Critical findings verified directly against source.

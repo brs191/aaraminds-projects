@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	graphstore "github.com/att/rif/graphstore"
+	graphstore "github.com/aaraminds/rif/graphstore"
 )
 
 // ─── helpers ──────────────────────────────────────────────────────────────────

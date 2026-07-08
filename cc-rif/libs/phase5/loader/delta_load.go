@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/att/rif/graphstore"
+	"github.com/aaraminds/rif/graphstore"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

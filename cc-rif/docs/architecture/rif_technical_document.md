@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** 2026-07-01  
-**Repository:** `rb692q_ATT/repo-intelligence-factory`  
+**Repository:** `aaraminds/repo-intelligence-factory`  
 **Audience:** Engineers, architects, operators  
 **Evidence policy:** Source-of-truth precedence applied (Tier 1: code/config/tests; Tier 2: eval outputs; Tier 3: status docs; Tier 4: planning docs).
 
@@ -285,7 +285,7 @@ Provider modes: `local/jina`, `litellm`, `hash` (source: phase-2/embedding-servi
 
 | Scope                                                      | Evidence                                                                                                                                                                                                                                                                               | Status                                    |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Extractor determinism + provenance + integration fixtures  | (source: phase-1/extractor/src/test/java/com/att/rif/extractor/DeterminismTest.java#L37-L50) (source: phase-1/extractor/src/test/java/com/att/rif/extractor/ProvenanceTest.java#L39-L57) (source: phase-1/extractor/src/test/java/com/att/rif/extractor/IntegrationTest.java#L94-L106) | Verified                                  |
+| Extractor determinism + provenance + integration fixtures  | (source: phase-1/extractor/src/test/java/com/aaraminds/rif/extractor/DeterminismTest.java#L37-L50) (source: phase-1/extractor/src/test/java/com/aaraminds/rif/extractor/ProvenanceTest.java#L39-L57) (source: phase-1/extractor/src/test/java/com/aaraminds/rif/extractor/IntegrationTest.java#L94-L106) | Verified                                  |
 | Ingestion E2E smoke and CI provenance gate                 | (source: phase-1/scripts/e2e_smoke.sh#L101-L108) (source: .github/workflows/provenance-gate.yml#L95-L113)                                                                                                                                                                              | Verified                                  |
 | Embedding API behavior (shape, truncation, provider modes) | (source: phase-2/embedding-service/tests/test_embed_api.py#L25-L51) (source: phase-2/embedding-service/tests/test_embed_api.py#L76-L97) (source: phase-2/embedding-service/tests/test_embed_api.py#L106-L123)                                                                          | Verified                                  |
 | Retriever ranking and hub damping logic                    | (source: phase-3/retriever/rrf_test.go#L5-L29) (source: phase-3/retriever/impact_test.go#L55-L98)                                                                                                                                                                                      | Verified                                  |
@@ -365,7 +365,7 @@ Provider modes: `local/jina`, `litellm`, `hash` (source: phase-2/embedding-servi
 7. `phase-1/schema/relational_schema.sql`
 8. `phase-1/scripts/bootstrap_db.sh`
 9. `phase-1/scripts/e2e_smoke.sh`
-10. `phase-1/extractor/src/test/java/com/att/rif/extractor/*.java`
+10. `phase-1/extractor/src/test/java/com/aaraminds/rif/extractor/*.java`
 11. `phase-2/embedding-service/app.py`
 12. `phase-2/embedding-service/tests/*.py`
 13. `phase-2/schema/migration_phase2.sql`

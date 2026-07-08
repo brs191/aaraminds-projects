@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 from pathlib import Path
 from typing import Any
 from typing import Protocol
@@ -21,6 +22,8 @@ LOCAL_FALLBACK_MODEL_NAME = "jinaai/jina-embeddings-v2-base-code"
 HASH_MODEL_NAME = "hash-deterministic-v1"
 EMBEDDING_DIM = 768
 
+logger = logging.getLogger("embedding_service")
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -30,6 +33,8 @@ class Settings(BaseSettings):
     embedding_dim: int = Field(default=EMBEDDING_DIM, alias="EMBEDDING_DIM", ge=1)
     model_path: str | None = Field(default=None, alias="MODEL_PATH")
     batch_size: int = Field(default=32, alias="BATCH_SIZE", ge=1)
+    max_batch_items: int = Field(default=256, alias="MAX_BATCH_ITEMS", ge=1)
+    encode_concurrency: int = Field(default=2, alias="ENCODE_CONCURRENCY", ge=1)
     max_text_len: int = Field(default=512, alias="MAX_TEXT_LEN", ge=1)
     port: int = Field(default=8000, alias="PORT", ge=1, le=65535)
     litellm_base_url: str | None = Field(default=None, alias="LITELLM_BASE_URL")
@@ -233,17 +238,35 @@ class EmbeddingService:
     def __init__(self, settings: Settings, embedder: Embedder) -> None:
         self.settings = settings
         self.embedder = embedder
+        # Bound concurrent encode calls. Without this, anyio's default thread
+        # pool lets ~40 threads into one SentenceTransformer.encode and
+        # concurrent PyTorch CPU inference thrashes (RIF review finding M11).
+        self._encode_semaphore = asyncio.Semaphore(settings.encode_concurrency)
 
     def _truncate(self, texts: Sequence[str]) -> list[str]:
         max_len = self.settings.max_text_len
         return [text[:max_len] for text in texts]
 
+    async def _encode_chunk(self, texts: list[str]) -> np.ndarray:
+        async with self._encode_semaphore:
+            return await asyncio.to_thread(self.embedder.encode, texts)
+
     async def embed(self, items: Sequence[EmbedInput]) -> list[EmbedOutput]:
         texts = self._truncate([item.text for item in items])
-        vectors = await asyncio.to_thread(self.embedder.encode, texts)
+        # Chunk upstream encode calls by BATCH_SIZE instead of forwarding the
+        # whole client payload in one call (RIF review finding H4/H9 — one
+        # oversized upstream request blows provider limits and timeouts).
+        chunk_size = self.settings.batch_size
+        chunks = [texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)]
+        vector_parts = [await self._encode_chunk(chunk) for chunk in chunks]
+        vectors = np.concatenate(vector_parts, axis=0) if len(vector_parts) > 1 else vector_parts[0]
         if vectors.ndim != 2 or vectors.shape[1] != self.settings.embedding_dim:
             raise RuntimeError(
                 f"Model returned embeddings with shape {vectors.shape}, expected (*, {self.settings.embedding_dim})"
+            )
+        if vectors.shape[0] != len(items):
+            raise RuntimeError(
+                f"Model returned {vectors.shape[0]} embeddings for {len(items)} inputs"
             )
 
         return [
@@ -303,10 +326,21 @@ def create_app(
         if app.state.service is None:
             ensure_state_initialized()
         service = app.state.service
+        if not batch:
+            raise HTTPException(status_code=422, detail="batch must contain at least one item")
+        max_items = app.state.settings.max_batch_items
+        if len(batch) > max_items:
+            raise HTTPException(
+                status_code=413,
+                detail=f"batch of {len(batch)} exceeds MAX_BATCH_ITEMS={max_items}; split the request",
+            )
         try:
             return await service.embed(batch)
         except RuntimeError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            # Log the detail, return a generic message — upstream provider
+            # URLs/response bodies must not leak to clients (finding M13).
+            logger.error("embed_failed batch_size=%d", len(batch), exc_info=True)
+            raise HTTPException(status_code=500, detail="embedding backend error") from exc
 
     return app
 

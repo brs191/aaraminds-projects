@@ -1,9 +1,9 @@
-module github.com/att/rif/phase5
+module github.com/aaraminds/rif/phase5
 
 go 1.25.0
 
 require (
-	github.com/att/rif/graphstore v0.0.0
+	github.com/aaraminds/rif/graphstore v0.0.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/jackc/pgx/v5 v5.7.2
 )
@@ -35,4 +35,4 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
 
-replace github.com/att/rif/graphstore => ../graphstore
+replace github.com/aaraminds/rif/graphstore => ../graphstore

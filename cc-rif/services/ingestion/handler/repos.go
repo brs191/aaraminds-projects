@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/att/rif/ingestion/cloneurl"
-	"github.com/att/rif/ingestion/store"
+	"github.com/aaraminds/rif/ingestion/cloneurl"
+	"github.com/aaraminds/rif/ingestion/store"
 )
 
 // registerRepoRequest is the JSON body for POST /repos.

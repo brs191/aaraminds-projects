@@ -158,7 +158,7 @@ Execution evidence:
 - Branch/commit/push:
   - Branch: `chore/remote-ci-evidence-live`
   - Commit: `4920fdf` (`ci: sync migrated workflows`)
-  - PR: `https://github.com/rb692q_ATT/cc-rif/pull/1`
+  - PR: `https://github.com/aaraminds/cc-rif/pull/1`
 
 CLI evidence:
 - `gh workflow list`

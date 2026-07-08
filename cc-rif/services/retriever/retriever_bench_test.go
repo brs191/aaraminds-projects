@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/att/rif/graphstore"
+	"github.com/aaraminds/rif/graphstore"
 )
 
 func BenchmarkSearch(b *testing.B) {

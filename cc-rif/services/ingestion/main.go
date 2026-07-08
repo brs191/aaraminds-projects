@@ -33,13 +33,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/att/rif/graphstore"
-	"github.com/att/rif/ingestion/config"
-	"github.com/att/rif/ingestion/handler"
-	"github.com/att/rif/ingestion/service"
-	"github.com/att/rif/ingestion/store"
-	"github.com/att/rif/phase5/ingestion/queue"
-	"github.com/att/rif/phase5/ingestion/reconcile"
+	"github.com/aaraminds/rif/graphstore"
+	"github.com/aaraminds/rif/ingestion/config"
+	"github.com/aaraminds/rif/ingestion/handler"
+	"github.com/aaraminds/rif/ingestion/service"
+	"github.com/aaraminds/rif/ingestion/store"
+	"github.com/aaraminds/rif/phase5/ingestion/queue"
+	"github.com/aaraminds/rif/phase5/ingestion/reconcile"
 )
 
 func main() {

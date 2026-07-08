@@ -73,7 +73,7 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 
 Decisions needed before pilot close (owner: AaraMinds leadership):
 
-- **Licensing:** self-hosted subscription (per-corpus or per-seat) vs managed deployment on customer Azure tenancy. RIF's deployment model should set the default — one commercial pattern for the family. [DECISION REQUIRED]
+- **Licensing:** **DECIDED (D-001, 2026-07-08):** managed deployment on customer Azure tenancy (BYOC), AaraMinds-operated, priced per corpus + usage. One commercial pattern for the factory family — applies to RIF as well. See `DECISIONS.md`.
 - **Pilot commercials:** paid pilots with success criteria (golden-query precision, citation integrity) that convert to annual subscription. Unpaid pilots are innovation theater; do not run them.
 - **Pricing inputs:** corpus size (documents/versions indexed), connector count, agent-call volume. Establish metering in the product by P1 per PRD R30 — retrofitting usage metering is expensive.
 - **Services attach:** corpus onboarding, golden-set curation, and connector configuration as paid services — this is real margin for a two-sided (product + expertise) company.
@@ -83,7 +83,7 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 | # | Requirement | Rationale |
 |---|-------------|-----------|
 | BR1 | Clean, owned IP from day one: `com.aaraminds.dif`, own repo, no client namespaces or client-environment policy in governance files | RIF's costliest review finding; a sellable product cannot carry another company's branding |
-| BR2 | Multi-tenancy posture decided by ADR before P3 (DB-per-tenant default for enterprise isolation story) | Sales blocker if undefined; retrofit is a rewrite |
+| BR2 | Multi-tenancy posture: resolved by D-001 (BYOC) — isolation by customer tenancy; revisit only if an AaraMinds-hosted tier is ever added | Sales blocker if undefined; BYOC gives the strongest isolation answer by construction |
 | BR3 | Security is a sales feature: auth on every surface, non-root containers, vuln-scanned dependencies, SOC 2-aligned controls documented from the skills-pack | Enterprise procurement gate; RIF review showed the debt cost when deferred |
 | BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora or separately indexed corpora per access boundary), **with a committed, dated v2 ACL-propagation roadmap item** — permission-aware retrieval is a named 2026 procurement gate and compliance buyers ask in the first meeting | Overclaiming loses compliance-sensitive deals permanently; having no roadmap answer loses them in meeting one |
 | BR5 | Citation integrity is contractual: 100% of claim blocks resolve to source anchors and pass grounding checks, structurally enforced and auditable via the audit log | This is the product's core promise; it must be demonstrable in a procurement bake-off |
@@ -133,9 +133,11 @@ No revenue or cost figures are stated in this draft — [VERIFY: build the pilot
 
 | Role | Name | Status |
 |------|------|--------|
-| Product owner | [PENDING] | — |
-| Engineering lead | [PENDING] | — |
-| Commercial/licensing | [PENDING] | — |
+| Product owner | Raja | Approved 2026-07-08 (D-004) |
+| Engineering lead | Raja | Approved 2026-07-08 (D-004) |
+| Commercial/licensing | Raja | Approved 2026-07-08 (D-004) |
+
+*Single-approver model recorded in D-004; revisit before first paid pilot contract.*
 
 ---
 *Conventions: this document quotes no unsourced market or financial figures; items marked [VERIFY] or [DECISION REQUIRED] must be resolved before this BRD leaves Draft status.*
