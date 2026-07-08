@@ -1,11 +1,12 @@
 # DIF — Documents Intelligence Factory
 ## Business Requirements Document (BRD)
 
-**Version:** 0.1 (Draft)
-**Date:** 2026-07-07
+**Version:** 0.2 (Draft)
+**Date:** 2026-07-08
 **Owner:** AaraMinds
 **Status:** Draft — pending review
 **Related:** DIF_PRD.md, RIF (Repo Intelligence Factory)
+**v0.2 changes:** market-trend review applied — citations repositioned as table stakes, differentiation table rewritten, named competitors added to risks, EU AI Act added to "why now", ACL roadmap commitment added (BR4).
 
 ---
 
@@ -13,7 +14,7 @@
 
 AaraMinds has a proven intelligence-factory pattern: deterministic extraction into a content-addressed knowledge graph, hybrid retrieval, and citation-gated agents. RIF applies it to code. DIF applies it to documents — the larger, more universal corpus every enterprise owns.
 
-The business case rests on three points. First, **every enterprise has the problem**: knowledge trapped in Word/PDF/PowerPoint estates, invisible cross-references, and AI initiatives blocked because naive RAG cannot cite or trace impact. Second, **the differentiator is structural, not incremental**: citation integrity and change-impact analysis are things chunk-and-embed RAG cannot do by construction — competitors must re-architect to match. Third, **the marginal cost is low**: DIF reuses RIF's stack, ops model, embedding service, and hardening lessons, so most engineering spend goes into the new extraction domain rather than re-solving solved problems.
+The business case rests on three points. First, **every enterprise has the problem**: knowledge trapped in Word/PDF/PowerPoint estates, invisible cross-references, and AI initiatives blocked because answers can't be traced or audited. Second, **the differentiator is structural, not incremental** — and it is *not* citations, which are 2026 table stakes (Microsoft ships passage-level "deep citations"; Harvey and Hebbia do character/sentence-level). The differentiators are the three things no one ships: a productized, incrementally-maintained document knowledge graph; cross-document lineage/impact analysis; and citation *gating* — grounding enforced and scored as a contract, not offered as a feature. Competitors must re-architect to match. Third, **the marginal cost is low**: DIF reuses RIF's stack, ops model, embedding service, and hardening lessons, so most engineering spend goes into the new extraction domain rather than re-solving solved problems.
 
 Recommendation: fund DIF as the second product in an "Intelligence Factory" family, targeting a design-partner pilot at the end of Phase 3 (per PRD phasing) and a joint RIF+DIF story ("your code and your documents in one queryable graph") as the medium-term wedge no point-solution competitor can tell.
 
@@ -31,7 +32,7 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 
 **The problem, in business terms.** Enterprises are spending on AI assistants that answer questions about their own documents — and discovering the answers can't be trusted or traced. In contracts, compliance, and engineering governance, an answer without a verifiable source is not a product feature; it's a liability. Meanwhile document estates keep growing, cross-references rot, and "what's impacted if we change this?" remains a week of manual work.
 
-**Why now.** MCP has become the integration standard for enterprise AI agents; a documents-intelligence backend exposed as MCP tools plugs into whatever agent surface the customer already uses (Claude, Copilot, internal agents) rather than competing with it. AaraMinds already owns a validated architecture for exactly this pattern.
+**Why now.** Three converging forces. (1) MCP won the agent-integration standards war — OpenAI, Google, and Microsoft are all first-party adopters, and the 2026-07-28 spec finalizes stateless, OAuth-secured remote servers; a documents-intelligence backend exposed as MCP tools plugs into whatever agent surface the customer already uses (Claude, Copilot, Gemini, internal agents) rather than competing with it. (2) **EU AI Act transparency obligations apply from December 2, 2026** — regulated buyers are already writing right-to-audit clauses; "this tool cannot return an ungrounded claim" is a compliance story incumbents haven't built. (3) Permission-aware, cited retrieval became a named procurement gate in 2026 while the underlying graph/lineage capability remains unshipped by anyone. AaraMinds already owns a validated architecture for exactly this pattern.
 
 **Why us.** RIF is working proof: deterministic extraction, provenance gates, atomic index swaps, citation-gated narration, cross-language e2e testing. The intelligence-factory pattern is the company's core IP; DIF is its second instantiation. No market-size figures are quoted here — [VERIFY: commission market sizing before external fundraising use; this document intentionally avoids unsourced TAM claims.]
 
@@ -41,14 +42,19 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 
 **One-liner:** *DIF turns your document estate into a queryable, citation-grounded knowledge graph your AI agents can actually trust.*
 
-**Differentiation vs alternatives:**
+**Positioning stance:** DIF is **infrastructure, not an end-user search app** — the neutral, auditable context layer *underneath* the agents an enterprise already runs (Claude Enterprise via managed MCP auth, Copilot Studio, Gemini Enterprise, internal agents). Compete on openness and auditability; never compete on end-user UI, where Glean and Microsoft have unassailable distribution.
 
-| Alternative | Where DIF wins |
-|-------------|----------------|
-| Enterprise search (Elastic, SharePoint search, Glean-class) | Search finds documents; DIF answers questions with clause-level citations and traces reference/impact chains |
-| Naive RAG stacks (chunk + embed + LLM) | Structure-blind, citation-weak, no versioning or impact analysis; DIF's graph is the moat |
-| Document-AI APIs (parsing/OCR services) | Those extract; they don't build a corpus-wide graph, retrieval layer, or agent contract |
-| DIY internal builds | DIF ships the hard parts (determinism, provenance gates, incremental indexing, MCP contract) that internal teams underestimate |
+**Differentiation vs alternatives (citations alone differentiate against nobody — they are the entry ticket):**
+
+| Alternative | What they have | Where DIF wins |
+|-------------|----------------|----------------|
+| Glean-class work-AI platforms ($7.2B, ~$50–75/user/mo, own MCP directory + agents-as-tools) | Enterprise knowledge graph with ACLs and citations — locked inside their app | DIF's graph is open, exportable, auditable infrastructure serving *any* agent; document lineage/impact analysis, which Glean does not ship; no per-seat lock-in |
+| Microsoft (Copilot deep citations, SharePoint Knowledge Agent bundled with licenses) | Passage-level citations; auto-metadata on SharePoint libraries | Cross-document dependency graph and impact analysis, not metadata columns; works across sources beyond M365; grounding enforced, not just displayed |
+| Foundation-vendor native features (OpenAI Company Knowledge, Claude connectors) | Free connect-and-cite inside the chat subscription, per-user permissions | Those cite; they don't gate, score groundedness, version corpora, or trace impact — DIF is the governed layer their agents call via MCP |
+| Naive RAG stacks (chunk + embed + LLM) | Cheap, hosted (OpenAI File Search at API pennies) | Structure-blind, no versioning or impact analysis; DIF's deterministic graph is the moat |
+| GraphRAG offerings (Microsoft library, Neo4j Infinigraph) | Graph capability as DIY library or database | Both hand you an ontology-design and graph-maintenance problem; DIF's content-addressed structural graph maintains itself incrementally under document churn — the known unsolved operational pain of LLM-extracted graphs |
+| Document-AI APIs (Unstructured, Reducto, LlamaParse) | Commoditized high-accuracy parsing (DIF *buys* this layer, per PRD R2a) | They extract; they don't build a corpus-wide graph, retrieval layer, or agent contract |
+| DIY internal builds | Full control | DIF ships the hard parts (determinism, provenance gates, incremental indexing, MCP contract, grounding scoring) that internal teams underestimate |
 
 **The family story:** RIF answers "what does our code do and what breaks if we change it?" DIF answers the same for documents. v2's federated graph answers the question nobody else can: *"which documents describe this code, and are they still true?"* — documentation drift detection as a product. That story is unique to owning both factories.
 
@@ -79,7 +85,7 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 | BR1 | Clean, owned IP from day one: `com.aaraminds.dif`, own repo, no client namespaces or client-environment policy in governance files | RIF's costliest review finding; a sellable product cannot carry another company's branding |
 | BR2 | Multi-tenancy posture decided by ADR before P3 (DB-per-tenant default for enterprise isolation story) | Sales blocker if undefined; retrofit is a rewrite |
 | BR3 | Security is a sales feature: auth on every surface, non-root containers, vuln-scanned dependencies, SOC 2-aligned controls documented from the skills-pack | Enterprise procurement gate; RIF review showed the debt cost when deferred |
-| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora or separately indexed corpora per access boundary; ACL propagation is v2) | Overclaiming here loses compliance-sensitive deals permanently |
+| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora or separately indexed corpora per access boundary), **with a committed, dated v2 ACL-propagation roadmap item** — permission-aware retrieval is a named 2026 procurement gate and compliance buyers ask in the first meeting | Overclaiming loses compliance-sensitive deals permanently; having no roadmap answer loses them in meeting one |
 | BR5 | Citation integrity is contractual: 100% of claim blocks resolve to source anchors and pass grounding checks, structurally enforced and auditable via the audit log | This is the product's core promise; it must be demonstrable in a procurement bake-off |
 | BR6 | Every pilot has a golden-query set and measured baseline before success targets are agreed | No fabricated metrics — internal policy and customer credibility |
 | BR7 | Demo corpus + demo script maintained from P0 (public documents), so sales demos never require customer data | Shortens sales cycle; avoids NDA friction at top of funnel |
@@ -104,10 +110,12 @@ No revenue or cost figures are stated in this draft — [VERIFY: build the pilot
 
 | Risk | Type | Mitigation |
 |------|------|------------|
-| Extraction quality on messy real-world PDFs undermines the accuracy promise | Product | Text-layer-only v1 scope; degenerate-run gates; per-corpus quality report before agent access is enabled |
-| Incumbents (enterprise search vendors) bolt on citations | Market | Speed + graph/impact-analysis depth; federated RIF+DIF story they can't copy without owning a code graph |
+| Extraction quality on messy real-world PDFs undermines the accuracy promise | Product | Parsing router (PRD R2a) with Docling/VLM fallback; degenerate-run gates; per-corpus quality report before agent access is enabled |
+| **Glean expands downward into infrastructure** — MCP directory, agents-as-tools, enterprise graph, from a $7.2B position | Market | Position as the neutral, open, auditable layer vs their closed per-seat platform; move fast on lineage/gating where they have nothing; avoid their UI battleground entirely |
+| **Microsoft bundles "good enough" for free** — SharePoint Knowledge Agent + deep citations included in Copilot licenses buyers already own | Market | Sell where M365 stops: cross-source graphs, impact analysis, grounding enforcement, non-M365 corpora; ICP screens for multi-source estates |
+| **Foundation vendors give away connect-and-cite** — OpenAI Company Knowledge, Claude enterprise connectors, inside the chat subscription | Market | They're a channel, not just a threat: DIF serves those same agents via MCP as the governed context layer; differentiation is gating + graph, never basic cited search |
 | Single-team capacity: DIF competes with RIF hardening for the same engineers | Execution | RIF review remediation (its priority list) is scheduled work, not background noise; sequence explicitly — do not run both at full tilt |
-| ACL/permission expectations from compliance buyers exceed v1 | Sales | BR4 honesty rule; qualify pilots on uniformly-readable corpora |
+| ACL/permission expectations from compliance buyers exceed v1 | Sales | BR4 honesty rule + committed dated ACL roadmap; qualify pilots on admissible corpora (BR9) |
 | Pilot partners treat it as free consulting | Commercial | Paid pilots only (§6) |
 | Hygiene debt recurrence (RIF pattern) | Execution | PRD R25–R29 are P0, CI-enforced; BRD sign-off requires the P0 exit criteria met |
 

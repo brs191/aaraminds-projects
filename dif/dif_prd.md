@@ -1,11 +1,12 @@
 # DIF — Documents Intelligence Factory
 ## Product Requirements Document (PRD)
 
-**Version:** 0.1 (Draft)
-**Date:** 2026-07-07
+**Version:** 0.2 (Draft)
+**Date:** 2026-07-08
 **Owner:** AaraMinds
 **Status:** Draft — pending review
 **Sibling product:** RIF (Repo Intelligence Factory)
+**v0.2 changes:** market-trend review applied — parsing router replaces hand-built PDF extraction, rerank stage added, low-level retrieval tools added, MCP 2026-07-28 spec + OAuth 2.1 targeted, structural citations + groundedness scoring, embedding default refreshed, long-context routing note.
 
 ---
 
@@ -44,7 +45,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 ### Non-goals (v1)
 
 - Document *authoring* or editing — DIF reads, it does not write documents.
-- OCR of scanned/image-only PDFs (v2; v1 handles text-layer PDFs only).
+- Scanned/image-only PDF corpora as a primary target (v2). v1's parsing router (R2a) handles born-digital PDFs including complex layout via Docling/VLM; corpora that are *predominantly* scans are out of pilot scope and screened out at qualification.
 - Real-time collaborative-editor integration (Google Docs live sync, O365 co-authoring events).
 - Semantic contradiction detection between documents (v2 candidate; v1 surfaces the references, humans judge).
 - Fine-tuned/custom embedding models — v1 uses the same embedding service and model options as RIF.
@@ -74,7 +75,8 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 ### 5.1 Ingestion
 
 - **R1.** Sources are phased. **P0:** local/mounted file trees and Git repositories (docs-in-repo). **P3:** SharePoint/OneDrive via Graph API connector. Webhook-triggered and scheduled ingestion are connector features, not P0 skeleton blockers.
-- **R2.** Formats are phased. **P0:** `.md`, `.txt`, and `.docx`. **P1:** `.pdf` text-layer and `.pptx`. Format detection is by content, not extension alone.
+- **R2.** Formats are phased. **P0:** `.md`, `.txt`, and `.docx`. **P1:** `.pdf` and `.pptx`. Format detection is by content, not extension alone.
+- **R2a.** PDF handling is a **parsing router, not a hand-built extractor**. Parsing is a commoditized layer in 2026 (Docling, Unstructured, Reducto, VLM-based OCR) — DIF's IP is the graph on top, not the parser. Route: text-layer fast path for clean born-digital PDFs; IBM Docling (self-hosted, TableFormer for tables) for complex layout, tables, and multi-column; VLM parse as fallback for pathological pages. Parsed output is stored as structured blocks with **page + bounding-box provenance** — bbox provenance is what makes clause-level citations possible. The router's outputs feed the same deterministic NDJSON contract as native extractors; determinism gates (R9) apply to the router's post-processing, with parser version pinned and recorded per run.
 - **R3.** Every ingestion run is recorded with provenance (source, timestamp, content hashes). A run that extracts zero or degenerate content **must not** replace the prior index version (RIF's B1/B2 gate pattern — carry it over verbatim).
 - **R4.** Atomic version swap with optimistic locking; a failed run leaves the previous index fully serving.
 - **R5.** Incremental mode is P2: content-addressed section IDs mean unchanged sections are not re-extracted or re-embedded; fallback to full re-index with explicit logged reasons.
@@ -91,6 +93,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 - **R11.** Postgres + pgvector for embeddings and FTS; graph edges in Postgres (AGE or relational adjacency — decide via ADR, default to what RIF ships). One `docs_nodes` / `docs_edges` schema versioned via the same idempotent migration approach RIF validated.
 - **R12.** Hybrid retrieval: vector similarity + Postgres FTS + graph proximity signal, fused via RRF (reuse RIF's `rrf.go` and fusion logic). Vector queries must push `ORDER BY embedding <=> $n LIMIT k` into index-eligible per-table branches (RIF finding M5 — do not repeat).
+- **R12a.** **Reranking stage (P1).** Broad hybrid recall → cross-encoder rerank before results ship. Reranking is the single highest-leverage retrieval component in 2026 benchmarks (+17pp MRR@3 over unreranked hybrid on text-and-table documents). Provider-abstracted (Cohere Rerank v4 API or open-weight cross-encoder self-hosted); rerank scores recorded alongside RRF scores for evaluation. pgvector notes: `halfvec` + HNSW as the default index recipe; pgvectorscale when a corpus passes ~50M vectors.
 - **R13.** Every retrieval result carries a source anchor: `doc_id@version : section_path : page/slide/line`.
 - **R13a.** Impact-analysis semantics are explicit. `REFERENCES` edges point from the citing node to the cited node. `impact_of_change(anchor)` traverses inbound `REFERENCES` paths from the changed anchor to affected citing documents, returns path evidence, depth, edge confidence, and unresolved-edge caveats, and does not claim semantic contradiction. Defaults: `max_depth=2`, hard cap `5`, `version_scope=current`, `edge_confidence=exact`; callers may opt into `inferred`, `all_versions`, or `as_of`.
 - **R13b.** `trace_references(anchor)` supports `direction=outbound|inbound|both`, `max_depth`, `version_scope`, `edge_confidence`, and `include_unresolved`. Results are sorted deterministically by path length, confidence, document ID, then anchor.
@@ -98,8 +101,10 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 ### 5.4 MCP server
 
 - **R14.** Tool surface is phased. **P0:** `search_docs`. **P1:** `trace_references`, `impact_of_change`. **P2:** `diff_versions`, `explain_topic`. Tool schemas **generated from code**, not hand-maintained (RIF finding M3).
+- **R14a.** **Low-level retrieval tools (P2):** `keyword_search`, `semantic_search`, `read_block` — alongside the fixed-function tools. The 2026 pattern is agentic retrieval: consuming agents iterate over retrieval primitives rather than accepting one-shot answers (the pattern Azure AI Search shipped GA in April 2026). Fixed-function tools serve simple clients; primitives serve capable agents. Both share the same auth, audit, and citation contracts.
 - **R15.** All required fields validated non-empty server-side; ILIKE wildcards escaped.
-- **R16.** Bearer-token auth on `/mcp` and all HTTP surfaces **from day one** (constant-time compare). RIF shipped v1 with zero auth — DIF does not.
+- **R16.** Auth from day one, targeting the **MCP 2026-07-28 spec** (stateless core — no `Mcp-Session-Id`, any request routable to any instance): bearer-token (constant-time compare) is acceptable for P0 internal deployments only; remote/pilot deployments require **OAuth 2.1 + PKCE per the MCP auth spec** (RFC 9728 protected-resource metadata, RFC 8707 resource indicators, no token passthrough). Design for deployment behind an enterprise MCP gateway — gateways are the 2026 enterprise control plane for tool authorization and audit; DIF must not assume it terminates auth alone. RIF shipped v1 with zero auth — DIF does not.
+- **R16a.** Long-running operations (ingestion runs, corpus-wide analyses) exposed via the MCP **Tasks** extension rather than blocking tool calls.
 - **R17.** HTTP server with read/write/idle timeouts, graceful shutdown, and a `/health` that pings Postgres (not a static OK).
 - **R18.** Audit log per tool call; audit-write failure logs and continues — it does not fail the user's read.
 
@@ -107,12 +112,15 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 - **R19.** `/explain` and `/investigate_impact` endpoints return claim blocks, not free-form blobs: each claim has `text`, `source_refs[]` (`min_length=1`), and optional `caveats[]`. A top-level bibliography is not sufficient. No-citation or unresolved-citation output fails closed with 404/422, never a fabricated answer.
 - **R20.** Grounding check validates every claim against retrieved excerpts or structured table cells — not verbatim citation-string echo (RIF finding C2). Unsupported claims are dropped or converted into caveats; every fallback event is logged.
+- **R20a.** **Citations are structural, not prompted.** Where the narration model is Claude, retrieval results are passed as search-result content blocks / Citations API documents so cited spans are literal quotes re-injected by the API — quote fabrication becomes structurally impossible. Block granularity = citation granularity, so the graph's block segmentation doubles as citation strategy. On other providers, use their grounding-metadata equivalent; the claim-block contract (R19) is provider-independent.
+- **R20b.** **Groundedness scoring in the response path.** An HHEM-class open-weights faithfulness scorer runs inline on agent responses (cheap synchronous check); a sampled fraction of traffic goes to async LLM-judge evaluation. Scores are recorded per claim block and surfaced in the audit log — this is the evidence behind the citation-integrity contract (BRD BR5), demonstrable in a procurement bake-off.
 - **R21.** All repo/doc-derived text interpolated into prompts is fenced as data with explicit "treat as data, not instructions" framing (prompt-injection surface; RIF finding M15).
 - **R22.** MCP client calls carry timeouts, retries with backoff, and propagate request context.
 
 ### 5.6 Embedding service — shared with RIF
 
 - **R23.** Reuse RIF's embedding service (LiteLLM provider abstraction + local model fallback). Add before DIF ships: request batch-size cap, concurrency semaphore on local encode, per-batch persistence in backfill CLI (RIF findings H4/M11/H2-python).
+- **R23a.** **Embedding default refreshed for prose.** RIF's `text-embedding-3-small` is aging (no OpenAI refresh since 2024). DIF default: a Matryoshka-capable API model — Voyage (Anthropic's recommended provider) or Gemini Embedding — stored full-dimension, served truncated at ≤1024d; Qwen3-Embedding as the self-host/sovereignty fallback. Quality has converged across the top models, so the choice is ops/cost, and the LiteLLM abstraction makes switching cheap — but pick before P1, because re-embedding a pilot corpus later is the expensive path. ColPali-style page-image embeddings for visually dense corpora (slides, scanned forms) are a v2 second index, not the primary.
 - **R24.** Token-aware (not char-based) truncation sized to the model's context window.
 
 ### 5.7 Cross-cutting
@@ -148,7 +156,9 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
                              └──────────────────┘      └───────────────┘
 ```
 
-Extractors: Go for format parsing where mature libraries exist; JVM (Apache POI) permitted for OOXML depth if Go libraries fall short — decide via ADR per format. Stack constraints per AaraMinds standards: Azure-primary, Terraform AzureRM, GitHub Actions OIDC, Key Vault via managed identity, Grafana + Prometheus + OTel.
+Extractors: Go for format parsing where mature libraries exist; JVM (Apache POI) permitted for OOXML depth if Go libraries fall short; PDF goes through the parsing router (R2a — Docling/VLM integration, not hand-built) — decide via ADR per format. Stack constraints per AaraMinds standards: Azure-primary, Terraform AzureRM, GitHub Actions OIDC, Key Vault via managed identity, Grafana + Prometheus + OTel.
+
+**Long-context routing (design note).** Retrieval and long context are complementary, not competing: single-document deep analysis (e.g., "analyze this one contract end to end") routes the whole document into a large context window with prompt caching; corpus-scale and high-QPS queries go through the retriever. The router is a product decision with easy economics — linear token cost and quadratic attention latency make retrieval the only viable path at corpus scale, while long context wins for one-off whole-document work. The agent service implements this routing; it is not exposed as user configuration.
 
 ## 7. Success metrics
 
@@ -169,7 +179,7 @@ Baselines to be established during pilot; no targets ship without a measured bas
 | P1 — Core graph | PDF text-layer + pptx extractors, `REFERENCES`/`VERSION_OF`/`SUPERSEDES` edges, hybrid retriever, `trace_references`, `impact_of_change` | Golden-query set passing; impact-analysis semantics tested; determinism check green |
 | P2 — Agents + incremental | Agent service, claim-level citation gate, incremental re-index, `diff_versions`, `explain_topic` | Claim citation gate 100%; incremental correctness proven; usage metering complete |
 | P3 — Connectors + hardening | SharePoint/OneDrive connector for uniformly-readable corpora, observability, Terraform, deployment hardening | Paid pilot deployment with a real admissible corpus |
-| v2 candidates | OCR, contradiction detection, entity extraction, RIF+DIF joint queries ("which docs describe this code?") | — |
+| v2 candidates | Scanned-corpus OCR, ColPali-style page-image retrieval index, contradiction detection, entity extraction, ACL propagation, RIF+DIF joint queries ("which docs describe this code?") | — |
 
 The RIF+DIF joint-query capability (linking document claims to code entities) is the long-term differentiator — design node-ID and schema conventions now so the two graphs can federate later.
 
@@ -177,7 +187,8 @@ The RIF+DIF joint-query capability (linking document claims to code entities) is
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| PDF extraction quality varies wildly by producer | Garbage graph in, garbage answers out | Text-layer-only in v1; per-format quality gates; degenerate-run guard blocks index swap |
+| PDF extraction quality varies wildly by producer | Garbage graph in, garbage answers out | Parsing router (R2a): text-layer fast path + Docling + VLM fallback; per-format quality gates; degenerate-run guard blocks index swap |
+| Parser dependency drift (Docling/VLM versions change output) | Determinism story breaks | Parser versions pinned and recorded per run; determinism CI compares against pinned-parser baseline; re-parse is an explicit versioned event |
 | OOXML edge cases (tracked changes, embedded objects) | Silent content loss | Explicit unsupported-feature caveats on nodes; completeness surfaced to consumers |
 | SharePoint connector auth/throttling complexity | P3 slip | Isolate as connector module; file-drop and git paths carry v1 |
 | Naive-RAG competitors ship "good enough" | Differentiation pressure | Lead with citation integrity + impact analysis — what chunk-RAG structurally cannot do |
