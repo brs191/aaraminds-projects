@@ -7,12 +7,13 @@
 **Status:** Draft — pending review
 **Related:** DIF_PRD.md, RIF (Repo Intelligence Factory)
 **v0.2 changes:** market-trend review applied — citations repositioned as table stakes, differentiation table rewritten, named competitors added to risks, EU AI Act added to "why now", ACL roadmap commitment added (BR4).
+**v0.3 changes (D-007):** RIF federation promoted to core v1 — positioning updated to code-aware document intelligence, deployment/pricing unit is per project attached to RIF, cross-sell motion inverted (DIF attaches to every RIF deployment), joint-graph demo moved from v2 to P2.
 
 ---
 
 ## 1. Executive summary
 
-AaraMinds has a proven intelligence-factory pattern: deterministic extraction into a content-addressed knowledge graph, hybrid retrieval, and citation-gated agents. RIF applies it to code. DIF applies it to documents — the larger, more universal corpus every enterprise owns.
+AaraMinds has a proven intelligence-factory pattern: deterministic extraction into a content-addressed knowledge graph, hybrid retrieval, and citation-gated agents. RIF applies it to code. DIF applies it to documents — and, decisively, **joins the two (D-007)**: DIF deploys per project into the project's existing RIF database, linking document claims to code entities. The combined product answers what neither search nor RAG nor any competitor can: *which documents describe this code, and are they still true?*
 
 The business case rests on three points. First, **every enterprise has the problem**: knowledge trapped in Word/PDF/PowerPoint estates, invisible cross-references, and AI initiatives blocked because answers can't be traced or audited. Second, **the differentiator is structural, not incremental** — and it is *not* citations, which are 2026 table stakes (Microsoft ships passage-level "deep citations"; Harvey and Hebbia do character/sentence-level). The differentiators are the three things no one ships: a productized, incrementally-maintained document knowledge graph; cross-document lineage/impact analysis; and citation *gating* — grounding enforced and scored as a contract, not offered as a feature. Competitors must re-architect to match. Third, **the marginal cost is low**: DIF reuses RIF's stack, ops model, embedding service, and hardening lessons, so most engineering spend goes into the new extraction domain rather than re-solving solved problems.
 
@@ -25,7 +26,7 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 | B1 | Establish DIF as a sellable AaraMinds product (not a client one-off) | Clean IP: `com.aaraminds` namespace from first commit; no client branding; licensing decided pre-pilot |
 | B2 | Land 1–2 design partners on the P3 pilot | Signed pilot agreements with defined corpora and golden-query success criteria |
 | B3 | Prove the factory-family thesis | ≥60% infrastructure/service reuse from RIF, measured as shared modules vs new code [VERIFY at P2] |
-| B4 | Create the RIF+DIF cross-sell motion | Every RIF prospect pitched DIF and vice versa; joint-graph demo by v2 |
+| B4 | DIF attaches to every RIF deployment by default (D-007 — the motion is attach, not cross-sell) | 100% of RIF projects offered DIF at deployment; joint-graph (`docs_for_code`) demo at P1, drift demo at P2 |
 | B5 | Keep engineering economics honest | Pilot delivered within the P0–P3 phasing without a phase-6-style "hardening deferred" debt (RIF's known failure mode) |
 
 ## 3. Problem and opportunity
@@ -38,9 +39,9 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 
 ## 4. Product positioning
 
-**Category:** Document intelligence platform / grounded-retrieval backend for enterprise AI agents.
+**Category:** Code-aware document intelligence / grounded-retrieval backend for enterprise AI agents.
 
-**One-liner:** *DIF turns your document estate into a queryable, citation-grounded knowledge graph your AI agents can actually trust.*
+**One-liner:** *DIF turns your document estate into a citation-grounded knowledge graph that knows your code — so your agents can tell you not just what the docs say, but whether they're still true.*
 
 **Positioning stance:** DIF is **infrastructure, not an end-user search app** — the neutral, auditable context layer *underneath* the agents an enterprise already runs (Claude Enterprise via managed MCP auth, Copilot Studio, Gemini Enterprise, internal agents). Compete on openness and auditability; never compete on end-user UI, where Glean and Microsoft have unassailable distribution.
 
@@ -56,13 +57,13 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 | Document-AI APIs (Unstructured, Reducto, LlamaParse) | Commoditized high-accuracy parsing (DIF *buys* this layer, per PRD R2a) | They extract; they don't build a corpus-wide graph, retrieval layer, or agent contract |
 | DIY internal builds | Full control | DIF ships the hard parts (determinism, provenance gates, incremental indexing, MCP contract, grounding scoring) that internal teams underestimate |
 
-**The family story:** RIF answers "what does our code do and what breaks if we change it?" DIF answers the same for documents. v2's federated graph answers the question nobody else can: *"which documents describe this code, and are they still true?"* — documentation drift detection as a product. That story is unique to owning both factories.
+**The family story (now core, not v2 — D-007):** RIF answers "what does our code do and what breaks if we change it?" DIF answers the same for documents — *in the same database*. `DESCRIBES` edges link doc blocks to code entities, so the federated graph ships in v1: `docs_for_code` and `code_for_doc` at P1, `drift_report` (documentation drift detection as a product) at P2. This is the moat: Glean, Microsoft, and every RAG vendor would need to own a per-project code graph to copy it. DIF also runs standalone on doc-only corpora, but the attach-to-RIF deployment is the default and the demo.
 
 ## 5. Target market and customers
 
 **Initial ICP (pilot):**
+- **Every project with a RIF deployment (D-007)** — DIF's primary channel is attachment to the existing RIF footprint: same Postgres, same BYOC stack, immediate `docs_for_code` value on day one.
 - Mid-to-large engineering organizations with document governance pain: telecom, financial services, healthcare-adjacent — sectors where citations are compliance-relevant, not cosmetic.
-- Existing RIF prospects/users (warm cross-sell; shared deployment footprint).
 - Teams already deploying MCP-based agents that need governed, grounded document context.
 
 **Buyer:** Head of Platform Engineering / CTO office (same buyer as RIF).
@@ -75,7 +76,7 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 
 - **Licensing:** **DECIDED (D-001, 2026-07-08):** managed deployment on customer Azure tenancy (BYOC), AaraMinds-operated, priced per corpus + usage. One commercial pattern for the factory family — applies to RIF as well. See `DECISIONS.md`.
 - **Pilot commercials:** paid pilots with success criteria (golden-query precision, citation integrity) that convert to annual subscription. Unpaid pilots are innovation theater; do not run them.
-- **Pricing inputs:** corpus size (documents/versions indexed), connector count, agent-call volume. Establish metering in the product by P1 per PRD R30 — retrofitting usage metering is expensive.
+- **Pricing inputs:** corpus size (documents/versions indexed), connector count, agent-call volume. **Pricing unit is per project (D-007)** — the same unit as the RIF deployment it attaches to; a bundled RIF+DIF per-project price is the default offer, standalone DIF the exception. Establish metering in the product by P1 per PRD R30 — retrofitting usage metering is expensive.
 - **Services attach:** corpus onboarding, golden-set curation, and connector configuration as paid services — this is real margin for a two-sided (product + expertise) company.
 
 ## 7. Business requirements

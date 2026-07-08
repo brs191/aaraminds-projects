@@ -45,6 +45,32 @@ Raja holds Product, Engineering, and Commercial approval for DIF v0.x. Recorded 
 
 ACL propagation is the **first v2 item**, not one candidate among several. Design work (row-level filtering vs per-corpus partitioning vs tenant-specific indexes) starts during P3 in parallel with connector work, since the SharePoint connector is where source ACLs first appear. The dated commitment for sales material (BR4) is pinned at P2 exit, when phase velocity is known — a date invented today would violate the no-fabricated-metrics rule.
 
+## D-007: RIF+DIF federation is core v1 architecture, not a v2 candidate
+
+**Date:** 2026-07-08 · **Status:** Accepted · **Owner:** Raja
+
+Context: DIF is needed for each project Raja works on, and each project already has a RIF code graph in a Postgres database. DIF must co-work with RIF for the outcomes it generates.
+
+Decided: (1) DIF deploys **per project** into the project's existing RIF Postgres — `dif_meta` schema beside `rif_meta`; cross-graph queries are SQL joins, not a federation protocol. (2) New `DESCRIBES` edge class (doc block → code node) with a code-entity detector resolving against `rif_meta` (P1). (3) Cross-graph MCP tools: `docs_for_code`/`code_for_doc` (P1), `drift_report` (P2). (4) Shared NodeIdComputer is a hard requirement. (5) Standalone doc-only mode supported; cross-graph tools return `rif_not_deployed` explicitly. (6) Pricing/deployment unit is per project; DIF attaches to every RIF deployment by default.
+
+**Why:** documentation drift ("which docs describe this code, and are they still true?") was already the identified market white space; per-project RIF instances make it deliverable in v1 at low marginal cost. No competitor can follow without owning a code graph.
+**Consequences:** P0 must land in the RIF Postgres with compatible IDs (near-zero cost); a `rif_meta` minimum-version compatibility contract is needed (PRD open question 5); reference-density spike now also measures doc→code resolution rates. PRD v0.3 / BRD v0.3 carry the full changes.
+
+## D-008: v1 format scope — JSON is a first-class v1 artifact; Excel at v1.5
+
+**Date:** 2026-07-08 · **Status:** Accepted · **Owner:** Raja
+
+Per `design-decisions.md` DD-01: v1 ingests documents **plus file-based structured artifacts** — `.md`, `.txt`, `.docx`, `.json` (P0), `.pdf`, `.pptx` (P1), `.xlsx` (v1.5, visible sheets/ranges/formulas with caveats). General enterprise-data-platform scope (streaming, CDC, warehouses) remains explicitly out.
+
+**Why:** JSON configs, policies-as-code, and inventories are dense in engineering corpora and pair directly with the RIF federation story (D-007) — a config file that DESCRIBES code entities is a first-class drift source. Deterministic parsing with JSONPath anchors fits the existing extraction contract with no new machinery.
+**Consequences:** PRD R2 updated; JSONPath added to the source-anchor contract; JSON graph-expansion caps need an ADR before P0 JSON ingestion (design-decisions ADR-006); every new format enters via the DD-01 format admission policy (parser, anchor, nodes, caveats, golden tests, cost profile).
+
+---
+
+## Document roles (recorded 2026-07-08)
+
+`design-decisions.md` is the **decision backlog** — the pre-build question bank (DD-01…DD-28) with options and recommended defaults. This file is the **decision log** — what was actually decided. Workflow: DD item decided → D-entry here → DD marked resolved there. Conflicts resolve in favor of the newest dated D-entry.
+
 ---
 
 ## Open (not yet decided)

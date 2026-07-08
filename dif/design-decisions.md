@@ -1,10 +1,12 @@
 # DIF - Design Decisions for Enterprise Implementation
 
-**Version:** 1.0 Draft  
-**Date:** 2026-07-07  
+**Version:** 1.1 Draft  
+**Date:** 2026-07-08  
 **Owner:** AaraMinds  
-**Related:** `DIF_BRD.md`, `DIF_PRD.md`, RIF  
-**Purpose:** Summarize the design decisions the engineering team must resolve before building Document Intelligence Factory at enterprise/B2B scale.
+**Related:** `dif_brd.md`, `dif_prd.md`, `DECISIONS.md`, RIF  
+**Purpose:** Decision **backlog** — the design decisions the engineering team must resolve before building DIF at enterprise/B2B scale. This file lists questions, options, and recommended defaults. Decisions actually made are recorded in `DECISIONS.md` (the decision log) and marked **RESOLVED** here. Where this backlog and a dated D-entry conflict, the D-entry wins.
+
+**v1.1:** reconciled with DECISIONS.md — DD-02/03/11/14 marked resolved (D-001/D-002/D-003), DD-01 resolved (D-008), DD-28 rewritten per D-007 (federation is core v1), DD-15 superseded by PRD R12a, MCP spec references updated to the 2026-07-28 release.
 
 ---
 
@@ -27,8 +29,8 @@ Reference anchors:
 
 - [Gartner: task-specific AI agents in enterprise applications](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025)
 - [Gartner: AI agents and AI-ready data](https://www.gartner.com/en/newsroom/press-releases/2025-08-05-gartner-hype-cycle-identifies-top-ai-innovations-in-2025)
-- [MCP specification](https://modelcontextprotocol.io/specification/2025-11-25)
-- [MCP authorization specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
+- [MCP specification — target the 2026-07-28 release (stateless core, final ships July 28, 2026)](https://modelcontextprotocol.io/specification)
+- [MCP authorization (OAuth 2.1 + PKCE, RFC 9728/8707) per the 2026-07-28 release](https://modelcontextprotocol.io/specification)
 - [MCP security best practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [OpenTelemetry GenAI observability](https://opentelemetry.io/blog/2026/genai-observability/)
@@ -54,6 +56,8 @@ Reference anchors:
 
 ### DD-01 - Product Boundary: Document Intelligence vs General Data Platform
 
+**✅ RESOLVED (D-008, 2026-07-08):** Documents + file-based structured artifacts — `.md/.txt/.docx/.json` (P0), `.pdf/.pptx` (P1), `.xlsx` (v1.5). Format admission policy applies to every new type. See `DECISIONS.md`.
+
 **Decision needed:** Define what DIF owns and what it explicitly does not own.
 
 | Option | Notes |
@@ -70,6 +74,8 @@ Reference anchors:
 
 ### DD-02 - Deployment Model
 
+**✅ RESOLVED (D-001, 2026-07-08):** Managed deployment on customer Azure tenancy (BYOC), AaraMinds-operated. Additionally per D-007: the deployment unit is **per project**, co-located with the project's RIF stack. See `DECISIONS.md`.
+
 **Decision needed:** Decide whether DIF is self-hosted, managed in customer cloud, or fully SaaS.
 
 | Option | Fit |
@@ -85,6 +91,8 @@ Reference anchors:
 ---
 
 ### DD-03 - Multi-Tenancy Isolation
+
+**✅ RESOLVED (D-001 + D-007, 2026-07-08):** Isolation by customer tenancy (BYOC) and by project database (DIF lands in each project's RIF Postgres) — DB-per-tenant by construction. Revisit only if an AaraMinds-hosted multi-tenant tier is added. See `DECISIONS.md`.
 
 **Decision needed:** Choose tenant isolation model before schema and migration work.
 
@@ -228,6 +236,8 @@ Reference anchors:
 
 ### DD-11 - Knowledge Graph Storage
 
+**✅ RESOLVED (D-003 + D-007, 2026-07-08):** Postgres relational adjacency with recursive CTEs, as `dif_meta` schema in the project's existing RIF Postgres beside `rif_meta`. See `DECISIONS.md`.
+
 **Decision needed:** Choose graph storage model.
 
 | Option | Trade-off |
@@ -276,6 +286,8 @@ Reference anchors:
 
 ### DD-14 - Embedding Model Strategy
 
+**✅ PARTIALLY RESOLVED (D-002, 2026-07-08):** Prose default is Voyage via the shared LiteLLM abstraction, ≤1024d Matryoshka; Qwen3-Embedding self-host fallback; exact model/dimension pinned at P0 spike exit (D-005). Still open: per-artifact-type model choices (tables/JSON) and the eval set. See `DECISIONS.md`.
+
 **Decision needed:** Decide model/provider strategy for prose, tables, JSON, and future multimodal content.
 
 | Area | Decision Needed |
@@ -301,7 +313,9 @@ Reference anchors:
 | Vector + FTS + graph RRF | PRD baseline and recommended minimum. |
 | Add cross-encoder or LLM reranker | Better precision, more latency/cost. |
 
-**Recommended default:** RRF fusion in v1; add optional reranker behind feature flag after baseline metrics.
+**⚠️ SUPERSEDED by PRD R12a (v0.2 market review):** reranking is **P1, not optional-later** — cross-encoder rerank is the single highest-leverage retrieval component in 2026 benchmarks (+17pp MRR@3 over unreranked hybrid). Provider-abstracted; rerank scores recorded alongside RRF for evaluation.
+
+**Original recommended default (superseded):** RRF fusion in v1; add optional reranker behind feature flag after baseline metrics.
 
 **Before implementation:** Define query classes: exact lookup, policy/contract question, impact analysis, version diff, JSON path/config lookup, and table/spreadsheet lookup.
 
@@ -526,18 +540,16 @@ Recommended admin capabilities:
 
 ### DD-28 - RIF/DIF Federation
 
-**Decision needed:** Preserve future federation without forcing v1 to implement it.
+**✅ RESOLVED — AND REVERSED (D-007, 2026-07-08):** Federation is **core v1 architecture**, not deferred. The original "don't build joint queries in v1" default is overridden: each project already runs a RIF Postgres, so DIF deploys into it (`dif_meta` beside `rif_meta`), `DESCRIBES` doc→code edges land at P1, `docs_for_code`/`code_for_doc` tools at P1, `drift_report` at P2. See `DECISIONS.md` D-007 and PRD v0.3 (R7a, R11, R13c, R14).
 
-Required design constraints:
+Design constraints, now hard requirements:
 
-- Shared node ID conventions.
-- Shared source reference model.
-- Shared MCP conventions.
+- Shared NodeIdComputer implementation (one artifact, not a copy) — PRD R6.
+- Shared source reference model spanning doc anchors and code `source_ref`s.
+- Shared MCP conventions; cross-graph tools return `rif_not_deployed` explicitly on standalone deployments.
 - Shared embedding service contracts.
-- Cross-product entity model for systems, APIs, services, repositories, documents, and policies.
-- Versioned graph export/import format.
-
-**Recommended default:** Do not build joint RIF+DIF queries in v1, but make schema choices that do not block them.
+- Documented minimum `rif_meta` schema version, checked at deploy time; cross-graph queries behind a view layer (PRD R11, risk table).
+- Cross-product entity model and versioned graph export/import remain v2 work.
 
 ---
 
@@ -545,16 +557,16 @@ Required design constraints:
 
 | ADR | Decision | Required Before |
 |---|---|---|
-| ADR-001 | Deployment and tenancy model | P0 start |
-| ADR-002 | Multi-tenant database isolation | P0 start |
-| ADR-003 | Source ACL posture for v1 pilots | P0 start |
-| ADR-004 | Graph store: Postgres adjacency vs AGE/external graph | P0 schema work |
+| ADR-001 | Deployment and tenancy model — **resolved by D-001/D-007** (BYOC, per-project, co-located with RIF) | ~~P0 start~~ done |
+| ADR-002 | Multi-tenant database isolation — **resolved by D-001/D-007** (per-tenancy + per-project DB) | ~~P0 start~~ done |
+| ADR-003 | Source ACL posture for v1 pilots — direction set (uniformly-readable or per-boundary indexes, BRD BR4/BR9); formalize | P0 start |
+| ADR-004 | Graph store — **resolved by D-003** (Postgres adjacency + recursive CTEs) | ~~P0 schema work~~ done |
 | ADR-005 | Parser strategy per supported format | P0 extraction work |
 | ADR-006 | JSON graph expansion limits | P0 JSON ingestion |
 | ADR-007 | Source anchor contract | P0 retrieval work |
 | ADR-008 | MCP gateway and authorization model | P0 MCP work |
 | ADR-009 | Ingestion orchestration pattern | P0 ingestion work |
-| ADR-010 | Embedding provider/model strategy | P0 embedding integration |
+| ADR-010 | Embedding provider/model strategy — **prose default resolved by D-002** (Voyage, ≤1024d); per-artifact-type choices remain | P0 embedding integration |
 | ADR-011 | Evaluation harness and release gates | P0 CI work |
 | ADR-012 | Observability and audit event schema | P0 service scaffolding |
 | ADR-013 | Security threat model and prompt-injection controls | P0 exit |
