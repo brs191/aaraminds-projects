@@ -1,12 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,8 +16,6 @@ import (
 
 	"github.com/aaraminds/transcript-agent/internal/audit"
 	"github.com/aaraminds/transcript-agent/internal/domain"
-	"github.com/aaraminds/transcript-agent/internal/objectstore"
-	"github.com/aaraminds/transcript-agent/internal/state"
 	"github.com/aaraminds/transcript-agent/internal/tools"
 )
 
@@ -28,6 +27,10 @@ func decodeJSON(r *http.Request, v any) error {
 	if err := dec.Decode(v); err != nil {
 		if errors.Is(err, io.EOF) { // empty body is legal for {}-optional endpoints
 			return nil
+		}
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			return domain.E(domain.CodeRequestTooLarge, "request body exceeds the %d byte limit", mbe.Limit)
 		}
 		return domain.E(domain.CodeValidationError, "invalid JSON body: %v", err)
 	}
@@ -42,16 +45,30 @@ func parseUUID(raw, what string) (uuid.UUID, error) {
 	return id, nil
 }
 
-const maxUploadBytes = 1024 * 1024 * 1024 // 1 GiB is ample for the MVP episode scale.
-
-func supportedUploadFilename(filename string) bool {
+func uploadExt(filename string) (string, bool) {
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(filename), "."))
 	for _, s := range domain.SupportedUploadExtensions {
 		if ext == s {
-			return true
+			return ext, true
 		}
 	}
-	return false
+	return ext, false
+}
+
+func uploadMime(ext string) string {
+	switch ext {
+	case "mp3":
+		return "audio/mpeg"
+	case "m4a":
+		return "audio/mp4"
+	case "wav":
+		return "audio/wav"
+	case "mp4":
+		return "video/mp4"
+	case "mov":
+		return "video/quicktime"
+	}
+	return "application/octet-stream"
 }
 
 func sanitizeUploadFilename(filename string) string {
@@ -76,70 +93,103 @@ func (s *Server) loadJob(r *http.Request) (*domain.Job, error) {
 	return s.Tools.Stores.Jobs.GetJob(r.Context(), id)
 }
 
+// handleUploadMedia implements POST /api/v1/uploads (PRD R1; frozen contract
+// addition). The multipart "file" part streams straight into the object store
+// under uploads/<uuid><ext> — no full buffering — and is recorded as a staged
+// source_media artifact. Jobs then reference it via upload://<uuid>.
 func (s *Server) handleUploadMedia(w http.ResponseWriter, r *http.Request) {
 	ident := identityFrom(r.Context())
-	local, ok := s.Objects.(*objectstore.Local)
+	r.Body = http.MaxBytesReader(w, r.Body, s.MaxUploadBytes)
+
+	mr, err := r.MultipartReader()
+	if err != nil {
+		writeError(w, domain.E(domain.CodeValidationError, "multipart/form-data body required: %v", err))
+		return
+	}
+	var (
+		part     *multipart.Part
+		filename string
+	)
+	for {
+		p, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			var mbe *http.MaxBytesError
+			if errors.As(err, &mbe) {
+				writeError(w, domain.E(domain.CodeRequestTooLarge,
+					"upload exceeds the %d byte limit", s.MaxUploadBytes))
+				return
+			}
+			writeError(w, domain.E(domain.CodeValidationError, "read multipart body: %v", err))
+			return
+		}
+		if p.FormName() == "file" {
+			part = p
+			filename = sanitizeUploadFilename(p.FileName())
+			break
+		}
+		_ = p.Close()
+	}
+	if part == nil {
+		writeError(w, domain.E(domain.CodeValidationError, "multipart field %q is required", "file"))
+		return
+	}
+	defer part.Close()
+
+	ext, ok := uploadExt(filename)
 	if !ok {
-		writeError(w, domain.E(domain.CodeValidationError, "direct uploads require the local object store"))
-		return
-	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		writeError(w, domain.E(domain.CodeValidationError, "multipart field %q is required: %v", "file", err))
-		return
-	}
-	defer file.Close()
-
-	if !supportedUploadFilename(header.Filename) {
 		writeError(w, domain.E(domain.CodeUnsupportedFormat,
-			"this file type is not supported; supported: %s", strings.Join(domain.SupportedUploadExtensions, ", ")))
+			"this file type is not supported (got %q); supported: %s",
+			ext, strings.Join(domain.SupportedUploadExtensions, ", ")))
 		return
 	}
 
-	filename := sanitizeUploadFilename(header.Filename)
-	uploadID := uuid.NewString()
-	dir := filepath.Join(local.BaseDir, "uploads", uploadID)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "create upload directory: %v", err))
-		return
-	}
-	dst := filepath.Join(dir, filename)
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	uploadID := uuid.New()
+	key := "uploads/" + uploadID.String() + "." + ext
+	uri, size, err := s.Objects.PutStream(r.Context(), key, part)
 	if err != nil {
-		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "create upload file: %v", err))
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeError(w, domain.E(domain.CodeRequestTooLarge,
+				"upload exceeds the %d byte limit", s.MaxUploadBytes))
+			return
+		}
+		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "store upload: %v", err))
 		return
 	}
-	size, copyErr := io.Copy(out, file)
-	closeErr := out.Close()
-	if copyErr != nil {
-		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "write upload file: %v", copyErr))
+	mime := uploadMime(ext)
+	// The staged artifact's ID IS the upload URI's uuid: upload://<uuid>
+	// resolves via the artifact store only (audit M5).
+	art := &domain.MediaArtifact{
+		ArtifactID:   uploadID,
+		ArtifactType: domain.ArtifactSourceMedia,
+		URI:          uri,
+		MimeType:     mime,
+		SizeBytes:    size,
+		CreatedAt:    time.Now().UTC(),
+	}
+	if err := s.Tools.Stores.Artifacts.CreateArtifact(r.Context(), art); err != nil {
+		writeError(w, err)
 		return
 	}
-	if closeErr != nil {
-		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "close upload file: %v", closeErr))
-		return
-	}
-	abs, err := filepath.Abs(dst)
-	if err != nil {
-		writeError(w, domain.E(domain.CodeArtifactWriteFailed, "resolve upload path: %v", err))
-		return
-	}
-	sourceURI := "file://" + abs
+	uploadURI := tools.UploadURIScheme + uploadID.String()
 	if err := s.Tools.Audit(r.Context(), nil, audit.ActorUser, ident.UserID, "upload.media_staged", map[string]any{
-		"source_uri_hash": tools.URIHash(sourceURI),
+		"upload_uri":      uploadURI,
+		"source_uri_hash": tools.URIHash(uri),
 		"filename":        filename,
 		"size_bytes":      size,
+		"mime_type":       mime,
 	}); err != nil {
 		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"source_type": "upload",
-		"source_uri":  sourceURI,
-		"filename":    filename,
-		"size_bytes":  size,
+		"upload_uri": uploadURI,
+		"filename":   filename,
+		"size_bytes": size,
+		"mime_type":  mime,
 	})
 }
 
@@ -447,35 +497,14 @@ func (s *Server) handleReopen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	if job.Status != domain.StatusApproved && job.Status != domain.StatusExported {
-		writeError(w, domain.E(domain.CodeJobNotInActionableState,
-			"reopen applies only to approved or exported jobs; job is %s", job.Status))
-		return
-	}
-	approved, err := s.Tools.Stores.Transcripts.LatestVersion(r.Context(), job.JobID, domain.VersionApproved)
+	// Atomic CAS approved/exported -> in_review plus the reviewed clone, in
+	// one store operation (audit M7).
+	updated, _, err := s.Tools.ReopenJob(r.Context(), job, ident.UserID)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	if approved == nil {
-		writeError(w, domain.E(domain.CodeTranscriptNotFound, "job %s has no approved version to reopen from", job.JobID))
-		return
-	}
-	if err := state.Transition(job, domain.StatusInReview); err != nil {
-		writeError(w, err)
-		return
-	}
-	if err := s.Tools.Stores.Jobs.UpdateJob(r.Context(), job); err != nil {
-		writeError(w, err)
-		return
-	}
-	if _, err := s.Tools.CloneToVersion(r.Context(), job, approved, domain.VersionReviewed, ident.UserID, false); err != nil {
-		writeError(w, err)
-		return
-	}
-	s.Tools.Audit(r.Context(), &job.JobID, audit.ActorUser, ident.UserID, "job.reopened",
-		map[string]any{"from_approved_version_id": approved.TranscriptVersionID.String()})
-	writeJSON(w, http.StatusOK, s.jobView(r.Context(), job))
+	writeJSON(w, http.StatusOK, s.jobView(r.Context(), updated))
 }
 
 // --- summary ----------------------------------------------------------------
@@ -661,16 +690,95 @@ func (s *Server) handleListExports(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"exports": out})
 }
 
-// handleDownloadExport streams export bytes. Deliberately auth-exempt per the
-// frozen contract (download links open outside the SPA fetch layer).
+// requireTokenOrAuth enforces the token-or-auth rule for signed-link
+// endpoints (audit H2): a valid signed token authorizes the request; without
+// a token, valid auth headers are required. Invalid/expired tokens are 401
+// TOKEN_INVALID. Returns the identity (zero-valued when a token authorized)
+// and whether the caller was token-authorized.
+func (s *Server) requireTokenOrAuth(r *http.Request, kind, id string) (Identity, bool, error) {
+	token := r.URL.Query().Get("token")
+	if token != "" {
+		if !s.validToken(kind, id, token) {
+			return Identity{}, false, domain.E(domain.CodeTokenInvalid, "signed link token is invalid or expired")
+		}
+		return Identity{}, true, nil
+	}
+	ident := identityFrom(r.Context())
+	if ident.UserID == "" {
+		return Identity{}, false, domain.E(domain.CodeUnauthenticated,
+			"a signed ?token= or authentication headers are required")
+	}
+	return ident, false, nil
+}
+
+// handleCreateSignedLink implements POST /api/v1/signed-links (frozen
+// contract): any authenticated role mints a short-lived signed URL for an
+// export download or a job's audio stream.
+func (s *Server) handleCreateSignedLink(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Kind string `json:"kind"`
+		ID   string `json:"id"`
+	}
+	if err := decodeJSON(r, &in); err != nil {
+		writeError(w, err)
+		return
+	}
+	switch in.Kind {
+	case signedKindExport:
+		exportID, err := parseUUID(in.ID, "export_id")
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if _, err := s.Tools.Stores.Artifacts.GetExport(r.Context(), exportID); err != nil {
+			writeError(w, err)
+			return
+		}
+	case signedKindAudio:
+		jobID, err := parseUUID(in.ID, "job_id")
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if _, err := s.Tools.Stores.Jobs.GetJob(r.Context(), jobID); err != nil {
+			writeError(w, err)
+			return
+		}
+		// Mirror GET /jobs/{id}/audio: mint only when audio actually exists,
+		// so the UI's "no audio (caption-reuse)" path triggers at mint time
+		// instead of surfacing as a broken player.
+		art, err := s.resolveAudioArtifact(r.Context(), jobID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if art == nil {
+			writeError(w, domain.E(domain.CodeAudioNotAvailable,
+				"job %s has no audio artifact (caption-reuse jobs skip audio extraction)", jobID))
+			return
+		}
+	default:
+		writeError(w, domain.E(domain.CodeValidationError,
+			"kind must be %q or %q", signedKindExport, signedKindAudio))
+		return
+	}
+	url, expiresAt := s.mintSignedURL(in.Kind, in.ID)
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"url":        url,
+		"expires_at": expiresAt.Format(time.RFC3339),
+	})
+}
+
+// handleDownloadExport streams export bytes. Requires EITHER a valid signed
+// ?token= OR auth headers (audit H2 — previously fully open).
 func (s *Server) handleDownloadExport(w http.ResponseWriter, r *http.Request) {
 	exportID, err := parseUUID(r.PathValue("exportID"), "export_id")
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	if !s.validExportDownloadToken(exportID, r.URL.Query().Get("token")) {
-		writeError(w, domain.E(domain.CodeUnauthenticated, "valid export download token required"))
+	if _, _, err := s.requireTokenOrAuth(r, signedKindExport, exportID.String()); err != nil {
+		writeError(w, err)
 		return
 	}
 	rec, err := s.Tools.Stores.Artifacts.GetExport(r.Context(), exportID)
@@ -688,6 +796,90 @@ func (s *Server) handleDownloadExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
+}
+
+// audioMimes are the source_media types the audio endpoint may stream when
+// no audio_extract artifact exists (PRD R7 playback).
+var audioMimes = map[string]bool{
+	"audio/mpeg": true, "audio/mp4": true,
+	"audio/wav": true, "audio/x-wav": true,
+}
+
+// pickAudioArtifact returns the newest non-superseded artifact of the slice.
+func pickAudioArtifact(arts []*domain.MediaArtifact) *domain.MediaArtifact {
+	for i := len(arts) - 1; i >= 0; i-- {
+		if !arts[i].Superseded {
+			return arts[i]
+		}
+	}
+	return nil
+}
+
+// resolveAudioArtifact returns the artifact GET /jobs/{id}/audio would stream
+// for jobID — the newest audio_extract, else the source_media when it is
+// audio — or nil when the job has no playable audio (caption-reuse path).
+func (s *Server) resolveAudioArtifact(ctx context.Context, jobID uuid.UUID) (*domain.MediaArtifact, error) {
+	extracts, err := s.Tools.Stores.Artifacts.ListArtifactsByJob(ctx, jobID, domain.ArtifactAudioExtract)
+	if err != nil {
+		return nil, err
+	}
+	if art := pickAudioArtifact(extracts); art != nil {
+		return art, nil
+	}
+	sources, err := s.Tools.Stores.Artifacts.ListArtifactsByJob(ctx, jobID, domain.ArtifactSourceMedia)
+	if err != nil {
+		return nil, err
+	}
+	if src := pickAudioArtifact(sources); src != nil && audioMimes[src.MimeType] {
+		return src, nil
+	}
+	return nil, nil
+}
+
+// handleJobAudio implements GET /api/v1/jobs/{jobID}/audio (frozen contract,
+// enables PRD R7 playback). Streams the job's audio_extract artifact when
+// present, else the source_media artifact when it is audio; Range requests
+// are honored via http.ServeContent.
+func (s *Server) handleJobAudio(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseUUID(r.PathValue("jobID"), "job_id")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	ident, byToken, err := s.requireTokenOrAuth(r, signedKindAudio, jobID.String())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	job, err := s.Tools.Stores.Jobs.GetJob(r.Context(), jobID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if !byToken {
+		if err := requireJobAccess(ident, job); err != nil {
+			writeError(w, err)
+			return
+		}
+	}
+	art, err := s.resolveAudioArtifact(r.Context(), jobID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if art == nil {
+		writeError(w, domain.E(domain.CodeAudioNotAvailable,
+			"job %s has no audio artifact (caption-reuse jobs skip audio extraction)", jobID))
+		return
+	}
+	rc, _, modTime, err := s.Objects.Open(r.Context(), art.URI)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	defer rc.Close()
+	w.Header().Set("Content-Type", art.MimeType)
+	http.ServeContent(w, r, "", modTime, rc)
 }
 
 // --- audit ---------------------------------------------------------------------

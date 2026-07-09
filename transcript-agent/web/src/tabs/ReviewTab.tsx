@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ApiError } from "../api/client";
 import {
   useApprove,
+  useAudioLink,
   usePatchSegment,
   useQualityReport,
   useReopen,
@@ -33,9 +35,13 @@ interface SegmentRowProps {
   threshold: number;
   editable: boolean;
   onSave: (patch: { text?: string; speaker_label?: string }) => void;
+  /** Present only when the job has playable audio. */
+  onPlay?: () => void;
+  /** True while audio playback is inside this segment's time range. */
+  playing?: boolean;
 }
 
-function SegmentRow({ segment, threshold, editable, onSave }: SegmentRowProps) {
+function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: SegmentRowProps) {
   const [editingText, setEditingText] = useState(false);
   const [text, setText] = useState(segment.text);
   const [speaker, setSpeaker] = useState(segment.speaker_label);
@@ -58,9 +64,28 @@ function SegmentRow({ segment, threshold, editable, onSave }: SegmentRowProps) {
     else setSpeaker(segment.speaker_label);
   };
 
+  const rowClass = [
+    "segment",
+    low ? "low-confidence" : "",
+    playing ? "playing" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className={low ? "segment low-confidence" : "segment"}>
+    <div className={rowClass}>
       <div className="segment-meta">
+        {onPlay && (
+          <button
+            type="button"
+            className="seg-play"
+            aria-label={`Play from ${formatMs(segment.start_ms)}`}
+            title={`Play from ${formatMs(segment.start_ms)}`}
+            onClick={onPlay}
+          >
+            ▶
+          </button>
+        )}
         <span className="mono segment-time">
           {formatMs(segment.start_ms)}–{formatMs(segment.end_ms)}
         </span>
@@ -160,12 +185,19 @@ function ApproveDialog({
   onConfirm,
   onCancel,
   busy,
+  editsPending,
+  error,
 }: {
   onConfirm: (note: string) => void;
   onCancel: () => void;
   busy: boolean;
+  /** A segment PATCH (or bulk rename) is still in flight — block confirmation. */
+  editsPending: boolean;
+  error: unknown;
 }) {
   const [note, setNote] = useState("");
+  const conflict =
+    error instanceof ApiError && (error.code === "STATUS_CONFLICT" || error.status === 409);
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Approve transcript">
       <div className="modal">
@@ -183,8 +215,26 @@ function ApproveDialog({
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
+        {conflict ? (
+          <div className="error-box" role="alert">
+            Job state changed — refresh. The job was updated elsewhere (its latest state has been
+            re-fetched). Close this dialog, review the current state, and approve again if it
+            still applies.
+          </div>
+        ) : (
+          <ErrorBox error={error} prefix="Approval failed:" />
+        )}
+        {editsPending && (
+          <p className="muted hint" role="status">
+            Waiting for a segment edit to finish saving…
+          </p>
+        )}
         <div className="button-row">
-          <button className="primary" disabled={busy} onClick={() => onConfirm(note.trim())}>
+          <button
+            className="primary"
+            disabled={busy || editsPending}
+            onClick={() => onConfirm(note.trim())}
+          >
             {busy ? "Approving…" : "Confirm approval"}
           </button>
           <button disabled={busy} onClick={onCancel}>
@@ -224,6 +274,14 @@ export default function ReviewTab({ job }: { job: Job }) {
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState<unknown>(null);
 
+  // Audio playback (PRD R7). Signed link resolves to null when the job has no
+  // audio artifact (caption-reuse path) — render a quiet note instead of a player.
+  const audioLink = useAudioLink(job.job_id);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const remintedOnce = useRef(false);
+  const [audioBroken, setAudioBroken] = useState(false);
+  const [playingSegmentId, setPlayingSegmentId] = useState<string | null>(null);
+
   if (versionsQuery.isLoading) return <Loading label="Loading transcript versions…" />;
   if (versionsQuery.error)
     return <ErrorBox error={versionsQuery.error} prefix="Could not load transcript versions:" />;
@@ -251,6 +309,37 @@ export default function ReviewTab({ job }: { job: Job }) {
   const canApproveNow =
     reviewedVersion !== null && !jobTerminal && job.status !== "approved" && job.status !== "exported";
   const canReopen = job.status === "approved" || job.status === "exported";
+
+  const audioAvailable = !!audioLink.data && !audioBroken;
+
+  const seekTo = (startMs: number) => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = startMs / 1000;
+    void el.play().catch(() => {
+      // Autoplay restrictions or a mid-load seek — user can press play manually.
+    });
+  };
+
+  const handleTimeUpdate = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    const ms = el.currentTime * 1000;
+    // Cheap linear scan — segment lists are small enough at MVP scale.
+    const active = segments.find((s) => ms >= s.start_ms && ms < s.end_ms);
+    const id = active?.segment_id ?? null;
+    setPlayingSegmentId((prev) => (prev === id ? prev : id));
+  };
+
+  const handleAudioError = () => {
+    // Most likely the 15-minute token expired: re-mint the link once automatically.
+    if (!remintedOnce.current) {
+      remintedOnce.current = true;
+      void audioLink.refetch();
+      return;
+    }
+    setAudioBroken(true);
+  };
 
   const renameEverywhere = async (from: string, to: string) => {
     if (!selected) return;
@@ -310,7 +399,13 @@ export default function ReviewTab({ job }: { job: Job }) {
               </button>
             )}
             {canApproveNow && approveAllowed && (
-              <button className="primary" onClick={() => setShowApprove(true)}>
+              <button
+                className="primary"
+                onClick={() => {
+                  approve.reset(); // do not carry a stale error into a fresh dialog
+                  setShowApprove(true);
+                }}
+              >
                 Approve…
               </button>
             )}
@@ -328,7 +423,6 @@ export default function ReviewTab({ job }: { job: Job }) {
         </div>
 
         <ErrorBox error={startReview.error} prefix="Start review failed:" />
-        <ErrorBox error={approve.error} prefix="Approval failed:" />
         <ErrorBox error={reopen.error} prefix="Reopen failed:" />
         <ErrorBox error={patchSegment.error} prefix="Edit failed:" />
         <ErrorBox error={renameError} prefix="Rename failed:" />
@@ -349,6 +443,29 @@ export default function ReviewTab({ job }: { job: Job }) {
           </p>
         )}
 
+        {audioLink.data ? (
+          <div className="audio-bar">
+            <audio
+              key={audioLink.data.url}
+              ref={audioRef}
+              controls
+              preload="metadata"
+              src={audioLink.data.url}
+              onTimeUpdate={handleTimeUpdate}
+              onError={handleAudioError}
+            />
+            {audioBroken && (
+              <span className="error-text hint">
+                Audio playback failed even after refreshing the link — reload the page to retry.
+              </span>
+            )}
+          </div>
+        ) : audioLink.data === null ? (
+          <p className="muted hint">No audio available — caption-derived transcript.</p>
+        ) : audioLink.isError ? (
+          <ErrorBox error={audioLink.error} prefix="Could not get an audio link:" />
+        ) : null}
+
         {segmentsQuery.isLoading ? (
           <Loading label="Loading segments…" />
         ) : segmentsQuery.error ? (
@@ -364,6 +481,8 @@ export default function ReviewTab({ job }: { job: Job }) {
                 threshold={threshold}
                 editable={editable}
                 onSave={(patch) => patchSegment.mutate({ segmentId: seg.segment_id, ...patch })}
+                onPlay={audioAvailable ? () => seekTo(seg.start_ms) : undefined}
+                playing={seg.segment_id === playingSegmentId}
               />
             ))}
           </div>
@@ -373,6 +492,8 @@ export default function ReviewTab({ job }: { job: Job }) {
       {showApprove && reviewedVersion && (
         <ApproveDialog
           busy={approve.isPending}
+          editsPending={patchSegment.isPending || renaming}
+          error={approve.error}
           onCancel={() => setShowApprove(false)}
           onConfirm={(note) =>
             approve.mutate(

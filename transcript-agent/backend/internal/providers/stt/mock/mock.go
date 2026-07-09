@@ -77,9 +77,9 @@ func (p *Provider) Transcribe(_ context.Context, audioArtifactURI, language stri
 	}
 	p.mu.Lock()
 	p.calls++
-	first := p.calls == 1
+	calls := p.calls
 	p.mu.Unlock()
-	if strings.Contains(audioArtifactURI, "stt-timeout-once") && first {
+	if strings.Contains(audioArtifactURI, "stt-timeout-once") && calls == 1 {
 		return nil, domain.E(domain.CodeSTTProviderTimeout, "mock STT timed out (transient)")
 	}
 
@@ -87,7 +87,7 @@ func (p *Provider) Transcribe(_ context.Context, audioArtifactURI, language stri
 	res := &stt.Result{
 		Provider:             "mock",
 		Model:                "mock-stt-v1",
-		RequestID:            fmt.Sprintf("mock-req-%06d", p.calls),
+		RequestID:            fmt.Sprintf("mock-req-%06d", calls),
 		DiarizationAvailable: diarized,
 	}
 	// Deterministic pseudo-random confidence jitter seeded by the audio

@@ -1,5 +1,5 @@
 import { getStoredIdentity } from "../identity";
-import type { ApiErrorBody } from "./types";
+import type { ApiErrorBody, SignedLink, SignedLinkKind, UploadResponse } from "./types";
 
 export const API_BASE = "/api/v1";
 
@@ -109,7 +109,20 @@ export async function apiMaybe<T>(path: string): Promise<T | null> {
   }
 }
 
-export function exportDownloadUrl(downloadUrl: string): string {
-  if (downloadUrl.startsWith("/")) return downloadUrl;
-  return `${API_BASE}${downloadUrl}`;
+/**
+ * Upload a media file via multipart/form-data (field name "file").
+ * Content-Type is deliberately NOT set — the browser adds it with the boundary.
+ */
+export function uploadMediaFile(file: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiForm<UploadResponse>("/uploads", formData);
+}
+
+/**
+ * Mint a short-lived signed link (15 min) for an export artifact or a job's audio.
+ * The returned url is site-relative and already carries ?token=.
+ */
+export function mintSignedLink(kind: SignedLinkKind, id: string): Promise<SignedLink> {
+  return api<SignedLink>("/signed-links", { method: "POST", json: { kind, id } });
 }

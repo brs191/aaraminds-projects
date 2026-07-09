@@ -19,6 +19,14 @@ type JobStore interface {
 	ListJobs(ctx context.Context) ([]*domain.Job, error)
 	ListJobsByStatus(ctx context.Context, statuses ...domain.Status) ([]*domain.Job, error)
 
+	// TransitionJob is the compare-and-swap primitive every status change goes
+	// through: it atomically verifies the job's current status equals from,
+	// applies apply (which may mutate fields and/or change the status), and
+	// persists the result. When the current status differs from from it
+	// returns domain.ErrStatusConflict and persists nothing. apply errors
+	// abort the swap.
+	TransitionJob(ctx context.Context, jobID uuid.UUID, from domain.Status, apply func(*domain.Job) error) (*domain.Job, error)
+
 	CreateJobConfig(ctx context.Context, c *domain.JobConfig) error
 	GetJobConfig(ctx context.Context, id uuid.UUID) (*domain.JobConfig, error)
 }
@@ -69,12 +77,51 @@ type AuditStore interface {
 // ArtifactStore persists media artifact records and export records.
 type ArtifactStore interface {
 	CreateArtifact(ctx context.Context, a *domain.MediaArtifact) error
+	GetArtifact(ctx context.Context, id uuid.UUID) (*domain.MediaArtifact, error)
 	ListArtifactsByJob(ctx context.Context, jobID uuid.UUID, artifactType string) ([]*domain.MediaArtifact, error)
 	MarkArtifactsSuperseded(ctx context.Context, jobID uuid.UUID) error
 
 	CreateExport(ctx context.Context, e *domain.ExportRecord) error
 	GetExport(ctx context.Context, id uuid.UUID) (*domain.ExportRecord, error)
 	ListExportsByJob(ctx context.Context, jobID uuid.UUID) ([]*domain.ExportRecord, error)
+}
+
+// ApproveJobParams carries the pre-built rows for the atomic approve
+// operation. The store persists them only if the job CAS succeeds.
+type ApproveJobParams struct {
+	JobID uuid.UUID
+	// ApprovedVersion is the immutable approved clone plus its segments.
+	ApprovedVersion *domain.TranscriptVersion
+	Segments        []*domain.Segment
+	// Approval is the new approval row (SupersededByApprovalID must be nil).
+	Approval *domain.Approval
+}
+
+// ReopenJobParams carries the pre-built reviewed clone for the atomic reopen
+// operation (PRD 11.4 post-approval correction).
+type ReopenJobParams struct {
+	JobID uuid.UUID
+	// ReviewedVersion is the mutable reviewed clone plus its segments.
+	ReviewedVersion *domain.TranscriptVersion
+	Segments        []*domain.Segment
+}
+
+// ReviewTxStore bundles the multi-row review-lifecycle operations that must
+// be atomic (audit H1/M7): approve and reopen. Both implementations execute
+// each operation as a single unit — one lock hold (memory) or one pgx.Tx
+// (postgres) — so a concurrent double-approve yields exactly one approval.
+type ReviewTxStore interface {
+	// ApproveJob atomically: CAS job in_review -> approved (clearing
+	// last_error/action_required), inserts the approved version + segments,
+	// inserts the approval row, and marks every prior current approval for the
+	// job superseded by the new approval. Returns the updated job and the IDs
+	// of superseded approvals. domain.ErrStatusConflict when the job is not
+	// in_review anymore.
+	ApproveJob(ctx context.Context, p ApproveJobParams) (*domain.Job, []uuid.UUID, error)
+	// ReopenJob atomically: CAS job approved|exported -> in_review and inserts
+	// the fresh reviewed version + segments. domain.ErrStatusConflict when the
+	// job left approved/exported concurrently.
+	ReopenJob(ctx context.Context, p ReopenJobParams) (*domain.Job, error)
 }
 
 // Stores bundles all persistence interfaces for wiring.
@@ -86,4 +133,5 @@ type Stores struct {
 	Approvals   ApprovalStore
 	Audit       AuditStore
 	Artifacts   ArtifactStore
+	Review      ReviewTxStore
 }

@@ -69,6 +69,15 @@ func URIHash(uri string) string {
 	return hex.EncodeToString(sum[:8])
 }
 
+// UploadURIScheme is the only scheme accepted for real upload sources: it
+// resolves to a staged artifact created by POST /api/v1/uploads, never to an
+// arbitrary server path (audit M5). MockURIScheme is the test/demo escape
+// hatch handled entirely by the deterministic stub providers.
+const (
+	UploadURIScheme = "upload://"
+	MockURIScheme   = "mock://"
+)
+
 func validateSourceURI(sourceType, sourceURI string) error {
 	if strings.TrimSpace(sourceURI) == "" {
 		return domain.E(domain.CodeInvalidSourceURI, "source_uri is required")
@@ -80,23 +89,61 @@ func validateSourceURI(sourceType, sourceURI string) error {
 				"source_uri does not look like a YouTube URL: %s", sourceURI)
 		}
 	case domain.SourceUpload:
-		ext := strings.ToLower(strings.TrimPrefix(pathExt(sourceURI), "."))
-		ok := false
-		for _, s := range domain.SupportedUploadExtensions {
-			if ext == s {
-				ok = true
+		switch {
+		case strings.HasPrefix(sourceURI, UploadURIScheme):
+			// Resolved against the staged-artifact store by the caller.
+		case strings.HasPrefix(sourceURI, MockURIScheme):
+			ext := strings.ToLower(strings.TrimPrefix(pathExt(sourceURI), "."))
+			ok := false
+			for _, s := range domain.SupportedUploadExtensions {
+				if ext == s {
+					ok = true
+				}
 			}
-		}
-		if !ok {
-			return domain.E(domain.CodeUnsupportedFormat,
-				"this file type is not supported (got %q); supported: %s",
-				ext, strings.Join(domain.SupportedUploadExtensions, ", "))
+			if !ok {
+				return domain.E(domain.CodeUnsupportedFormat,
+					"this file type is not supported (got %q); supported: %s",
+					ext, strings.Join(domain.SupportedUploadExtensions, ", "))
+			}
+		default:
+			// Raw filesystem paths and file:// URIs are rejected outright.
+			return domain.E(domain.CodeInvalidSourceURI,
+				"upload source_uri must be an upload:// URI returned by POST /api/v1/uploads")
 		}
 	default:
 		return domain.E(domain.CodeUnsupportedSourceType,
 			"source_type must be %q or %q, got %q", domain.SourceYouTube, domain.SourceUpload, sourceType)
 	}
 	return nil
+}
+
+// ResolveUploadURI maps an upload://<uuid> URI to its staged source_media
+// artifact. Anything that does not resolve is INVALID_SOURCE_URI.
+func (t *Toolset) ResolveUploadURI(ctx context.Context, uri string) (*domain.MediaArtifact, error) {
+	id, err := uuid.Parse(strings.TrimPrefix(uri, UploadURIScheme))
+	if err != nil {
+		return nil, domain.E(domain.CodeInvalidSourceURI, "invalid upload URI %q", uri)
+	}
+	art, err := t.Stores.Artifacts.GetArtifact(ctx, id)
+	if err != nil || art.ArtifactType != domain.ArtifactSourceMedia {
+		return nil, domain.E(domain.CodeInvalidSourceURI,
+			"upload URI %q does not resolve to an uploaded media artifact", uri)
+	}
+	return art, nil
+}
+
+// mediaSourceURI returns the URI handed to the media processor: upload://
+// sources resolve to the staged artifact's object-store URI; everything else
+// (youtube URLs, mock:// markers) passes through unchanged.
+func (t *Toolset) mediaSourceURI(ctx context.Context, job *domain.Job) (string, error) {
+	if job.SourceType == domain.SourceUpload && strings.HasPrefix(job.SourceURI, UploadURIScheme) {
+		art, err := t.ResolveUploadURI(ctx, job.SourceURI)
+		if err != nil {
+			return "", err
+		}
+		return art.URI, nil
+	}
+	return job.SourceURI, nil
 }
 
 func pathExt(uri string) string {
@@ -129,6 +176,13 @@ func (t *Toolset) SubmitMediaJob(ctx context.Context, in SubmitMediaJobInput) (*
 	if err := validateSourceURI(in.SourceType, in.SourceURI); err != nil {
 		return nil, err
 	}
+	var staged *domain.MediaArtifact
+	if in.SourceType == domain.SourceUpload && strings.HasPrefix(in.SourceURI, UploadURIScheme) {
+		var err error
+		if staged, err = t.ResolveUploadURI(ctx, in.SourceURI); err != nil {
+			return nil, err
+		}
+	}
 	lang := in.Language
 	if lang == "" {
 		lang = "en"
@@ -150,6 +204,16 @@ func (t *Toolset) SubmitMediaJob(ctx context.Context, in SubmitMediaJobInput) (*
 	}
 	if err := t.Stores.Jobs.CreateJob(ctx, job); err != nil {
 		return nil, err
+	}
+	if staged != nil {
+		// Link the staged upload bytes to the job as its source_media artifact.
+		if err := t.Stores.Artifacts.CreateArtifact(ctx, &domain.MediaArtifact{
+			ArtifactID: uuid.New(), JobID: job.JobID,
+			ArtifactType: domain.ArtifactSourceMedia, URI: staged.URI,
+			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes, CreatedAt: now,
+		}); err != nil {
+			return nil, err
+		}
 	}
 	t.Audit(ctx, &job.JobID, "user", in.SubmittedBy, "job.submitted", map[string]any{
 		"source_type":        in.SourceType,
@@ -181,10 +245,14 @@ func (t *Toolset) CreateConfigSnapshot(ctx context.Context, job *domain.Job, cre
 	if err := t.Stores.Jobs.CreateJobConfig(ctx, &cfg); err != nil {
 		return nil, err
 	}
-	job.JobConfigID = &cfg.JobConfigID
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
+	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, job.Status, func(j *domain.Job) error {
+		j.JobConfigID = &cfg.JobConfigID
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
+	*job = *updated
 	t.Audit(ctx, &job.JobID, "system", createdBy, "job_config.snapshot_created", map[string]any{
 		"job_config_id":        cfg.JobConfigID.String(),
 		"confidence_threshold": cfg.ConfidenceThreshold,
@@ -213,7 +281,13 @@ func (t *Toolset) Config(ctx context.Context, job *domain.Job) (*domain.JobConfi
 // (PRD 14.2). NO_AUDIO_TRACK is returned as an error so the orchestrator can
 // route to needs_user_action/replace_media.
 func (t *Toolset) GetMediaMetadata(ctx context.Context, job *domain.Job) (*media.Metadata, error) {
-	meta, err := t.Media.Metadata(ctx, job.SourceType, job.SourceURI)
+	sourceURI, err := t.mediaSourceURI(ctx, job)
+	if err != nil {
+		t.Audit(ctx, &job.JobID, "tool", "get_media_metadata", "tool.get_media_metadata.failed",
+			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})
+		return nil, err
+	}
+	meta, err := t.Media.Metadata(ctx, job.SourceType, sourceURI)
 	if err != nil {
 		t.Audit(ctx, &job.JobID, "tool", "get_media_metadata", "tool.get_media_metadata.failed",
 			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})
@@ -226,10 +300,14 @@ func (t *Toolset) GetMediaMetadata(ctx context.Context, job *domain.Job) (*media
 			map[string]any{"error_code": domain.CodeNoAudioTrack})
 		return nil, err
 	}
-	job.DurationSeconds = meta.DurationSeconds
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
+	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, job.Status, func(j *domain.Job) error {
+		j.DurationSeconds = meta.DurationSeconds
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
+	*job = *updated
 	t.Audit(ctx, &job.JobID, "tool", "get_media_metadata", "tool.get_media_metadata.completed",
 		map[string]any{
 			"duration_seconds": meta.DurationSeconds,
@@ -258,22 +336,27 @@ func (t *Toolset) CheckYouTubeCaptions(ctx context.Context, job *domain.Job) (*c
 			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})
 		return nil, err
 	}
-	job.CaptionsAvailable = false
-	job.CaptionTrackID = ""
+	available, trackID := false, ""
 	if res.OfficialCaptionsFound && res.DownloadAuthorized {
 		for _, tr := range res.Tracks {
 			// Only official downloadable tracks are reusable; auto-generated
 			// captions are never reused in MVP (PRD R2).
 			if tr.CaptionType == "official" && tr.Downloadable {
-				job.CaptionsAvailable = true
-				job.CaptionTrackID = tr.CaptionTrackID
+				available = true
+				trackID = tr.CaptionTrackID
 				break
 			}
 		}
 	}
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
+	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, job.Status, func(j *domain.Job) error {
+		j.CaptionsAvailable = available
+		j.CaptionTrackID = trackID
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
+	*job = *updated
 	t.Audit(ctx, &job.JobID, "tool", "check_youtube_captions", "tool.check_youtube_captions.completed",
 		map[string]any{
 			"video_uri_hash":          URIHash(job.SourceURI),

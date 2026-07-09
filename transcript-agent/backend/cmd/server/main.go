@@ -165,7 +165,9 @@ func main() {
 	case "mock":
 		mediaProcessor = media.NewStub()
 	case "ffmpeg", "auto":
-		mediaProcessor = media.Auto() // ffmpeg/ffprobe if on PATH, stub otherwise
+		// ffmpeg/ffprobe if on PATH, stub otherwise. Upload sources resolve
+		// through the object store only (audit M5).
+		mediaProcessor = media.Auto(objects)
 	default:
 		log.Error("unknown MEDIA_PROVIDER", "value", p)
 		os.Exit(1)
@@ -179,21 +181,28 @@ func main() {
 	defaults.StylePolicyID = env("DEFAULT_STYLE_POLICY_ID", defaults.StylePolicyID)
 
 	// --- wiring ----------------------------------------------------------------
+	maxUploadBytes := int64(2) << 30 // 2 GiB default
+	if v := os.Getenv("MAX_UPLOAD_BYTES"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			maxUploadBytes = n
+		}
+	}
 	a := app.New(app.Options{
-		Log:                 log,
-		Stores:              stores,
-		Objects:             objects,
-		STT:                 sttProvider,
-		LLM:                 llmProvider,
-		Media:               mediaProcessor,
-		Captions:            captionProvider,
-		STTName:             sttName,
-		ConfigDefaults:      &defaults,
-		CORSOrigin:          env("CORS_ORIGIN", "http://localhost:5173"),
-		AuthProxySecret:     os.Getenv("AUTH_PROXY_SECRET"),
-		DownloadTokenSecret: []byte(os.Getenv("DOWNLOAD_TOKEN_SECRET")),
-		Sync:                false,
-		Backoff:             envDuration("RETRY_BACKOFF", 2*time.Second),
+		Log:             log,
+		Stores:          stores,
+		Objects:         objects,
+		STT:             sttProvider,
+		LLM:             llmProvider,
+		Media:           mediaProcessor,
+		Captions:        captionProvider,
+		STTName:         sttName,
+		ConfigDefaults:  &defaults,
+		CORSOrigin:      env("CORS_ORIGIN", "http://localhost:5173"),
+		AuthProxySecret: os.Getenv("AUTH_PROXY_SECRET"),
+		SigningSecret:   []byte(os.Getenv("SIGNING_SECRET")),
+		MaxUploadBytes:  maxUploadBytes,
+		Sync:            false,
+		Backoff:         envDuration("RETRY_BACKOFF", 2*time.Second),
 	})
 	if os.Getenv("AUTH_PROXY_SECRET") == "" {
 		log.Warn("AUTH_PROXY_SECRET is not set; header auth is running in development mode and must not be exposed directly")
@@ -206,6 +215,9 @@ func main() {
 		Addr:              addr,
 		Handler:           a.API.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second, // audio streaming needs headroom
+		IdleTimeout:       120 * time.Second,
 	}
 	go func() {
 		log.Info("listening", "addr", addr, "stt_provider", sttName, "data_dir", dataDir)

@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -57,7 +58,7 @@ func New() *Store {
 func (s *Store) Stores() store.Stores {
 	return store.Stores{
 		Jobs: s, Transcripts: s, Summaries: s, Quality: s,
-		Approvals: s, Audit: s, Artifacts: s,
+		Approvals: s, Audit: s, Artifacts: s, Review: s,
 	}
 }
 
@@ -142,6 +143,26 @@ func (s *Store) UpdateJob(_ context.Context, j *domain.Job) error {
 	}
 	s.jobs[j.JobID] = copyJob(j)
 	return nil
+}
+
+// TransitionJob implements the compare-and-swap status primitive under the
+// store lock: verify current status == from, apply, persist — atomically.
+func (s *Store) TransitionJob(_ context.Context, jobID uuid.UUID, from domain.Status, apply func(*domain.Job) error) (*domain.Job, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cur, ok := s.jobs[jobID]
+	if !ok {
+		return nil, domain.E(domain.CodeJobNotFound, "job %s not found", jobID)
+	}
+	if cur.Status != from {
+		return nil, domain.ErrStatusConflict
+	}
+	next := copyJob(cur)
+	if err := apply(next); err != nil {
+		return nil, err
+	}
+	s.jobs[jobID] = copyJob(next)
+	return next, nil
 }
 
 func (s *Store) ListJobs(_ context.Context) ([]*domain.Job, error) {
@@ -456,6 +477,17 @@ func (s *Store) CreateArtifact(_ context.Context, a *domain.MediaArtifact) error
 	return nil
 }
 
+func (s *Store) GetArtifact(_ context.Context, id uuid.UUID) (*domain.MediaArtifact, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	a, ok := s.artifacts[id]
+	if !ok {
+		return nil, domain.E(domain.CodeMediaNotFound, "artifact %s not found", id)
+	}
+	c := *a
+	return &c, nil
+}
+
 func (s *Store) ListArtifactsByJob(_ context.Context, jobID uuid.UUID, artifactType string) ([]*domain.MediaArtifact, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -499,6 +531,67 @@ func (s *Store) GetExport(_ context.Context, id uuid.UUID) (*domain.ExportRecord
 	}
 	c := *e
 	return &c, nil
+}
+
+// --- ReviewTxStore (atomic approve / reopen under one lock hold) ---------
+
+// insertVersionLocked stores a version and its segments. Caller holds mu.
+func (s *Store) insertVersionLocked(v *domain.TranscriptVersion, segments []*domain.Segment) {
+	s.versions[v.TranscriptVersionID] = copyVersion(v)
+	s.verOrder = append(s.verOrder, v.TranscriptVersionID)
+	for _, sg := range segments {
+		s.segments[sg.SegmentID] = copySegment(sg)
+		s.segByVer[v.TranscriptVersionID] = append(s.segByVer[v.TranscriptVersionID], sg.SegmentID)
+	}
+}
+
+func (s *Store) ApproveJob(_ context.Context, p store.ApproveJobParams) (*domain.Job, []uuid.UUID, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cur, ok := s.jobs[p.JobID]
+	if !ok {
+		return nil, nil, domain.E(domain.CodeJobNotFound, "job %s not found", p.JobID)
+	}
+	if cur.Status != domain.StatusInReview {
+		return nil, nil, domain.ErrStatusConflict
+	}
+	s.insertVersionLocked(p.ApprovedVersion, p.Segments)
+	s.approvals[p.Approval.ApprovalID] = copyApproval(p.Approval)
+	s.apprOrder = append(s.apprOrder, p.Approval.ApprovalID)
+	var superseded []uuid.UUID
+	for _, id := range s.apprOrder {
+		a := s.approvals[id]
+		if a.JobID == p.JobID && a.SupersededByApprovalID == nil && a.ApprovalID != p.Approval.ApprovalID {
+			by := p.Approval.ApprovalID
+			a.SupersededByApprovalID = &by
+			superseded = append(superseded, a.ApprovalID)
+		}
+	}
+	next := copyJob(cur)
+	next.Status = domain.StatusApproved
+	next.LastError = nil
+	next.ActionRequired = ""
+	next.UpdatedAt = time.Now().UTC()
+	s.jobs[p.JobID] = copyJob(next)
+	return next, superseded, nil
+}
+
+func (s *Store) ReopenJob(_ context.Context, p store.ReopenJobParams) (*domain.Job, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cur, ok := s.jobs[p.JobID]
+	if !ok {
+		return nil, domain.E(domain.CodeJobNotFound, "job %s not found", p.JobID)
+	}
+	if cur.Status != domain.StatusApproved && cur.Status != domain.StatusExported {
+		return nil, domain.ErrStatusConflict
+	}
+	s.insertVersionLocked(p.ReviewedVersion, p.Segments)
+	next := copyJob(cur)
+	next.Status = domain.StatusInReview
+	next.UpdatedAt = time.Now().UTC()
+	s.jobs[p.JobID] = copyJob(next)
+	return next, nil
 }
 
 func (s *Store) ListExportsByJob(_ context.Context, jobID uuid.UUID) ([]*domain.ExportRecord, error) {

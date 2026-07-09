@@ -16,39 +16,52 @@ import (
 
 // Server holds handler dependencies.
 type Server struct {
-	Tools               *tools.Toolset
-	Orch                *orchestrator.Orchestrator
-	Objects             objectstore.ObjectStore
-	CORSOrigin          string
-	AuthProxySecret     string
-	DownloadTokenSecret []byte
-	Log                 *slog.Logger
+	Tools           *tools.Toolset
+	Orch            *orchestrator.Orchestrator
+	Objects         objectstore.ObjectStore
+	CORSOrigin      string
+	AuthProxySecret string
+	// SigningSecret keys the HMAC for signed download/audio links
+	// (SIGNING_SECRET env; random per boot when unset — links then die on
+	// restart).
+	SigningSecret []byte
+	// MaxUploadBytes caps POST /api/v1/uploads bodies (MAX_UPLOAD_BYTES env).
+	MaxUploadBytes int64
+	Log            *slog.Logger
 
 	mux *http.ServeMux
 }
 
+// DefaultMaxUploadBytes is the frozen 2 GiB default for MAX_UPLOAD_BYTES.
+const DefaultMaxUploadBytes = int64(2) << 30
+
 // NewServer wires routes. Method-qualified patterns require Go 1.22+.
-func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objectstore.ObjectStore, corsOrigin, authProxySecret string, downloadTokenSecret []byte, log *slog.Logger) *Server {
+func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objectstore.ObjectStore, corsOrigin, authProxySecret string, signingSecret []byte, maxUploadBytes int64, log *slog.Logger) *Server {
 	if corsOrigin == "" {
 		corsOrigin = "http://localhost:5173"
-	}
-	if len(downloadTokenSecret) == 0 {
-		downloadTokenSecret = make([]byte, 32)
-		if _, err := rand.Read(downloadTokenSecret); err != nil {
-			downloadTokenSecret = []byte("transcript-agent-dev-download-secret")
-		}
 	}
 	if log == nil {
 		log = slog.Default()
 	}
+	if len(signingSecret) == 0 {
+		signingSecret = make([]byte, 32)
+		if _, err := rand.Read(signingSecret); err != nil {
+			panic("api: cannot generate ephemeral signing secret: " + err.Error())
+		}
+		log.Warn("SIGNING_SECRET is not set; using a random per-boot secret — signed links stop working on restart")
+	}
+	if maxUploadBytes <= 0 {
+		maxUploadBytes = DefaultMaxUploadBytes
+	}
 	s := &Server{
-		Tools:               ts,
-		Orch:                orch,
-		Objects:             objects,
-		CORSOrigin:          corsOrigin,
-		AuthProxySecret:     authProxySecret,
-		DownloadTokenSecret: downloadTokenSecret,
-		Log:                 log,
+		Tools:           ts,
+		Orch:            orch,
+		Objects:         objects,
+		CORSOrigin:      corsOrigin,
+		AuthProxySecret: authProxySecret,
+		SigningSecret:   signingSecret,
+		MaxUploadBytes:  maxUploadBytes,
+		Log:             log,
 	}
 	mux := http.NewServeMux()
 
@@ -78,6 +91,8 @@ func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objec
 
 	mux.HandleFunc("PATCH /api/v1/summaries/{summaryID}", s.handleEditSummary)
 
+	mux.HandleFunc("POST /api/v1/signed-links", s.handleCreateSignedLink)
+	mux.HandleFunc("GET /api/v1/jobs/{jobID}/audio", s.handleJobAudio)
 	mux.HandleFunc("GET /api/v1/exports/{exportID}/download", s.handleDownloadExport)
 
 	s.mux = mux

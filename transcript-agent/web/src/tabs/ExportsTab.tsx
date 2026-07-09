@@ -1,10 +1,43 @@
 import { useState } from "react";
-import { exportDownloadUrl } from "../api/client";
-import { useCreateExports, useExports } from "../api/hooks";
+import { ApiError } from "../api/client";
+import { useCreateExports, useExports, useMintExportLink } from "../api/hooks";
 import type { ExportFormat, Job } from "../api/types";
 import { EmptyState, ErrorBox, Loading, formatTimestamp } from "../components/ui";
 
 const ALL_FORMATS: ExportFormat[] = ["txt", "md", "srt", "vtt"];
+
+/**
+ * Downloads require a short-lived signed URL (plain anchors 401 now):
+ * mint via POST /signed-links, then open the returned tokenised URL.
+ */
+function DownloadCell({ exportId }: { exportId: string }) {
+  const mint = useMintExportLink();
+
+  const download = () => {
+    mint.mutate(exportId, {
+      onSuccess: (link) => {
+        // Site-relative URL with ?token= embedded — open in a new tab so the
+        // browser handles the file response directly.
+        window.open(link.url, "_blank", "noopener");
+      },
+    });
+  };
+
+  return (
+    <div className="download-cell">
+      <button type="button" disabled={mint.isPending} onClick={download}>
+        {mint.isPending ? "Preparing…" : "Download"}
+      </button>
+      {mint.isError && (
+        <span className="error-text hint" role="alert">
+          {mint.error instanceof ApiError
+            ? `${mint.error.code} — ${mint.error.message}`
+            : "Could not create a download link."}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function ExportsTab({ job }: { job: Job }) {
   const exportsQuery = useExports(job.job_id);
@@ -82,9 +115,7 @@ export default function ExportsTab({ job }: { job: Job }) {
                   </td>
                   <td className="muted">{formatTimestamp(e.created_at)}</td>
                   <td>
-                    <a href={exportDownloadUrl(e.download_url)} target="_blank" rel="noreferrer">
-                      Download
-                    </a>
+                    <DownloadCell exportId={e.export_id} />
                   </td>
                 </tr>
               ))}

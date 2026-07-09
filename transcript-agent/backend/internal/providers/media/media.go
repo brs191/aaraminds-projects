@@ -7,6 +7,7 @@ package media
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -35,12 +36,20 @@ type Processor interface {
 	ExtractAudio(ctx context.Context, sourceType, sourceURI string) ([]byte, *Metadata, error)
 }
 
+// PathResolver maps an object-store URI (local://...) to a real filesystem
+// path. Media source bytes are only ever resolved through the object store —
+// raw user-supplied filesystem paths are never accepted (audit M5).
+type PathResolver interface {
+	PathFor(uri string) (string, error)
+}
+
 // Auto returns the ffmpeg-backed processor when ffmpeg and ffprobe are on
-// PATH, otherwise the deterministic stub.
-func Auto() Processor {
+// PATH, otherwise the deterministic stub. resolver maps local:// artifact
+// URIs (staged uploads) to filesystem paths for ffmpeg.
+func Auto(resolver PathResolver) Processor {
 	if _, err := exec.LookPath("ffprobe"); err == nil {
 		if _, err := exec.LookPath("ffmpeg"); err == nil {
-			return &FFmpeg{fallback: NewStub()}
+			return &FFmpeg{Resolver: resolver, fallback: NewStub()}
 		}
 	}
 	return NewStub()
@@ -121,26 +130,62 @@ func (s *Stub) ExtractAudio(ctx context.Context, sourceType, sourceURI string) (
 	if meta.AudioTracks == 0 {
 		return nil, nil, domain.E(domain.CodeNoAudioTrack, "no audio track detected in %s", sourceURI)
 	}
-	out := &Metadata{DurationSeconds: meta.DurationSeconds, Format: "wav", AudioTracks: 1, Codec: "pcm_s16le", SampleRateHz: 16000}
-	// Deterministic fake WAV payload (RIFF header + marker text).
-	payload := append([]byte("RIFF....WAVEfmt mock-normalized-audio:"), []byte(sourceURI)...)
-	return payload, out, nil
+	const sampleRate = 8000
+	out := &Metadata{DurationSeconds: meta.DurationSeconds, Format: "wav", AudioTracks: 1, Codec: "pcm_s16le", SampleRateHz: sampleRate}
+	// Real playable WAV so the audio endpoint (playback + Range requests)
+	// works end-to-end in mock demos.
+	return SilentWAV(meta.DurationSeconds, sampleRate), out, nil
+}
+
+// SilentWAV generates a valid mono 16-bit PCM WAV file of silence with the
+// given duration and sample rate. ~2 minutes at 8 kHz is about 1.9 MB.
+func SilentWAV(durationSeconds, sampleRate int) []byte {
+	if durationSeconds <= 0 {
+		durationSeconds = 1
+	}
+	if sampleRate <= 0 {
+		sampleRate = 8000
+	}
+	dataLen := durationSeconds * sampleRate * 2 // mono, 16-bit
+	buf := make([]byte, 44+dataLen)
+	copy(buf[0:4], "RIFF")
+	binary.LittleEndian.PutUint32(buf[4:8], uint32(36+dataLen))
+	copy(buf[8:12], "WAVE")
+	copy(buf[12:16], "fmt ")
+	binary.LittleEndian.PutUint32(buf[16:20], 16)                   // fmt chunk size
+	binary.LittleEndian.PutUint16(buf[20:22], 1)                    // PCM
+	binary.LittleEndian.PutUint16(buf[22:24], 1)                    // mono
+	binary.LittleEndian.PutUint32(buf[24:28], uint32(sampleRate))   // sample rate
+	binary.LittleEndian.PutUint32(buf[28:32], uint32(sampleRate*2)) // byte rate
+	binary.LittleEndian.PutUint16(buf[32:34], 2)                    // block align
+	binary.LittleEndian.PutUint16(buf[34:36], 16)                   // bits per sample
+	copy(buf[36:40], "data")
+	binary.LittleEndian.PutUint32(buf[40:44], uint32(dataLen))
+	return buf
 }
 
 var _ Processor = (*Stub)(nil)
 
 // -------------------------------------------------------------- FFmpeg ---
 
-// FFmpeg shells out to ffprobe/ffmpeg for local upload files. YouTube
-// sources fall back to the stub (media download is out of MVP backend scope;
-// caption reuse or a pre-downloaded upload covers YouTube in MVP).
+// FFmpeg shells out to ffprobe/ffmpeg for staged upload artifacts (resolved
+// through the object store only — never raw filesystem paths). YouTube and
+// mock:// sources fall back to the stub (media download is out of MVP backend
+// scope; caption reuse or a pre-downloaded upload covers YouTube in MVP).
 type FFmpeg struct {
+	Resolver PathResolver
 	fallback *Stub
 }
 
-func localPath(uri string) (string, bool) {
-	p := strings.TrimPrefix(uri, "file://")
-	if !filepath.IsAbs(p) {
+// localPath resolves a local:// object-store URI to a filesystem path via
+// the configured resolver. All other schemes (mock://, https://, raw paths)
+// are not resolvable here.
+func (f *FFmpeg) localPath(uri string) (string, bool) {
+	if f.Resolver == nil || !strings.HasPrefix(uri, "local://") {
+		return "", false
+	}
+	p, err := f.Resolver.PathFor(uri)
+	if err != nil {
 		return "", false
 	}
 	if _, err := os.Stat(p); err != nil {
@@ -162,7 +207,7 @@ type ffprobeOut struct {
 }
 
 func (f *FFmpeg) Metadata(ctx context.Context, sourceType, sourceURI string) (*Metadata, error) {
-	p, ok := localPath(sourceURI)
+	p, ok := f.localPath(sourceURI)
 	if sourceType != domain.SourceUpload || !ok {
 		return f.fallback.Metadata(ctx, sourceType, sourceURI)
 	}
@@ -199,7 +244,7 @@ func (f *FFmpeg) Metadata(ctx context.Context, sourceType, sourceURI string) (*M
 }
 
 func (f *FFmpeg) ExtractAudio(ctx context.Context, sourceType, sourceURI string) ([]byte, *Metadata, error) {
-	p, ok := localPath(sourceURI)
+	p, ok := f.localPath(sourceURI)
 	if sourceType != domain.SourceUpload || !ok {
 		return f.fallback.ExtractAudio(ctx, sourceType, sourceURI)
 	}

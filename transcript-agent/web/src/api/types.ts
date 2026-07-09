@@ -115,6 +115,22 @@ export interface ExportArtifact {
   created_at: string;
 }
 
+/** Response of POST /uploads (multipart). */
+export interface UploadResponse {
+  upload_uri: string;
+  filename: string;
+  size_bytes: number;
+  mime_type: string;
+}
+
+export type SignedLinkKind = "export" | "audio";
+
+/** Response of POST /signed-links. `url` is site-relative and embeds ?token=; valid 15 min. */
+export interface SignedLink {
+  url: string;
+  expires_at: string;
+}
+
 export interface AuditEvent {
   audit_event_id: string;
   actor_type: string;

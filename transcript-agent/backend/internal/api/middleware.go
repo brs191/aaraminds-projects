@@ -35,21 +35,55 @@ func validRole(role string) bool {
 	return false
 }
 
-// authExempt reports whether a path skips authentication: health checks and
-// the export download endpoint (frozen contract: no auth on download).
+// authExempt reports whether a path skips authentication entirely: health
+// checks only.
 func authExempt(r *http.Request) bool {
 	p := r.URL.Path
-	if p == "/healthz" || p == "/api/v1/healthz" {
+	return p == "/healthz" || p == "/api/v1/healthz"
+}
+
+// tokenCapable reports whether the endpoint accepts EITHER a signed ?token=
+// OR auth headers (export download, job audio). The middleware attaches the
+// header identity when present but never rejects here — the handler enforces
+// token-or-auth (audit H2: downloads are no longer fully open).
+func tokenCapable(r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	p := r.URL.Path
+	if strings.HasPrefix(p, "/api/v1/exports/") && strings.HasSuffix(p, "/download") {
 		return true
 	}
-	if (r.Method == http.MethodGet || r.Method == http.MethodHead) &&
-		strings.HasPrefix(p, "/api/v1/exports/") && strings.HasSuffix(p, "/download") {
+	if strings.HasPrefix(p, "/api/v1/jobs/") && strings.HasSuffix(p, "/audio") {
 		return true
 	}
 	return false
 }
 
-// middleware wraps the mux with CORS, request logging, and header auth.
+// maxJSONBodyBytes caps every request body except the multipart upload
+// endpoint (audit H4).
+const maxJSONBodyBytes = 1 << 20 // 1 MiB
+
+func isUploadEndpoint(r *http.Request) bool {
+	return r.Method == http.MethodPost && r.URL.Path == "/api/v1/uploads"
+}
+
+// identityFromHeaders extracts a valid header identity, or ok=false. When an
+// auth proxy secret is configured it must match too.
+func (s *Server) identityFromHeaders(r *http.Request) (Identity, bool) {
+	if s.AuthProxySecret != "" && r.Header.Get("X-Auth-Proxy-Secret") != s.AuthProxySecret {
+		return Identity{}, false
+	}
+	userID := strings.TrimSpace(r.Header.Get("X-User-Id"))
+	role := strings.TrimSpace(r.Header.Get("X-User-Role"))
+	if userID == "" || !validRole(role) {
+		return Identity{}, false
+	}
+	return Identity{UserID: userID, Role: role}, true
+}
+
+// middleware wraps the mux with CORS, body limits, request logging, and
+// header auth.
 func (s *Server) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// CORS for the local React dev server (frozen contract).
@@ -66,31 +100,46 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// Body limit on every JSON route (the upload handler applies its own
+		// MAX_UPLOAD_BYTES limit).
+		if r.Body != nil && !isUploadEndpoint(r) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
+		}
+
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 
-		if !authExempt(r) {
-			userID := strings.TrimSpace(r.Header.Get("X-User-Id"))
-			role := strings.TrimSpace(r.Header.Get("X-User-Role"))
-			if s.AuthProxySecret != "" && r.Header.Get("X-Auth-Proxy-Secret") != s.AuthProxySecret {
-				writeError(rec, domain.E(domain.CodeUnauthenticated,
-					"authentication proxy secret missing or invalid"))
-				s.logRequest(r, rec, start, "")
-				return
+		switch {
+		case authExempt(r):
+			next.ServeHTTP(rec, r)
+			s.logRequest(r, rec, start, "")
+		case tokenCapable(r):
+			// Attach identity when header auth is present; the handler decides
+			// between token and identity.
+			userID := ""
+			if ident, ok := s.identityFromHeaders(r); ok {
+				r = r.WithContext(context.WithValue(r.Context(), identityKey, ident))
+				userID = ident.UserID
 			}
-			if userID == "" || !validRole(role) {
-				writeError(rec, domain.E(domain.CodeUnauthenticated,
-					"authentication required: send X-User-Id and X-User-Role (producer|reviewer|admin)"))
-				s.logRequest(r, rec, start, "")
-				return
-			}
-			r = r.WithContext(context.WithValue(r.Context(), identityKey, Identity{UserID: userID, Role: role}))
 			next.ServeHTTP(rec, r)
 			s.logRequest(r, rec, start, userID)
-			return
+		default:
+			ident, ok := s.identityFromHeaders(r)
+			if !ok {
+				if s.AuthProxySecret != "" && r.Header.Get("X-Auth-Proxy-Secret") != s.AuthProxySecret {
+					writeError(rec, domain.E(domain.CodeUnauthenticated,
+						"authentication proxy secret missing or invalid"))
+				} else {
+					writeError(rec, domain.E(domain.CodeUnauthenticated,
+						"authentication required: send X-User-Id and X-User-Role (producer|reviewer|admin)"))
+				}
+				s.logRequest(r, rec, start, "")
+				return
+			}
+			r = r.WithContext(context.WithValue(r.Context(), identityKey, ident))
+			next.ServeHTTP(rec, r)
+			s.logRequest(r, rec, start, ident.UserID)
 		}
-		next.ServeHTTP(rec, r)
-		s.logRequest(r, rec, start, "")
 	})
 }
 

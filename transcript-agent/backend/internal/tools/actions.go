@@ -12,14 +12,17 @@ import (
 	"github.com/aaraminds/transcript-agent/internal/exporter"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/state"
+	"github.com/aaraminds/transcript-agent/internal/store"
 )
 
-// CloneToVersion copies the segments of source into a new version of the
-// given type. Used for reviewed drafts (R7) and immutable approved versions.
-func (t *Toolset) CloneToVersion(ctx context.Context, job *domain.Job, source *domain.TranscriptVersion, versionType, createdBy string, immutable bool) (*domain.TranscriptVersion, error) {
+// buildClone constructs (without persisting) a new version of the given type
+// carrying copies of source's segments. Persistence happens either via
+// CreateVersion (review drafts) or inside the atomic approve/reopen store
+// operations.
+func (t *Toolset) buildClone(ctx context.Context, job *domain.Job, source *domain.TranscriptVersion, versionType, createdBy string, immutable bool) (*domain.TranscriptVersion, []*domain.Segment, error) {
 	segs, err := t.Stores.Transcripts.ListSegments(ctx, source.TranscriptVersionID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	srcID := source.TranscriptVersionID
 	version := &domain.TranscriptVersion{
@@ -41,16 +44,30 @@ func (t *Toolset) CloneToVersion(ctx context.Context, job *domain.Job, source *d
 		}
 		newSegs[i] = &c
 	}
+	return version, newSegs, nil
+}
+
+func (t *Toolset) auditVersionCreated(ctx context.Context, job *domain.Job, version *domain.TranscriptVersion, source *domain.TranscriptVersion, createdBy string, segmentCount int) error {
+	return t.Audit(ctx, &job.JobID, "user", createdBy, "transcript.version_created", map[string]any{
+		"transcript_version_id": version.TranscriptVersionID.String(),
+		"version_type":          version.VersionType,
+		"source_version_id":     source.TranscriptVersionID.String(),
+		"is_immutable":          version.IsImmutable,
+		"segment_count":         segmentCount,
+	})
+}
+
+// CloneToVersion copies the segments of source into a new persisted version
+// of the given type. Used for reviewed drafts (R7).
+func (t *Toolset) CloneToVersion(ctx context.Context, job *domain.Job, source *domain.TranscriptVersion, versionType, createdBy string, immutable bool) (*domain.TranscriptVersion, error) {
+	version, newSegs, err := t.buildClone(ctx, job, source, versionType, createdBy, immutable)
+	if err != nil {
+		return nil, err
+	}
 	if err := t.Stores.Transcripts.CreateVersion(ctx, version, newSegs); err != nil {
 		return nil, err
 	}
-	if err := t.Audit(ctx, &job.JobID, "user", createdBy, "transcript.version_created", map[string]any{
-		"transcript_version_id": version.TranscriptVersionID.String(),
-		"version_type":          versionType,
-		"source_version_id":     source.TranscriptVersionID.String(),
-		"is_immutable":          immutable,
-		"segment_count":         len(newSegs),
-	}); err != nil {
+	if err := t.auditVersionCreated(ctx, job, version, source, createdBy, len(newSegs)); err != nil {
 		return nil, err
 	}
 	return version, nil
@@ -142,11 +159,11 @@ func (t *Toolset) ApproveTranscript(ctx context.Context, job *domain.Job, review
 				strings.Join(critical, ", "))
 		}
 	}
-	approvedVersion, err := t.CloneToVersion(ctx, job, reviewed, domain.VersionApproved, approvedBy, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	prior, err := t.Stores.Approvals.CurrentApproval(ctx, job.JobID)
+	// Build the immutable approved clone and the approval row, then persist
+	// them atomically together with the in_review -> approved CAS (audit H1):
+	// under a concurrent double-approve exactly one caller wins, the other
+	// receives STATUS_CONFLICT and nothing is persisted for it.
+	approvedVersion, approvedSegs, err := t.buildClone(ctx, job, reviewed, domain.VersionApproved, approvedBy, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,28 +175,26 @@ func (t *Toolset) ApproveTranscript(ctx context.Context, job *domain.Job, review
 		ApprovedAt:                  time.Now().UTC(),
 		ApprovalNote:                note,
 	}
-	if err := t.Stores.Approvals.CreateApproval(ctx, approval); err != nil {
+	updatedJob, superseded, err := t.Stores.Review.ApproveJob(ctx, store.ApproveJobParams{
+		JobID:           job.JobID,
+		ApprovedVersion: approvedVersion,
+		Segments:        approvedSegs,
+		Approval:        approval,
+	})
+	if err != nil {
 		return nil, nil, err
 	}
-	if prior != nil {
-		prior.SupersededByApprovalID = &approval.ApprovalID
-		if err := t.Stores.Approvals.UpdateApproval(ctx, prior); err != nil {
-			return nil, nil, err
-		}
+	*job = *updatedJob
+	if err := t.auditVersionCreated(ctx, job, approvedVersion, reviewed, approvedBy, len(approvedSegs)); err != nil {
+		return nil, nil, err
+	}
+	for _, priorID := range superseded {
 		if err := t.Audit(ctx, &job.JobID, "system", "approve_transcript", "approval.superseded", map[string]any{
-			"superseded_approval_id":    prior.ApprovalID.String(),
+			"superseded_approval_id":    priorID.String(),
 			"superseded_by_approval_id": approval.ApprovalID.String(),
-			"superseded_version_id":     prior.ApprovedTranscriptVersionID.String(),
 		}); err != nil {
 			return nil, nil, err
 		}
-	}
-	if err := state.Transition(job, domain.StatusApproved); err != nil {
-		return nil, nil, err
-	}
-	job.LastError = nil
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-		return nil, nil, err
 	}
 	if err := t.Audit(ctx, &job.JobID, "user", approvedBy, "transcript.approved", map[string]any{
 		"approval_id":                    approval.ApprovalID.String(),
@@ -190,6 +205,44 @@ func (t *Toolset) ApproveTranscript(ctx context.Context, job *domain.Job, review
 		return nil, nil, err
 	}
 	return approval, approvedVersion, nil
+}
+
+// ReopenJob implements post-approval correction (PRD 11.4): atomically CAS
+// approved/exported -> in_review and create a fresh mutable reviewed version
+// cloned from the current approved version (audit M7).
+func (t *Toolset) ReopenJob(ctx context.Context, job *domain.Job, reopenedBy string) (*domain.Job, *domain.TranscriptVersion, error) {
+	if job.Status != domain.StatusApproved && job.Status != domain.StatusExported {
+		return nil, nil, domain.E(domain.CodeJobNotInActionableState,
+			"reopen applies only to approved or exported jobs; job is %s", job.Status)
+	}
+	approved, err := t.Stores.Transcripts.LatestVersion(ctx, job.JobID, domain.VersionApproved)
+	if err != nil {
+		return nil, nil, err
+	}
+	if approved == nil {
+		return nil, nil, domain.E(domain.CodeTranscriptNotFound, "job %s has no approved version to reopen from", job.JobID)
+	}
+	reviewed, segs, err := t.buildClone(ctx, job, approved, domain.VersionReviewed, reopenedBy, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	updatedJob, err := t.Stores.Review.ReopenJob(ctx, store.ReopenJobParams{
+		JobID:           job.JobID,
+		ReviewedVersion: reviewed,
+		Segments:        segs,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	*job = *updatedJob
+	if err := t.auditVersionCreated(ctx, job, reviewed, approved, reopenedBy, len(segs)); err != nil {
+		return nil, nil, err
+	}
+	if err := t.Audit(ctx, &job.JobID, "user", reopenedBy, "job.reopened",
+		map[string]any{"from_approved_version_id": approved.TranscriptVersionID.String()}); err != nil {
+		return nil, nil, err
+	}
+	return job, reviewed, nil
 }
 
 // ---------------------------------------------------------------------
@@ -346,10 +399,16 @@ func (t *Toolset) ExportTranscript(ctx context.Context, job *domain.Job, approve
 		records = append(records, rec)
 	}
 	if job.Status == domain.StatusApproved {
-		if err := state.Transition(job, domain.StatusExported); err != nil {
-			return nil, err
-		}
-		if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
+		updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, domain.StatusApproved, func(j *domain.Job) error {
+			return state.Transition(j, domain.StatusExported)
+		})
+		switch {
+		case err == nil:
+			*job = *updated
+		case domain.CodeOf(err) == domain.CodeStatusConflict:
+			// A concurrent export/reopen/cancel moved the job first. The export
+			// artifacts above are valid either way; do not overwrite the status.
+		default:
 			return nil, err
 		}
 	}
@@ -417,25 +476,42 @@ func (t *Toolset) ReplaceJobMedia(ctx context.Context, job *domain.Job, in Repla
 	if err := validateSourceURI(in.SourceType, in.SourceURI); err != nil {
 		return nil, err
 	}
+	var staged *domain.MediaArtifact
+	if in.SourceType == domain.SourceUpload && strings.HasPrefix(in.SourceURI, UploadURIScheme) {
+		var err error
+		if staged, err = t.ResolveUploadURI(ctx, in.SourceURI); err != nil {
+			return nil, err
+		}
+	}
 	priorHash := URIHash(job.SourceURI)
 	// Prior artifacts stay in storage under retention, marked superseded.
 	if err := t.Stores.Artifacts.MarkArtifactsSuperseded(ctx, job.JobID); err != nil {
 		return nil, err
 	}
-	job.SourceType = in.SourceType
-	job.SourceURI = in.SourceURI
-	job.OwnershipAttested = true
-	job.DurationSeconds = 0
-	job.ActionRequired = ""
-	job.LastError = nil
-	job.CaptionsAvailable = false
-	job.CaptionTrackID = ""
-	job.CaptionReuse = nil
-	if err := state.Transition(job, domain.StatusQueued); err != nil {
+	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, domain.StatusNeedsUserAction, func(j *domain.Job) error {
+		j.SourceType = in.SourceType
+		j.SourceURI = in.SourceURI
+		j.OwnershipAttested = true
+		j.DurationSeconds = 0
+		j.ActionRequired = ""
+		j.LastError = nil
+		j.CaptionsAvailable = false
+		j.CaptionTrackID = ""
+		j.CaptionReuse = nil
+		return state.Transition(j, domain.StatusQueued)
+	})
+	if err != nil {
 		return nil, err
 	}
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-		return nil, err
+	*job = *updated
+	if staged != nil {
+		if err := t.Stores.Artifacts.CreateArtifact(ctx, &domain.MediaArtifact{
+			ArtifactID: uuid.New(), JobID: job.JobID,
+			ArtifactType: domain.ArtifactSourceMedia, URI: staged.URI,
+			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes, CreatedAt: time.Now().UTC(),
+		}); err != nil {
+			return nil, err
+		}
 	}
 	if err := t.Audit(ctx, &job.JobID, "user", in.ReplacedBy, "job.media_replaced", map[string]any{
 		"prior_source_uri_hash": priorHash,
@@ -468,14 +544,18 @@ func (t *Toolset) CancelJob(ctx context.Context, job *domain.Job, cancelledBy, r
 			"only the original submitter, team lead, or admin can cancel a job")
 	}
 	priorStatus := job.Status
-	job.CancelReason = reason
-	job.ActionRequired = ""
-	if err := state.Transition(job, domain.StatusCancelled); err != nil {
+	// CAS from the status the caller saw: if the pipeline advanced (or another
+	// actor won) in the meantime the cancel answers 409 STATUS_CONFLICT and
+	// the caller retries against the fresh state.
+	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, priorStatus, func(j *domain.Job) error {
+		j.CancelReason = reason
+		j.ActionRequired = ""
+		return state.Transition(j, domain.StatusCancelled)
+	})
+	if err != nil {
 		return nil, err
 	}
-	if err := t.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-		return nil, err
-	}
+	*job = *updated
 	if err := t.Audit(ctx, &job.JobID, "user", cancelledBy, "job.cancelled", map[string]any{
 		"reason":       reason,
 		"prior_status": string(priorStatus),

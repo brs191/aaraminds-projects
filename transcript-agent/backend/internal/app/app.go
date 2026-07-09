@@ -37,8 +37,12 @@ type Options struct {
 	// AuthProxySecret, when set, requires a trusted reverse proxy to attach
 	// X-Auth-Proxy-Secret on authenticated API requests.
 	AuthProxySecret string
-	// DownloadTokenSecret signs auth-exempt export download URLs.
-	DownloadTokenSecret []byte
+	// SigningSecret keys the HMAC for signed download/audio links
+	// (SIGNING_SECRET). Empty means a random per-boot secret.
+	SigningSecret []byte
+	// MaxUploadBytes caps POST /api/v1/uploads bodies (MAX_UPLOAD_BYTES);
+	// zero means the 2 GiB default.
+	MaxUploadBytes int64
 	// Sync drives jobs inline on Enqueue (tests / single-process demos).
 	Sync bool
 	// Backoff between a retryable failure and its single retry.
@@ -70,6 +74,6 @@ func New(o Options) *App {
 		Log:            o.Log,
 	}
 	orch := orchestrator.New(ts, o.Log, o.Backoff, o.Sync)
-	srv := api.NewServer(ts, orch, o.Objects, o.CORSOrigin, o.AuthProxySecret, o.DownloadTokenSecret, o.Log)
+	srv := api.NewServer(ts, orch, o.Objects, o.CORSOrigin, o.AuthProxySecret, o.SigningSecret, o.MaxUploadBytes, o.Log)
 	return &App{Tools: ts, Orch: orch, API: srv}
 }

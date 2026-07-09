@@ -107,6 +107,10 @@ const (
 	CodeDisabledInMVP = "DISABLED_IN_MVP"
 
 	// Cross-cutting
+	CodeStatusConflict             = "STATUS_CONFLICT"
+	CodeRequestTooLarge            = "REQUEST_TOO_LARGE"
+	CodeTokenInvalid               = "TOKEN_INVALID"
+	CodeAudioNotAvailable          = "AUDIO_NOT_AVAILABLE"
 	CodeTranscriptVersionImmutable = "TRANSCRIPT_VERSION_IMMUTABLE"
 	CodeJobNotFound                = "JOB_NOT_FOUND"
 	CodeSegmentNotFound            = "SEGMENT_NOT_FOUND"
@@ -120,6 +124,15 @@ const (
 	CodeInternalError              = "INTERNAL_ERROR"
 	CodeNotConfigured              = "NOT_CONFIGURED"
 )
+
+// ErrStatusConflict signals that a compare-and-swap status transition lost a
+// race: the job's current status no longer matches the expected `from` value.
+// API handlers surface it as 409 STATUS_CONFLICT; the orchestrator drops the
+// step and lets the requeue scanner or the winning actor own the job.
+var ErrStatusConflict = &Error{
+	Code:    CodeStatusConflict,
+	Message: "job status changed concurrently; reload the job and retry",
+}
 
 // ErrDisabledInMVP is returned by publish_caption_file (PRD 14.15).
 var ErrDisabledInMVP = &Error{

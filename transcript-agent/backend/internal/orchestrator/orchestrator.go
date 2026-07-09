@@ -38,6 +38,9 @@ type Orchestrator struct {
 	mu         sync.Mutex
 	pauseUntil time.Time // queue pause after STT quota exhaustion (PRD 19)
 	running    map[uuid.UUID]bool
+	// inFlight tracks IDs that are enqueued or being processed so the requeue
+	// scanner never floods the queue with duplicates of the same job.
+	inFlight map[uuid.UUID]bool
 }
 
 // New returns an orchestrator with a buffered queue.
@@ -49,25 +52,37 @@ func New(ts *tools.Toolset, log *slog.Logger, backoff time.Duration, sync bool) 
 		backoff = 2 * time.Second
 	}
 	return &Orchestrator{
-		Tools:   ts,
-		Log:     log,
-		Backoff: backoff,
-		Sync:    sync,
-		queue:   make(chan uuid.UUID, 256),
-		running: map[uuid.UUID]bool{},
+		Tools:    ts,
+		Log:      log,
+		Backoff:  backoff,
+		Sync:     sync,
+		queue:    make(chan uuid.UUID, 256),
+		running:  map[uuid.UUID]bool{},
+		inFlight: map[uuid.UUID]bool{},
 	}
 }
 
 // Enqueue schedules a job for processing. Non-blocking in async mode; the
-// requeue scan is the safety net if the queue is full.
+// requeue scan is the safety net if the queue is full. IDs already queued or
+// processing are skipped (in-process inFlight set).
 func (o *Orchestrator) Enqueue(jobID uuid.UUID) {
 	if o.Sync {
 		o.Drive(context.Background(), jobID)
 		return
 	}
+	o.mu.Lock()
+	if o.inFlight[jobID] {
+		o.mu.Unlock()
+		return
+	}
+	o.inFlight[jobID] = true
+	o.mu.Unlock()
 	select {
 	case o.queue <- jobID:
 	default:
+		o.mu.Lock()
+		delete(o.inFlight, jobID)
+		o.mu.Unlock()
 	}
 }
 
@@ -88,6 +103,9 @@ func (o *Orchestrator) Start(ctx context.Context, workers int, scanInterval time
 					return
 				case id := <-o.queue:
 					o.Drive(ctx, id)
+					o.mu.Lock()
+					delete(o.inFlight, id)
+					o.mu.Unlock()
 				}
 			}
 		}()
@@ -121,11 +139,7 @@ func (o *Orchestrator) scan(ctx context.Context) {
 		return
 	}
 	for _, j := range jobs {
-		select {
-		case o.queue <- j.JobID:
-		default:
-			return
-		}
+		o.Enqueue(j.JobID) // skips IDs already queued or processing
 	}
 }
 
@@ -199,18 +213,38 @@ func (o *Orchestrator) Drive(ctx context.Context, jobID uuid.UUID) {
 	o.Log.Error("drive: transition bound exceeded", "job_id", jobID)
 }
 
-// setStatus applies and audits a status transition. Returns false when the
-// transition is illegal (which is a bug, so it is logged loudly).
+// setStatus applies and audits a status transition through the store's
+// compare-and-swap primitive (audit C1/C2): the swap only succeeds when the
+// job is still in the status this worker saw, so a user cancel (or another
+// worker's claim) always wins and is never overwritten. The worker's local
+// bookkeeping mutations (last_error, action_required, caption fields, ...)
+// are carried into the swap. Returns false when the job moved concurrently
+// (drop the step) or the transition is illegal (a bug, logged loudly).
 func (o *Orchestrator) setStatus(ctx context.Context, job *domain.Job, to domain.Status) bool {
 	from := job.Status
-	if err := state.Transition(job, to); err != nil {
-		o.Log.Error("illegal transition attempted", "job_id", job.JobID, "from", from, "to", to, "error", err)
+	updated, err := o.Tools.Stores.Jobs.TransitionJob(ctx, job.JobID, from, func(j *domain.Job) error {
+		j.JobConfigID = job.JobConfigID
+		j.DurationSeconds = job.DurationSeconds
+		j.ActionRequired = job.ActionRequired
+		j.LastError = job.LastError
+		j.CaptionsAvailable = job.CaptionsAvailable
+		j.CaptionTrackID = job.CaptionTrackID
+		j.CaptionReuse = job.CaptionReuse
+		return state.Transition(j, to)
+	})
+	if err != nil {
+		switch domain.CodeOf(err) {
+		case domain.CodeStatusConflict:
+			o.Log.Info("status transition lost race; dropping step",
+				"job_id", job.JobID, "from", from, "to", to)
+		case domain.CodeInvalidStateTransition:
+			o.Log.Error("illegal transition attempted", "job_id", job.JobID, "from", from, "to", to, "error", err)
+		default:
+			o.Log.Error("persist status", "job_id", job.JobID, "error", err)
+		}
 		return false
 	}
-	if err := o.Tools.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-		o.Log.Error("persist status", "job_id", job.JobID, "error", err)
-		return false
-	}
+	*job = *updated
 	if err := o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "job.status_changed",
 		map[string]any{"from": string(from), "to": string(to)}); err != nil {
 		o.Log.Error("audit status transition", "job_id", job.JobID, "from", from, "to", to, "error", err)
@@ -244,13 +278,21 @@ func (o *Orchestrator) toFailed(ctx context.Context, job *domain.Job, err error)
 }
 
 func (o *Orchestrator) clearError(ctx context.Context, job *domain.Job) {
-	if job.LastError != nil || job.ActionRequired != "" {
-		job.LastError = nil
-		job.ActionRequired = ""
-		if err := o.Tools.Stores.Jobs.UpdateJob(ctx, job); err != nil {
+	if job.LastError == nil && job.ActionRequired == "" {
+		return
+	}
+	updated, err := o.Tools.Stores.Jobs.TransitionJob(ctx, job.JobID, job.Status, func(j *domain.Job) error {
+		j.LastError = nil
+		j.ActionRequired = ""
+		return nil
+	})
+	if err != nil {
+		if domain.CodeOf(err) != domain.CodeStatusConflict {
 			o.Log.Error("clear job error", "job_id", job.JobID, "error", err)
 		}
+		return
 	}
+	*job = *updated
 }
 
 // --- pipeline steps ------------------------------------------------------
@@ -300,11 +342,9 @@ func (o *Orchestrator) stepRouteAfterMetadata(ctx context.Context, job *domain.J
 		// can continue with a warning (PRD 19 "Caption check unavailable").
 		o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "caption_check.skipped",
 			map[string]any{"error_code": domain.CodeOf(err), "message": err.Error()})
+		// setStatus carries the cleared caption flags into the CAS.
 		job.CaptionsAvailable = false
 		job.CaptionTrackID = ""
-		if uerr := o.Tools.Stores.Jobs.UpdateJob(ctx, job); uerr != nil {
-			o.Log.Error("persist caption flags", "job_id", job.JobID, "error", uerr)
-		}
 	}
 	return o.setStatus(ctx, job, domain.StatusCaptionChecked)
 }
@@ -454,12 +494,10 @@ func (o *Orchestrator) stepQualityCheck(ctx context.Context, job *domain.Job) bo
 		return false
 	}
 	if _, qerr := o.Tools.QualityCheckTranscript(ctx, job, version, cfg); qerr != nil {
-		// Job can still enter review with warning (PRD 14.9).
+		// Job can still enter review with warning (PRD 14.9). setStatus carries
+		// the warning into the CAS below.
 		de := domain.AsError(qerr)
 		job.LastError = &domain.ErrorInfo{Code: domain.CodeQualityCheckFailed, Message: de.Message}
-		if err := o.Tools.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-			o.Log.Error("persist quality warning", "job_id", job.JobID, "error", err)
-		}
 		o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "quality_check.warning",
 			map[string]any{"error_code": de.Code, "message": de.Message})
 	}
@@ -473,15 +511,20 @@ func (o *Orchestrator) ResumeAfterCaptionDecision(ctx context.Context, job *doma
 		return domain.E(domain.CodeJobNotInActionableState,
 			"caption decision applies only in needs_user_action/caption_decision; job is %s/%s", job.Status, job.ActionRequired)
 	}
-	job.CaptionReuse = &reuse
-	job.ActionRequired = ""
-	job.LastError = nil
-	if err := state.Transition(job, domain.StatusCaptionChecked); err != nil {
+	updated, err := o.Tools.Stores.Jobs.TransitionJob(ctx, job.JobID, domain.StatusNeedsUserAction, func(j *domain.Job) error {
+		if j.ActionRequired != domain.ActionCaptionDecision {
+			return domain.E(domain.CodeJobNotInActionableState,
+				"caption decision applies only in needs_user_action/caption_decision; job is %s/%s", j.Status, j.ActionRequired)
+		}
+		j.CaptionReuse = &reuse
+		j.ActionRequired = ""
+		j.LastError = nil
+		return state.Transition(j, domain.StatusCaptionChecked)
+	})
+	if err != nil {
 		return err
 	}
-	if err := o.Tools.Stores.Jobs.UpdateJob(ctx, job); err != nil {
-		return err
-	}
+	*job = *updated
 	if err := o.Tools.Audit(ctx, &job.JobID, audit.ActorUser, decidedBy, "job.caption_decision_recorded",
 		map[string]any{"reuse_captions": reuse}); err != nil {
 		return err

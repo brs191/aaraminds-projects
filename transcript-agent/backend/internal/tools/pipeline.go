@@ -21,7 +21,13 @@ import (
 // ExtractAudio extracts a normalized audio artifact (PRD 14.6) and stores it
 // with an audio_extract media_artifacts record.
 func (t *Toolset) ExtractAudio(ctx context.Context, job *domain.Job) (string, error) {
-	data, meta, err := t.Media.ExtractAudio(ctx, job.SourceType, job.SourceURI)
+	sourceURI, err := t.mediaSourceURI(ctx, job)
+	if err != nil {
+		t.Audit(ctx, &job.JobID, "tool", "extract_audio", "tool.extract_audio.failed",
+			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})
+		return "", err
+	}
+	data, meta, err := t.Media.ExtractAudio(ctx, job.SourceType, sourceURI)
 	if err != nil {
 		t.Audit(ctx, &job.JobID, "tool", "extract_audio", "tool.extract_audio.failed",
 			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})

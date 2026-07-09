@@ -528,6 +528,67 @@ button:disabled {
   width: 180px;
 }
 
+/* ---------- Audio playback (Review tab) ---------- */
+
+.audio-bar {
+  position: sticky;
+  top: 52px; /* clears the sticky app header */
+  z-index: 5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.audio-bar audio {
+  width: 100%;
+  max-width: 640px;
+  height: 36px;
+}
+.seg-play {
+  padding: 0 0.45rem;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  border-radius: 999px;
+  color: var(--primary);
+}
+.segment.playing {
+  background: #e3ecfd;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.segment.playing.low-confidence {
+  background: var(--amber-bg);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+/* ---------- Misc controls ---------- */
+
+.link-button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--primary);
+  text-decoration: underline;
+  font-size: 0.85rem;
+}
+.download-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+.download-cell button {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
+}
+.upload-progress {
+  margin-bottom: 0.75rem;
+}
+
 /* ---------- Modal ---------- */
 
 .modal-overlay {

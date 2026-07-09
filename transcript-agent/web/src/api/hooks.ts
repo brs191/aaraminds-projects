@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { api, apiForm, apiMaybe } from "./client";
+import { api, apiMaybe, ApiError, mintSignedLink, uploadMediaFile } from "./client";
 import {
   isJobActive,
   type AuditEvent,
@@ -12,9 +12,11 @@ import {
   type Job,
   type QualityReport,
   type Segment,
+  type SignedLink,
   type SourceType,
   type Summary,
   type TranscriptVersion,
+  type UploadResponse,
 } from "./types";
 
 // ---------- Queries ----------
@@ -102,20 +104,38 @@ export interface SubmitJobInput {
   ownership_attested: boolean;
 }
 
-export interface UploadMediaResponse {
-  source_type: "upload";
-  source_uri: string;
-  filename: string;
-  size_bytes: number;
+export function useUploadMedia() {
+  return useMutation<UploadResponse, unknown, File>({
+    mutationFn: (file) => uploadMediaFile(file),
+  });
 }
 
-export function useUploadMedia() {
-  return useMutation({
-    mutationFn: (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return apiForm<UploadMediaResponse>("/uploads", formData);
+/**
+ * Signed audio link for a job. Resolves to null when the job has no audio
+ * artifact (404 AUDIO_NOT_AVAILABLE — e.g. the caption-reuse path).
+ */
+export function useAudioLink(jobId: string, enabled = true) {
+  return useQuery<SignedLink | null>({
+    queryKey: ["audio-link", jobId],
+    queryFn: async () => {
+      try {
+        return await mintSignedLink("audio", jobId);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
     },
+    enabled,
+    // Links expire after 15 min; treat as fresh slightly less than that.
+    staleTime: 14 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/** Mint a signed download link for an export artifact on demand. */
+export function useMintExportLink() {
+  return useMutation<SignedLink, unknown, string>({
+    mutationFn: (exportId) => mintSignedLink("export", exportId),
   });
 }
 
@@ -204,6 +224,10 @@ export function useApprove(jobId: string) {
       void qc.invalidateQueries({ queryKey: ["versions", jobId] });
       void qc.invalidateQueries({ queryKey: ["audit", jobId] });
       invalidate(jobId);
+    },
+    onError: (err) => {
+      // 409 STATUS_CONFLICT: someone else changed the job state — refetch it.
+      if (err instanceof ApiError && err.status === 409) invalidate(jobId);
     },
   });
 }

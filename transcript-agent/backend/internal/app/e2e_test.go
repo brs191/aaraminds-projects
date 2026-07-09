@@ -2,11 +2,18 @@ package app_test
 
 import (
 	"bytes"
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +26,7 @@ import (
 	capmock "github.com/aaraminds/transcript-agent/internal/providers/captions/mock"
 	llmmock "github.com/aaraminds/transcript-agent/internal/providers/llm/mock"
 	"github.com/aaraminds/transcript-agent/internal/providers/media"
+	"github.com/aaraminds/transcript-agent/internal/providers/stt"
 	sttmock "github.com/aaraminds/transcript-agent/internal/providers/stt/mock"
 	"github.com/aaraminds/transcript-agent/internal/store/memory"
 )
@@ -39,12 +47,18 @@ var (
 )
 
 func newEnv(t *testing.T, defaults *domain.JobConfig) *env {
+	return newEnvWith(t, defaults, nil)
+}
+
+// newEnvWith builds the standard test app; mutate tweaks options (async mode,
+// upload limits, signing secret, provider swaps) before wiring.
+func newEnvWith(t *testing.T, defaults *domain.JobConfig, mutate func(*app.Options)) *env {
 	t.Helper()
 	objects, err := objectstore.NewLocal(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := app.New(app.Options{
+	opts := app.Options{
 		Stores:         memory.New().Stores(),
 		Objects:        objects,
 		STT:            sttmock.New(),
@@ -56,7 +70,11 @@ func newEnv(t *testing.T, defaults *domain.JobConfig) *env {
 		CORSOrigin:     "http://localhost:5173",
 		Sync:           true, // drive jobs inline for deterministic tests
 		Backoff:        time.Millisecond,
-	})
+	}
+	if mutate != nil {
+		mutate(&opts)
+	}
+	a := app.New(opts)
 	srv := httptest.NewServer(a.API.Handler())
 	t.Cleanup(srv.Close)
 	return &env{t: t, app: a, srv: srv}
@@ -241,7 +259,7 @@ func versionOfType(t *testing.T, versions []versionResp, vt string) versionResp 
 // runToApproved drives a fresh upload job through review and approval.
 func runToApproved(e *env) (job jobResp, reviewedID, approvedID string) {
 	e.t.Helper()
-	job = submitJob(e, "upload", fmt.Sprintf("uploads/%s.mp3", uuid.NewString()))
+	job = submitJob(e, "upload", fmt.Sprintf("mock://uploads/%s.mp3", uuid.NewString()))
 	if job.Status != "in_review" {
 		e.t.Fatalf("job status %s, want in_review", job.Status)
 	}
@@ -262,7 +280,7 @@ func runToApproved(e *env) (job jobResp, reviewedID, approvedID string) {
 // four formats -> validators pass -> audit trail complete (spec test 2).
 func TestFullPipelineE2E(t *testing.T) {
 	e := newEnv(t, nil)
-	job := submitJob(e, "upload", "uploads/episode-one.mp3")
+	job := submitJob(e, "upload", "mock://uploads/episode-one.mp3")
 
 	if job.Status != "in_review" {
 		t.Fatalf("status %s, want in_review", job.Status)
@@ -531,7 +549,7 @@ func TestCaptionReusePathE2E(t *testing.T) {
 // Export blocked before approval (spec test 4).
 func TestExportBlockedBeforeApproval(t *testing.T) {
 	e := newEnv(t, nil)
-	job := submitJob(e, "upload", "uploads/blocked.mp3")
+	job := submitJob(e, "upload", "mock://uploads/blocked.mp3")
 	var er errResp
 	status := e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer,
 		map[string]any{"formats": []string{"srt"}}, &er)
@@ -609,7 +627,7 @@ func TestApprovalImmutabilityAndReopen(t *testing.T) {
 
 func TestApprovalBlocksCriticalQualityIssues(t *testing.T) {
 	e := newEnv(t, nil)
-	job := submitJob(e, "upload", "uploads/critical-quality.mp3")
+	job := submitJob(e, "upload", "mock://uploads/critical-quality.mp3")
 	var reviewed versionResp
 	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/review", reviewer, map[string]any{}, &reviewed),
 		http.StatusCreated, "create review version")
@@ -660,7 +678,7 @@ func TestConfigCentralization(t *testing.T) {
 	defaults.SummaryMaxWords = 25
 	e := newEnv(t, &defaults)
 
-	job := submitJob(e, "upload", "uploads/config-check.mp3")
+	job := submitJob(e, "upload", "mock://uploads/config-check.mp3")
 	if job.JobConfig == nil || job.JobConfig.ConfidenceThreshold != 0.90 || job.JobConfig.SummaryMaxWords != 25 {
 		t.Fatalf("job_config snapshot did not capture overridden defaults: %+v", job.JobConfig)
 	}
@@ -740,11 +758,11 @@ func TestRBAC(t *testing.T) {
 	e.must(e.do("GET", "/api/v1/healthz", nil, nil, nil), http.StatusOK, "api healthz")
 
 	// Producers see their own jobs, not another producer's jobs.
-	aliceJob := submitJob(e, "upload", "uploads/alice-owned.mp3")
+	aliceJob := submitJob(e, "upload", "mock://uploads/alice-owned.mp3")
 	var malloryJob jobResp
 	e.must(e.do("POST", "/api/v1/jobs", producer2, map[string]any{
 		"source_type":        "upload",
-		"source_uri":         "uploads/mallory-owned.mp3",
+		"source_uri":         "mock://uploads/mallory-owned.mp3",
 		"language":           "en",
 		"ownership_attested": true,
 	}, &malloryJob), http.StatusCreated, "mallory submit")
@@ -774,7 +792,7 @@ func TestOwnershipAttestationRequired(t *testing.T) {
 	var er errResp
 	status := e.do("POST", "/api/v1/jobs", producer, map[string]any{
 		"source_type":        "upload",
-		"source_uri":         "uploads/unattested.mp3",
+		"source_uri":         "mock://uploads/unattested.mp3",
 		"language":           "en",
 		"ownership_attested": false,
 	}, &er)
@@ -793,7 +811,7 @@ func TestOwnershipAttestationRequired(t *testing.T) {
 	// Unsupported upload format is a specific 400 at submission (PRD R1).
 	status = e.do("POST", "/api/v1/jobs", producer, map[string]any{
 		"source_type":        "upload",
-		"source_uri":         "uploads/slides.pdf",
+		"source_uri":         "mock://uploads/slides.pdf",
 		"language":           "en",
 		"ownership_attested": true,
 	}, &er)
@@ -803,58 +821,115 @@ func TestOwnershipAttestationRequired(t *testing.T) {
 	}
 }
 
-func TestUploadMediaFlow(t *testing.T) {
-	e := newEnv(t, nil)
+type uploadResp struct {
+	UploadURI string `json:"upload_uri"`
+	Filename  string `json:"filename"`
+	SizeBytes int64  `json:"size_bytes"`
+	MimeType  string `json:"mime_type"`
+}
+
+// doUpload posts a multipart upload and decodes the JSON response into out.
+func doUpload(e *env, headers map[string]string, filename string, payload []byte, out any) int {
+	e.t.Helper()
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
-	part, err := mw.CreateFormFile("file", "episode-upload.mp3")
+	part, err := mw.CreateFormFile("file", filename)
 	if err != nil {
-		t.Fatal(err)
+		e.t.Fatal(err)
 	}
-	if _, err := part.Write([]byte("fake mp3 payload for mock media provider")); err != nil {
-		t.Fatal(err)
+	if _, err := part.Write(payload); err != nil {
+		e.t.Fatal(err)
 	}
 	if err := mw.Close(); err != nil {
-		t.Fatal(err)
+		e.t.Fatal(err)
 	}
-
 	req, err := http.NewRequest("POST", e.srv.URL+"/api/v1/uploads", &body)
 	if err != nil {
-		t.Fatal(err)
+		e.t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", mw.FormDataContentType())
-	for k, v := range producer {
+	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatal(err)
+		e.t.Fatal(err)
 	}
 	defer res.Body.Close()
-	var upload struct {
-		SourceURI string `json:"source_uri"`
-		Filename  string `json:"filename"`
-		SizeBytes int64  `json:"size_bytes"`
+	if out != nil {
+		if err := json.NewDecoder(res.Body).Decode(out); err != nil {
+			e.t.Fatalf("upload %s: decode response: %v", filename, err)
+		}
 	}
-	if err := json.NewDecoder(res.Body).Decode(&upload); err != nil {
-		t.Fatal(err)
+	return res.StatusCode
+}
+
+// Upload e2e (PRD R1 + frozen contract addition): multipart upload stages an
+// upload:// artifact; submit with the upload_uri runs the pipeline; bad
+// extensions are 400; oversize is 413; raw paths are rejected (audit M5).
+func TestUploadMediaFlow(t *testing.T) {
+	e := newEnv(t, nil)
+
+	payload := []byte("fake mp3 payload for mock media provider")
+	var upload uploadResp
+	e.must(doUpload(e, producer, "episode-upload.mp3", payload, &upload),
+		http.StatusCreated, "upload media")
+	if !strings.HasPrefix(upload.UploadURI, "upload://") {
+		t.Fatalf("upload_uri %q, want upload:// scheme", upload.UploadURI)
 	}
-	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("upload status %d, want 201", res.StatusCode)
-	}
-	if !strings.HasPrefix(upload.SourceURI, "file://") || upload.Filename != "episode-upload.mp3" || upload.SizeBytes == 0 {
+	if upload.Filename != "episode-upload.mp3" || upload.SizeBytes != int64(len(payload)) || upload.MimeType != "audio/mpeg" {
 		t.Fatalf("bad upload response: %+v", upload)
 	}
 
+	// Unauthenticated upload -> 401.
+	var er errResp
+	e.must(doUpload(e, nil, "anon.mp3", payload, &er), http.StatusUnauthorized, "anonymous upload")
+
+	// Unsupported extension -> 400 UNSUPPORTED_FORMAT.
+	status := doUpload(e, producer, "slides.pdf", payload, &er)
+	e.must(status, http.StatusBadRequest, "pdf upload")
+	if er.Error.Code != "UNSUPPORTED_FORMAT" {
+		t.Fatalf("code %s, want UNSUPPORTED_FORMAT", er.Error.Code)
+	}
+
+	// Submit with the upload_uri: pipeline completes.
 	var job jobResp
 	e.must(e.do("POST", "/api/v1/jobs", producer, map[string]any{
 		"source_type":        "upload",
-		"source_uri":         upload.SourceURI,
+		"source_uri":         upload.UploadURI,
 		"language":           "en",
 		"ownership_attested": true,
 	}, &job), http.StatusCreated, "submit uploaded media")
 	if job.Status != "in_review" {
 		t.Fatalf("uploaded job status %s, want in_review", job.Status)
+	}
+
+	// Raw filesystem paths / file:// URIs / dangling upload URIs are rejected.
+	for _, uri := range []string{
+		"uploads/evil.mp3",
+		"file:///etc/passwd.mp3",
+		"upload://" + uuid.NewString(),
+	} {
+		status := e.do("POST", "/api/v1/jobs", producer, map[string]any{
+			"source_type":        "upload",
+			"source_uri":         uri,
+			"language":           "en",
+			"ownership_attested": true,
+		}, &er)
+		e.must(status, http.StatusBadRequest, "submit "+uri)
+		if er.Error.Code != "INVALID_SOURCE_URI" {
+			t.Fatalf("submit %s: code %s, want INVALID_SOURCE_URI", uri, er.Error.Code)
+		}
+	}
+}
+
+func TestUploadOversizeRejected(t *testing.T) {
+	e := newEnvWith(t, nil, func(o *app.Options) { o.MaxUploadBytes = 64 })
+	var er errResp
+	status := doUpload(e, producer, "big.mp3", bytes.Repeat([]byte("x"), 4096), &er)
+	e.must(status, http.StatusRequestEntityTooLarge, "oversize upload")
+	if er.Error.Code != "REQUEST_TOO_LARGE" {
+		t.Fatalf("code %s, want REQUEST_TOO_LARGE", er.Error.Code)
 	}
 }
 
@@ -862,7 +937,7 @@ func TestUploadMediaFlow(t *testing.T) {
 // re-attests and restarts from queued (PRD 14.13, 19).
 func TestReplaceMediaFlow(t *testing.T) {
 	e := newEnv(t, nil)
-	job := submitJob(e, "upload", "uploads/noaudio-clip.mp4")
+	job := submitJob(e, "upload", "mock://uploads/noaudio-clip.mp4")
 	if job.Status != "needs_user_action" || job.ActionRequired != "replace_media" {
 		t.Fatalf("want needs_user_action/replace_media, got %s/%s", job.Status, job.ActionRequired)
 	}
@@ -873,7 +948,7 @@ func TestReplaceMediaFlow(t *testing.T) {
 	// Replacement without re-attestation is rejected.
 	var er errResp
 	status := e.do("POST", "/api/v1/jobs/"+job.JobID+"/replace-media", producer, map[string]any{
-		"source_type": "upload", "source_uri": "uploads/fixed.mp3", "ownership_attested": false,
+		"source_type": "upload", "source_uri": "mock://uploads/fixed.mp3", "ownership_attested": false,
 	}, &er)
 	e.must(status, http.StatusBadRequest, "replace without attestation")
 	if er.Error.Code != "OWNERSHIP_ATTESTATION_MISSING" {
@@ -883,7 +958,7 @@ func TestReplaceMediaFlow(t *testing.T) {
 	// Valid replacement restarts the pipeline and completes.
 	var after jobResp
 	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/replace-media", producer, map[string]any{
-		"source_type": "upload", "source_uri": "uploads/fixed.mp3", "ownership_attested": true,
+		"source_type": "upload", "source_uri": "mock://uploads/fixed.mp3", "ownership_attested": true,
 	}, &after), http.StatusOK, "replace media")
 	if after.Status != "in_review" {
 		t.Fatalf("after replacement status %s, want in_review", after.Status)
@@ -894,7 +969,7 @@ func TestReplaceMediaFlow(t *testing.T) {
 
 	// Replacement on a job that is not in needs_user_action -> 409.
 	status = e.do("POST", "/api/v1/jobs/"+job.JobID+"/replace-media", producer, map[string]any{
-		"source_type": "upload", "source_uri": "uploads/again.mp3", "ownership_attested": true,
+		"source_type": "upload", "source_uri": "mock://uploads/again.mp3", "ownership_attested": true,
 	}, &er)
 	e.must(status, http.StatusConflict, "replace in wrong state")
 }
@@ -904,7 +979,7 @@ func TestReplaceMediaFlow(t *testing.T) {
 func TestSTTFailureMatrix(t *testing.T) {
 	t.Run("quota returns job to queued", func(t *testing.T) {
 		e := newEnv(t, nil)
-		job := submitJob(e, "upload", "uploads/stt-quota-show.mp3")
+		job := submitJob(e, "upload", "mock://uploads/stt-quota-show.mp3")
 		if job.Status != "queued" {
 			t.Fatalf("status %s, want queued after quota exhaustion", job.Status)
 		}
@@ -914,7 +989,7 @@ func TestSTTFailureMatrix(t *testing.T) {
 	})
 	t.Run("timeout retried once then succeeds", func(t *testing.T) {
 		e := newEnv(t, nil)
-		job := submitJob(e, "upload", "uploads/stt-timeout-once-show.mp3")
+		job := submitJob(e, "upload", "mock://uploads/stt-timeout-once-show.mp3")
 		if job.Status != "in_review" {
 			t.Fatalf("status %s, want in_review after retry", job.Status)
 		}
@@ -1026,5 +1101,338 @@ func TestSummaryLifecycle(t *testing.T) {
 		map[string]any{"text": "Edited summary text."}, &edited), http.StatusOK, "edit summary")
 	if edited.Text != "Edited summary text." {
 		t.Fatalf("edit not applied: %q", edited.Text)
+	}
+}
+
+// --- P0 concurrency / auth / upload / audio fixes ------------------------------
+
+// get performs a raw GET (optional headers, optional Range) and returns the
+// response with its body fully read.
+func (e *env) get(path string, headers map[string]string, rangeHeader string) (*http.Response, []byte) {
+	e.t.Helper()
+	req, err := http.NewRequest("GET", e.srv.URL+path, nil)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	if rangeHeader != "" {
+		req.Header.Set("Range", rangeHeader)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	return res, body
+}
+
+// waitForJob polls until the job reaches one of the wanted statuses.
+func waitForJob(e *env, jobID string, timeout time.Duration, want ...string) jobResp {
+	e.t.Helper()
+	deadline := time.Now().Add(timeout)
+	var job jobResp
+	for time.Now().Before(deadline) {
+		e.must(e.do("GET", "/api/v1/jobs/"+jobID, reviewer, nil, &job), http.StatusOK, "poll job")
+		for _, w := range want {
+			if job.Status == w {
+				return job
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	e.t.Fatalf("job %s did not reach %v within %s (status %s)", jobID, want, timeout, job.Status)
+	return job
+}
+
+// Async-mode e2e (audit C1/C2): a real worker pool (WORKERS=2) plus the
+// requeue scanner process 5 jobs concurrently; CAS claiming guarantees each
+// job ends in_review with EXACTLY one job_config snapshot and one raw version
+// despite scanner/worker overlap. Run under -race.
+func TestAsyncPipelineConcurrency(t *testing.T) {
+	e := newEnvWith(t, nil, func(o *app.Options) { o.Sync = false })
+	e.app.Orch.Start(t.Context(), 2, 20*time.Millisecond)
+
+	const n = 5
+	ids := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		job := submitJob(e, "upload", fmt.Sprintf("mock://uploads/async-%d.mp3", i))
+		ids = append(ids, job.JobID)
+	}
+	for _, id := range ids {
+		job := waitForJob(e, id, 10*time.Second, "in_review")
+		if job.JobConfig == nil {
+			t.Fatalf("job %s: job_config missing", id)
+		}
+		raws, cleans := 0, 0
+		for _, v := range listVersions(e, id) {
+			switch v.VersionType {
+			case "raw":
+				raws++
+			case "clean":
+				cleans++
+			}
+		}
+		if raws != 1 || cleans != 1 {
+			t.Fatalf("job %s: want exactly 1 raw + 1 clean version, got raw=%d clean=%d", id, raws, cleans)
+		}
+		var auditOut struct {
+			Events []struct {
+				EventType string `json:"event_type"`
+			} `json:"events"`
+		}
+		e.must(e.do("GET", "/api/v1/jobs/"+id+"/audit", reviewer, nil, &auditOut), http.StatusOK, "audit")
+		snapshots := 0
+		for _, ev := range auditOut.Events {
+			if ev.EventType == "job_config.snapshot_created" {
+				snapshots++
+			}
+		}
+		if snapshots != 1 {
+			t.Fatalf("job %s: want exactly 1 job_config snapshot, got %d", id, snapshots)
+		}
+	}
+}
+
+// Concurrent double-approve (audit H1): two goroutines race; exactly one gets
+// 201, the other 409 STATUS_CONFLICT, and exactly one approval row exists
+// with no superseded pointer.
+func TestConcurrentApprove(t *testing.T) {
+	e := newEnv(t, nil)
+	job := submitJob(e, "upload", fmt.Sprintf("mock://uploads/%s.mp3", uuid.NewString()))
+	var reviewed versionResp
+	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/review", reviewer, map[string]any{}, &reviewed),
+		http.StatusCreated, "create review version")
+
+	approve := func() int {
+		raw, _ := json.Marshal(map[string]any{
+			"reviewed_transcript_version_id": reviewed.TranscriptVersionID,
+		})
+		req, err := http.NewRequest("POST", e.srv.URL+"/api/v1/jobs/"+job.JobID+"/approve", bytes.NewReader(raw))
+		if err != nil {
+			return -1
+		}
+		req.Header.Set("Content-Type", "application/json")
+		for k, v := range reviewer {
+			req.Header.Set(k, v)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return -1
+		}
+		defer res.Body.Close()
+		_, _ = io.Copy(io.Discard, res.Body)
+		return res.StatusCode
+	}
+	results := make(chan int, 2)
+	for i := 0; i < 2; i++ {
+		go func() { results <- approve() }()
+	}
+	got := []int{<-results, <-results}
+	sort.Ints(got)
+	if got[0] != http.StatusCreated || got[1] != http.StatusConflict {
+		t.Fatalf("concurrent approve statuses %v, want [201 409]", got)
+	}
+
+	approvals, err := e.app.Tools.Stores.Approvals.ListApprovalsByJob(t.Context(), uuid.MustParse(job.JobID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(approvals) != 1 {
+		t.Fatalf("want exactly 1 approval row, got %d", len(approvals))
+	}
+	if approvals[0].SupersededByApprovalID != nil {
+		t.Fatal("the single approval must not carry a superseded pointer")
+	}
+}
+
+// slowSTT injects latency before delegating to the mock provider so a user
+// cancel can land while the worker sits inside the provider call.
+type slowSTT struct {
+	inner stt.Provider
+	delay time.Duration
+}
+
+func (s slowSTT) Transcribe(ctx context.Context, uri, language string, diarize bool) (*stt.Result, error) {
+	time.Sleep(s.delay)
+	return s.inner.Transcribe(ctx, uri, language, diarize)
+}
+
+// Cancel-vs-worker (audit C1): cancel lands mid-pipeline while the worker is
+// inside a slow provider call; the worker's next CAS fails and the job ends
+// cancelled — never overwritten by the pipeline.
+func TestCancelVsWorkerRace(t *testing.T) {
+	e := newEnvWith(t, nil, func(o *app.Options) {
+		o.Sync = false
+		o.STT = slowSTT{inner: sttmock.New(), delay: 500 * time.Millisecond}
+	})
+	e.app.Orch.Start(t.Context(), 2, 20*time.Millisecond)
+
+	job := submitJob(e, "upload", "mock://uploads/slow-cancel.mp3")
+	waitForJob(e, job.JobID, 10*time.Second, "transcribing")
+
+	var cancelled jobResp
+	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/cancel", producer,
+		map[string]any{"reason": "changed my mind"}, &cancelled), http.StatusOK, "cancel mid-pipeline")
+	if cancelled.Status != "cancelled" {
+		t.Fatalf("status %s, want cancelled", cancelled.Status)
+	}
+
+	// Give the worker time to finish the slow provider call and attempt its
+	// (now conflicting) CAS transitions; the job must stay cancelled.
+	time.Sleep(time.Second)
+	final := waitForJob(e, job.JobID, time.Second, "cancelled")
+	if final.Status != "cancelled" {
+		t.Fatalf("final status %s, want cancelled (worker must not overwrite)", final.Status)
+	}
+}
+
+// Signed links (audit H2): mint via POST /api/v1/signed-links, fetch without
+// auth; tampered/expired tokens are 401 TOKEN_INVALID; downloads without
+// token or auth are 401.
+func TestSignedLinks(t *testing.T) {
+	secret := []byte("test-signing-secret")
+	e := newEnvWith(t, nil, func(o *app.Options) { o.SigningSecret = secret })
+	job, _, _ := runToApproved(e)
+
+	var exports struct {
+		Exports []exportResp `json:"exports"`
+	}
+	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer,
+		map[string]any{"formats": []string{"txt"}}, &exports), http.StatusCreated, "create export")
+	exportID := exports.Exports[0].ExportID
+
+	// Mint a signed export link (any authenticated role).
+	var link struct {
+		URL       string `json:"url"`
+		ExpiresAt string `json:"expires_at"`
+	}
+	e.must(e.do("POST", "/api/v1/signed-links", producer,
+		map[string]any{"kind": "export", "id": exportID}, &link), http.StatusCreated, "mint signed link")
+	if !strings.Contains(link.URL, "/api/v1/exports/"+exportID+"/download?token=") {
+		t.Fatalf("signed url %q has wrong shape", link.URL)
+	}
+	if exp, err := time.Parse(time.RFC3339, link.ExpiresAt); err != nil || time.Until(exp) > 16*time.Minute || time.Until(exp) < 14*time.Minute {
+		t.Fatalf("expires_at %q not ~15min out (err=%v)", link.ExpiresAt, err)
+	}
+
+	// Fetch with the token, no auth headers -> 200.
+	res, body := e.get(link.URL, nil, "")
+	if res.StatusCode != http.StatusOK || len(body) == 0 {
+		t.Fatalf("signed fetch status %d, body %d bytes", res.StatusCode, len(body))
+	}
+
+	// Auth headers without token -> 200 (token OR auth).
+	res, _ = e.get("/api/v1/exports/"+exportID+"/download", producer, "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("header-auth download status %d, want 200", res.StatusCode)
+	}
+
+	// No token, no auth -> 401.
+	res, _ = e.get("/api/v1/exports/"+exportID+"/download", nil, "")
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("open download status %d, want 401", res.StatusCode)
+	}
+
+	// Tampered token -> 401 TOKEN_INVALID.
+	tampered := link.URL[:len(link.URL)-1]
+	if strings.HasSuffix(link.URL, "0") {
+		tampered += "1"
+	} else {
+		tampered += "0"
+	}
+	res, body = e.get(tampered, nil, "")
+	var er errResp
+	_ = json.Unmarshal(body, &er)
+	if res.StatusCode != http.StatusUnauthorized || er.Error.Code != "TOKEN_INVALID" {
+		t.Fatalf("tampered token: status %d code %s, want 401 TOKEN_INVALID", res.StatusCode, er.Error.Code)
+	}
+
+	// Expired token (signed with the real secret, expiry in the past) -> 401.
+	exp := time.Now().Add(-time.Minute).Unix()
+	mac := hmac.New(sha256.New, secret)
+	fmt.Fprintf(mac, "export|%s|%d", exportID, exp)
+	expired := strconv.FormatInt(exp, 10) + "." + hex.EncodeToString(mac.Sum(nil))
+	res, body = e.get("/api/v1/exports/"+exportID+"/download?token="+expired, nil, "")
+	_ = json.Unmarshal(body, &er)
+	if res.StatusCode != http.StatusUnauthorized || er.Error.Code != "TOKEN_INVALID" {
+		t.Fatalf("expired token: status %d code %s, want 401 TOKEN_INVALID", res.StatusCode, er.Error.Code)
+	}
+}
+
+// Audio endpoint (frozen contract; enables PRD R7 playback): streams the
+// extracted WAV with Range support; caption-reuse jobs answer 404
+// AUDIO_NOT_AVAILABLE; token or auth is required.
+func TestAudioEndpoint(t *testing.T) {
+	e := newEnv(t, nil)
+	job := submitJob(e, "upload", "mock://uploads/playback.mp3")
+	if job.Status != "in_review" {
+		t.Fatalf("job status %s, want in_review", job.Status)
+	}
+	audioPath := "/api/v1/jobs/" + job.JobID + "/audio"
+
+	// No token, no auth -> 401.
+	res, _ := e.get(audioPath, nil, "")
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("open audio status %d, want 401", res.StatusCode)
+	}
+
+	// Auth headers -> 200 with a real playable WAV.
+	res, body := e.get(audioPath, producer, "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("audio status %d, want 200", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "audio/wav" {
+		t.Fatalf("audio content-type %q, want audio/wav", ct)
+	}
+	if len(body) < 44 || string(body[:4]) != "RIFF" || string(body[8:12]) != "WAVE" {
+		t.Fatalf("audio body is not a WAV (%d bytes)", len(body))
+	}
+
+	// Range request honored -> 206 with the requested slice.
+	res, part := e.get(audioPath, producer, "bytes=0-99")
+	if res.StatusCode != http.StatusPartialContent {
+		t.Fatalf("range status %d, want 206", res.StatusCode)
+	}
+	if len(part) != 100 || res.Header.Get("Content-Range") == "" {
+		t.Fatalf("range response: %d bytes, Content-Range %q", len(part), res.Header.Get("Content-Range"))
+	}
+
+	// Signed audio link works without headers.
+	var link struct {
+		URL string `json:"url"`
+	}
+	e.must(e.do("POST", "/api/v1/signed-links", producer,
+		map[string]any{"kind": "audio", "id": job.JobID}, &link), http.StatusCreated, "mint audio link")
+	res, _ = e.get(link.URL, nil, "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("signed audio fetch status %d, want 200", res.StatusCode)
+	}
+
+	// Caption-reuse job: no audio artifact exists -> 404 AUDIO_NOT_AVAILABLE.
+	capJob := submitJob(e, "youtube", "https://www.youtube.com/watch?v=audio404&captions=1")
+	var after jobResp
+	e.must(e.do("POST", "/api/v1/jobs/"+capJob.JobID+"/caption-decision", producer,
+		map[string]any{"reuse_captions": true}, &after), http.StatusOK, "caption decision")
+	res, body = e.get("/api/v1/jobs/"+capJob.JobID+"/audio", producer, "")
+	var er errResp
+	_ = json.Unmarshal(body, &er)
+	if res.StatusCode != http.StatusNotFound || er.Error.Code != "AUDIO_NOT_AVAILABLE" {
+		t.Fatalf("caption-reuse audio: status %d code %s, want 404 AUDIO_NOT_AVAILABLE", res.StatusCode, er.Error.Code)
+	}
+
+	// Minting an audio link for a caption-reuse job also answers 404
+	// AUDIO_NOT_AVAILABLE (mint-time check, so the UI can show its
+	// "no audio — caption-derived" note instead of a broken player).
+	var mintErr errResp
+	status := e.do("POST", "/api/v1/signed-links", producer,
+		map[string]any{"kind": "audio", "id": capJob.JobID}, &mintErr)
+	if status != http.StatusNotFound || mintErr.Error.Code != "AUDIO_NOT_AVAILABLE" {
+		t.Fatalf("caption-reuse audio link mint: status %d code %s, want 404 AUDIO_NOT_AVAILABLE", status, mintErr.Error.Code)
 	}
 }

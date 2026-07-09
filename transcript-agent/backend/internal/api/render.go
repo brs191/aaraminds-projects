@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aaraminds/transcript-agent/internal/domain"
-	"github.com/google/uuid"
 )
 
 // errorBody is the frozen error envelope: {"error":{"code","message"}}.
@@ -31,19 +33,22 @@ func httpStatusFor(code string) int {
 		domain.CodeUnsupportedSourceType, domain.CodeInvalidSourceURI,
 		domain.CodeUnsupportedFormat, domain.CodeLanguageUnsupported:
 		return http.StatusBadRequest
-	case domain.CodeUnauthenticated:
+	case domain.CodeUnauthenticated, domain.CodeTokenInvalid:
 		return http.StatusUnauthorized
 	case domain.CodeUserNotAuthorized:
 		return http.StatusForbidden
 	case domain.CodeJobNotFound, domain.CodeTranscriptNotFound, domain.CodeSegmentNotFound,
 		domain.CodeSummaryNotFound, domain.CodeExportNotFound, domain.CodeQualityReportNotFound,
-		domain.CodeMediaNotFound:
+		domain.CodeMediaNotFound, domain.CodeAudioNotAvailable:
 		return http.StatusNotFound
 	case domain.CodeTranscriptVersionImmutable, domain.CodeTranscriptVersionNotReviewable,
 		domain.CodeApprovedTranscriptRequired, domain.CodeJobNotInActionableState,
 		domain.CodeJobAlreadyTerminal, domain.CodeInvalidStateTransition,
-		domain.CodeDisabledInMVP, domain.CodeOpenCriticalIssues:
+		domain.CodeDisabledInMVP, domain.CodeOpenCriticalIssues,
+		domain.CodeStatusConflict:
 		return http.StatusConflict
+	case domain.CodeRequestTooLarge:
+		return http.StatusRequestEntityTooLarge
 	case domain.CodeAuditWriteFailed:
 		return http.StatusInternalServerError
 	default:
@@ -243,27 +248,57 @@ type exportJSON struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
-func (s *Server) exportDownloadToken(exportID uuid.UUID) string {
-	mac := hmac.New(sha256.New, s.DownloadTokenSecret)
-	_, _ = mac.Write([]byte(exportID.String()))
-	return hex.EncodeToString(mac.Sum(nil))
+// Signed-link kinds (frozen contract for POST /api/v1/signed-links).
+const (
+	signedKindExport = "export"
+	signedKindAudio  = "audio"
+)
+
+// signedLinkTTL is the frozen 15-minute validity window for signed links.
+const signedLinkTTL = 15 * time.Minute
+
+// signToken builds an expiring token: HMAC-SHA256 over kind|id|expiry-unix
+// keyed with SIGNING_SECRET, encoded as "<expiry-unix>.<hex mac>".
+func (s *Server) signToken(kind, id string, expiry int64) string {
+	mac := hmac.New(sha256.New, s.SigningSecret)
+	fmt.Fprintf(mac, "%s|%s|%d", kind, id, expiry)
+	return strconv.FormatInt(expiry, 10) + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-func (s *Server) validExportDownloadToken(exportID uuid.UUID, token string) bool {
-	if token == "" {
+// validToken verifies an expiring signed token with a constant-time compare.
+func (s *Server) validToken(kind, id, token string) bool {
+	expStr, _, ok := strings.Cut(token, ".")
+	if !ok {
 		return false
 	}
-	expected := s.exportDownloadToken(exportID)
+	expiry, err := strconv.ParseInt(expStr, 10, 64)
+	if err != nil || time.Now().Unix() > expiry {
+		return false
+	}
+	expected := s.signToken(kind, id, expiry)
 	return hmac.Equal([]byte(token), []byte(expected))
+}
+
+// mintSignedURL builds the relative signed URL plus its expiry for a kind/id.
+func (s *Server) mintSignedURL(kind, id string) (string, time.Time) {
+	expiresAt := time.Now().Add(signedLinkTTL).UTC().Truncate(time.Second)
+	token := s.signToken(kind, id, expiresAt.Unix())
+	switch kind {
+	case signedKindAudio:
+		return "/api/v1/jobs/" + id + "/audio?token=" + token, expiresAt
+	default:
+		return "/api/v1/exports/" + id + "/download?token=" + token, expiresAt
+	}
 }
 
 func (s *Server) exportView(e *domain.ExportRecord) exportJSON {
 	id := e.ExportID.String()
+	url, _ := s.mintSignedURL(signedKindExport, id)
 	return exportJSON{
 		ExportID:         id,
 		Format:           e.Format,
 		ValidationStatus: e.ValidationStatus,
-		DownloadURL:      "/api/v1/exports/" + id + "/download?token=" + s.exportDownloadToken(e.ExportID),
+		DownloadURL:      url,
 		CreatedAt:        e.CreatedAt,
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -29,7 +30,7 @@ func New(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
 func (s *Store) Stores() store.Stores {
 	return store.Stores{
 		Jobs: s, Transcripts: s, Summaries: s, Quality: s,
-		Approvals: s, Audit: s, Artifacts: s,
+		Approvals: s, Audit: s, Artifacts: s, Review: s,
 	}
 }
 
@@ -102,14 +103,32 @@ func (s *Store) GetJob(ctx context.Context, id uuid.UUID) (*domain.Job, error) {
 	return j, err
 }
 
+// updateJobSQL deliberately never touches created_at (audit L2): the insert
+// owns it, updates must not rewrite it.
+const updateJobSQL = `
+	UPDATE jobs SET source_type=$2, source_uri=$3, status=$4, submitted_by=$5,
+		ownership_attested=$6, language=$7, job_config_id=$8, duration_seconds=$9,
+		action_required=$10, last_error_code=$11, last_error_message=$12,
+		captions_available=$13, caption_track_id=$14, caption_reuse=$15,
+		cancel_reason=$16, updated_at=$17
+	WHERE job_id=$1`
+
+func updateJobArgs(j *domain.Job) []any {
+	errCode, errMsg := "", ""
+	if j.LastError != nil {
+		errCode, errMsg = j.LastError.Code, j.LastError.Message
+	}
+	return []any{
+		j.JobID, j.SourceType, j.SourceURI, string(j.Status), j.SubmittedBy,
+		j.OwnershipAttested, j.Language, j.JobConfigID, j.DurationSeconds,
+		j.ActionRequired, errCode, errMsg,
+		j.CaptionsAvailable, j.CaptionTrackID, j.CaptionReuse, j.CancelReason,
+		j.UpdatedAt,
+	}
+}
+
 func (s *Store) UpdateJob(ctx context.Context, j *domain.Job) error {
-	tag, err := s.pool.Exec(ctx, `
-		UPDATE jobs SET source_type=$2, source_uri=$3, status=$4, submitted_by=$5,
-			ownership_attested=$6, language=$7, job_config_id=$8, duration_seconds=$9,
-			action_required=$10, last_error_code=$11, last_error_message=$12,
-			captions_available=$13, caption_track_id=$14, caption_reuse=$15,
-			cancel_reason=$16, created_at=$17, updated_at=$18
-		WHERE job_id=$1`, jobArgs(j)...)
+	tag, err := s.pool.Exec(ctx, updateJobSQL, updateJobArgs(j)...)
 	if err != nil {
 		return err
 	}
@@ -117,6 +136,39 @@ func (s *Store) UpdateJob(ctx context.Context, j *domain.Job) error {
 		return notFound(domain.CodeJobNotFound, "job %s not found", j.JobID)
 	}
 	return nil
+}
+
+// TransitionJob implements the compare-and-swap status primitive with a
+// SELECT ... FOR UPDATE inside one transaction: verify current status == from,
+// apply, persist — atomically. Losing the race returns
+// domain.ErrStatusConflict.
+func (s *Store) TransitionJob(ctx context.Context, jobID uuid.UUID, from domain.Status, apply func(*domain.Job) error) (*domain.Job, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	j, err := scanJob(tx.QueryRow(ctx,
+		`SELECT `+jobColumns+` FROM jobs WHERE job_id = $1 FOR UPDATE`, jobID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, notFound(domain.CodeJobNotFound, "job %s not found", jobID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if j.Status != from {
+		return nil, domain.ErrStatusConflict
+	}
+	if err := apply(j); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, updateJobSQL, updateJobArgs(j)...); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return j, nil
 }
 
 func (s *Store) listJobs(ctx context.Context, where string, args ...any) ([]*domain.Job, error) {
@@ -195,12 +247,8 @@ func (s *Store) GetJobConfig(ctx context.Context, id uuid.UUID) (*domain.JobConf
 
 // --- TranscriptStore ---------------------------------------------------------
 
-func (s *Store) CreateVersion(ctx context.Context, v *domain.TranscriptVersion, segments []*domain.Segment) error {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
+// insertVersionTx inserts a transcript version plus its segments inside tx.
+func insertVersionTx(ctx context.Context, tx pgx.Tx, v *domain.TranscriptVersion, segments []*domain.Segment) error {
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO transcript_versions (transcript_version_id, job_id, version_type,
 			source_version_id, created_by, is_immutable, created_at)
@@ -222,6 +270,18 @@ func (s *Store) CreateVersion(ctx context.Context, v *domain.TranscriptVersion, 
 			sg.SpeakerLabel, sg.Text, sg.Confidence, flags); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (s *Store) CreateVersion(ctx context.Context, v *domain.TranscriptVersion, segments []*domain.Segment) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := insertVersionTx(ctx, tx, v, segments); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }
@@ -568,6 +628,108 @@ func (s *Store) UpdateApproval(ctx context.Context, a *domain.Approval) error {
 	return nil
 }
 
+// --- ReviewTxStore (atomic approve / reopen in one pgx.Tx) -----------------------
+
+func insertApprovalTx(ctx context.Context, tx pgx.Tx, a *domain.Approval) error {
+	var note *string
+	if a.ApprovalNote != "" {
+		note = &a.ApprovalNote
+	}
+	_, err := tx.Exec(ctx, `
+		INSERT INTO approvals (`+approvalColumns+`)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		a.ApprovalID, a.JobID, a.ApprovedTranscriptVersionID,
+		a.ApprovedBy, a.ApprovedAt, note, a.SupersededByApprovalID)
+	return err
+}
+
+func (s *Store) ApproveJob(ctx context.Context, p store.ApproveJobParams) (*domain.Job, []uuid.UUID, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	j, err := scanJob(tx.QueryRow(ctx,
+		`SELECT `+jobColumns+` FROM jobs WHERE job_id = $1 FOR UPDATE`, p.JobID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, notFound(domain.CodeJobNotFound, "job %s not found", p.JobID)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if j.Status != domain.StatusInReview {
+		return nil, nil, domain.ErrStatusConflict
+	}
+	if err := insertVersionTx(ctx, tx, p.ApprovedVersion, p.Segments); err != nil {
+		return nil, nil, err
+	}
+	if err := insertApprovalTx(ctx, tx, p.Approval); err != nil {
+		return nil, nil, err
+	}
+	rows, err := tx.Query(ctx, `
+		UPDATE approvals SET superseded_by_approval_id = $1
+		WHERE job_id = $2 AND superseded_by_approval_id IS NULL AND approval_id <> $1
+		RETURNING approval_id`, p.Approval.ApprovalID, p.JobID)
+	if err != nil {
+		return nil, nil, err
+	}
+	var superseded []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, nil, err
+		}
+		superseded = append(superseded, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	j.Status = domain.StatusApproved
+	j.LastError = nil
+	j.ActionRequired = ""
+	j.UpdatedAt = time.Now().UTC()
+	if _, err := tx.Exec(ctx, updateJobSQL, updateJobArgs(j)...); err != nil {
+		return nil, nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, nil, err
+	}
+	return j, superseded, nil
+}
+
+func (s *Store) ReopenJob(ctx context.Context, p store.ReopenJobParams) (*domain.Job, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	j, err := scanJob(tx.QueryRow(ctx,
+		`SELECT `+jobColumns+` FROM jobs WHERE job_id = $1 FOR UPDATE`, p.JobID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, notFound(domain.CodeJobNotFound, "job %s not found", p.JobID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if j.Status != domain.StatusApproved && j.Status != domain.StatusExported {
+		return nil, domain.ErrStatusConflict
+	}
+	if err := insertVersionTx(ctx, tx, p.ReviewedVersion, p.Segments); err != nil {
+		return nil, err
+	}
+	j.Status = domain.StatusInReview
+	j.UpdatedAt = time.Now().UTC()
+	if _, err := tx.Exec(ctx, updateJobSQL, updateJobArgs(j)...); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return j, nil
+}
+
 // --- AuditStore (append-only: no update/delete methods exist) --------------------
 
 func (s *Store) Append(ctx context.Context, e *domain.AuditEvent) error {
@@ -618,19 +780,51 @@ func (s *Store) ListByJob(ctx context.Context, jobID uuid.UUID) ([]*domain.Audit
 // --- ArtifactStore -----------------------------------------------------------------
 
 func (s *Store) CreateArtifact(ctx context.Context, a *domain.MediaArtifact) error {
+	// Staged uploads exist before any job; store NULL for the zero job id
+	// (migration 0007 made media_artifacts.job_id nullable).
+	var jobID *uuid.UUID
+	if a.JobID != uuid.Nil {
+		jobID = &a.JobID
+	}
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO media_artifacts (artifact_id, job_id, artifact_type, uri,
 			mime_type, size_bytes, superseded, retention_until, created_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-		a.ArtifactID, a.JobID, a.ArtifactType, a.URI,
+		a.ArtifactID, jobID, a.ArtifactType, a.URI,
 		a.MimeType, a.SizeBytes, a.Superseded, a.RetentionUntil, a.CreatedAt)
 	return err
 }
 
+func scanArtifact(row pgx.Row) (*domain.MediaArtifact, error) {
+	var (
+		a     domain.MediaArtifact
+		jobID *uuid.UUID
+	)
+	err := row.Scan(&a.ArtifactID, &jobID, &a.ArtifactType, &a.URI,
+		&a.MimeType, &a.SizeBytes, &a.Superseded, &a.RetentionUntil, &a.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	if jobID != nil {
+		a.JobID = *jobID
+	}
+	return &a, nil
+}
+
+const artifactColumns = `artifact_id, job_id, artifact_type, uri, mime_type,
+	size_bytes, superseded, retention_until, created_at`
+
+func (s *Store) GetArtifact(ctx context.Context, id uuid.UUID) (*domain.MediaArtifact, error) {
+	a, err := scanArtifact(s.pool.QueryRow(ctx,
+		`SELECT `+artifactColumns+` FROM media_artifacts WHERE artifact_id = $1`, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, notFound(domain.CodeMediaNotFound, "artifact %s not found", id)
+	}
+	return a, err
+}
+
 func (s *Store) ListArtifactsByJob(ctx context.Context, jobID uuid.UUID, artifactType string) ([]*domain.MediaArtifact, error) {
-	q := `SELECT artifact_id, job_id, artifact_type, uri, mime_type, size_bytes,
-			superseded, retention_until, created_at
-		FROM media_artifacts WHERE job_id = $1`
+	q := `SELECT ` + artifactColumns + ` FROM media_artifacts WHERE job_id = $1`
 	args := []any{jobID}
 	if artifactType != "" {
 		q += ` AND artifact_type = $2`
@@ -644,12 +838,11 @@ func (s *Store) ListArtifactsByJob(ctx context.Context, jobID uuid.UUID, artifac
 	defer rows.Close()
 	var out []*domain.MediaArtifact
 	for rows.Next() {
-		var a domain.MediaArtifact
-		if err := rows.Scan(&a.ArtifactID, &a.JobID, &a.ArtifactType, &a.URI,
-			&a.MimeType, &a.SizeBytes, &a.Superseded, &a.RetentionUntil, &a.CreatedAt); err != nil {
+		a, err := scanArtifact(rows)
+		if err != nil {
 			return nil, err
 		}
-		out = append(out, &a)
+		out = append(out, a)
 	}
 	return out, rows.Err()
 }
@@ -711,6 +904,7 @@ func (s *Store) ListExportsByJob(ctx context.Context, jobID uuid.UUID) ([]*domai
 }
 
 var _ store.JobStore = (*Store)(nil)
+var _ store.ReviewTxStore = (*Store)(nil)
 var _ store.TranscriptStore = (*Store)(nil)
 var _ store.SummaryStore = (*Store)(nil)
 var _ store.QualityStore = (*Store)(nil)

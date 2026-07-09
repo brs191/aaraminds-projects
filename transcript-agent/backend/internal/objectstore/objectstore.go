@@ -7,9 +7,11 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aaraminds/transcript-agent/internal/domain"
 )
@@ -18,8 +20,14 @@ import (
 type ObjectStore interface {
 	// Put stores data under key and returns a durable URI.
 	Put(ctx context.Context, key string, data []byte) (string, error)
-	// Get retrieves the bytes for a URI previously returned by Put.
+	// PutStream stores everything read from r under key without buffering the
+	// full payload in memory. Returns the durable URI and the byte count.
+	PutStream(ctx context.Context, key string, r io.Reader) (string, int64, error)
+	// Get retrieves the bytes for a URI previously returned by Put/PutStream.
 	Get(ctx context.Context, uri string) ([]byte, error)
+	// Open returns a seekable reader for a stored URI (Range-capable
+	// streaming), plus the artifact's size and modification time.
+	Open(ctx context.Context, uri string) (io.ReadSeekCloser, int64, time.Time, error)
 }
 
 const localScheme = "local://"
@@ -60,11 +68,43 @@ func (l *Local) Put(_ context.Context, key string, data []byte) (string, error) 
 	return localScheme + key, nil
 }
 
-func (l *Local) Get(_ context.Context, uri string) ([]byte, error) {
-	if !strings.HasPrefix(uri, localScheme) {
-		return nil, domain.E(domain.CodeValidationError, "unsupported artifact uri scheme: %s", uri)
+func (l *Local) PutStream(_ context.Context, key string, r io.Reader) (string, int64, error) {
+	p, err := l.path(key)
+	if err != nil {
+		return "", 0, err
 	}
-	p, err := l.path(strings.TrimPrefix(uri, localScheme))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return "", 0, domain.E(domain.CodeArtifactWriteFailed, "mkdir: %v", err)
+	}
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return "", 0, domain.E(domain.CodeArtifactWriteFailed, "create %s: %v", key, err)
+	}
+	n, copyErr := io.Copy(f, r)
+	closeErr := f.Close()
+	if copyErr != nil {
+		_ = os.Remove(p)
+		return "", 0, copyErr // preserve the reader error (e.g. MaxBytesError)
+	}
+	if closeErr != nil {
+		_ = os.Remove(p)
+		return "", 0, domain.E(domain.CodeArtifactWriteFailed, "close %s: %v", key, closeErr)
+	}
+	return localScheme + key, n, nil
+}
+
+// PathFor resolves a local:// URI to its absolute filesystem path. Used by
+// the ffmpeg media processor so media resolution goes through the object
+// store only (never user-supplied raw paths).
+func (l *Local) PathFor(uri string) (string, error) {
+	if !strings.HasPrefix(uri, localScheme) {
+		return "", domain.E(domain.CodeValidationError, "unsupported artifact uri scheme: %s", uri)
+	}
+	return l.path(strings.TrimPrefix(uri, localScheme))
+}
+
+func (l *Local) Get(_ context.Context, uri string) ([]byte, error) {
+	p, err := l.PathFor(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +113,23 @@ func (l *Local) Get(_ context.Context, uri string) ([]byte, error) {
 		return nil, domain.E(domain.CodeMediaNotFound, "artifact not found: %s", uri)
 	}
 	return data, nil
+}
+
+func (l *Local) Open(_ context.Context, uri string) (io.ReadSeekCloser, int64, time.Time, error) {
+	p, err := l.PathFor(uri)
+	if err != nil {
+		return nil, 0, time.Time{}, err
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, 0, time.Time{}, domain.E(domain.CodeMediaNotFound, "artifact not found: %s", uri)
+	}
+	st, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, 0, time.Time{}, domain.E(domain.CodeMediaNotFound, "artifact not found: %s", uri)
+	}
+	return f, st.Size(), st.ModTime(), nil
 }
 
 var _ ObjectStore = (*Local)(nil)
