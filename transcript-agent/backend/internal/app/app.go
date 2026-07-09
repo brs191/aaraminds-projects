@@ -1,0 +1,75 @@
+// Package app wires stores, providers, tools, orchestrator and API server
+// into one unit. Used by cmd/server and by the end-to-end test suite so both
+// exercise identical wiring.
+package app
+
+import (
+	"log/slog"
+	"time"
+
+	"github.com/aaraminds/transcript-agent/internal/api"
+	"github.com/aaraminds/transcript-agent/internal/audit"
+	"github.com/aaraminds/transcript-agent/internal/domain"
+	"github.com/aaraminds/transcript-agent/internal/objectstore"
+	"github.com/aaraminds/transcript-agent/internal/orchestrator"
+	"github.com/aaraminds/transcript-agent/internal/providers/captions"
+	"github.com/aaraminds/transcript-agent/internal/providers/llm"
+	"github.com/aaraminds/transcript-agent/internal/providers/media"
+	"github.com/aaraminds/transcript-agent/internal/providers/stt"
+	"github.com/aaraminds/transcript-agent/internal/store"
+	"github.com/aaraminds/transcript-agent/internal/tools"
+)
+
+// Options configures the app.
+type Options struct {
+	Log      *slog.Logger
+	Stores   store.Stores
+	Objects  objectstore.ObjectStore
+	STT      stt.Provider
+	LLM      llm.Provider
+	Media    media.Processor
+	Captions captions.Provider
+	// STTName is recorded in job_config snapshots (PRD 13.3 stt_provider).
+	STTName string
+	// ConfigDefaults overrides PRD job_config defaults when set.
+	ConfigDefaults *domain.JobConfig
+	CORSOrigin     string
+	// AuthProxySecret, when set, requires a trusted reverse proxy to attach
+	// X-Auth-Proxy-Secret on authenticated API requests.
+	AuthProxySecret string
+	// DownloadTokenSecret signs auth-exempt export download URLs.
+	DownloadTokenSecret []byte
+	// Sync drives jobs inline on Enqueue (tests / single-process demos).
+	Sync bool
+	// Backoff between a retryable failure and its single retry.
+	Backoff time.Duration
+}
+
+// App is the wired application.
+type App struct {
+	Tools *tools.Toolset
+	Orch  *orchestrator.Orchestrator
+	API   *api.Server
+}
+
+// New wires everything.
+func New(o Options) *App {
+	if o.Log == nil {
+		o.Log = slog.Default()
+	}
+	ts := &tools.Toolset{
+		Stores:         o.Stores,
+		Objects:        o.Objects,
+		STT:            o.STT,
+		LLM:            o.LLM,
+		Media:          o.Media,
+		Captions:       o.Captions,
+		STTProvider:    o.STTName,
+		ConfigDefaults: o.ConfigDefaults,
+		Auditor:        audit.New(o.Stores.Audit, o.Log),
+		Log:            o.Log,
+	}
+	orch := orchestrator.New(ts, o.Log, o.Backoff, o.Sync)
+	srv := api.NewServer(ts, orch, o.Objects, o.CORSOrigin, o.AuthProxySecret, o.DownloadTokenSecret, o.Log)
+	return &App{Tools: ts, Orch: orch, API: srv}
+}

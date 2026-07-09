@@ -1,0 +1,83 @@
+// Package objectstore abstracts artifact byte storage (PRD 12.2: object
+// storage holds media, audio, caption and export artifacts). The MVP ships a
+// local-filesystem implementation; a cloud blob implementation can be swapped
+// in behind the same interface.
+package objectstore
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/aaraminds/transcript-agent/internal/domain"
+)
+
+// ObjectStore stores and retrieves artifact bytes by opaque URI.
+type ObjectStore interface {
+	// Put stores data under key and returns a durable URI.
+	Put(ctx context.Context, key string, data []byte) (string, error)
+	// Get retrieves the bytes for a URI previously returned by Put.
+	Get(ctx context.Context, uri string) ([]byte, error)
+}
+
+const localScheme = "local://"
+
+// Local is a filesystem-backed ObjectStore rooted at BaseDir
+// (default data/artifacts/).
+type Local struct {
+	BaseDir string
+}
+
+// NewLocal creates the base directory if needed.
+func NewLocal(baseDir string) (*Local, error) {
+	if err := os.MkdirAll(baseDir, 0o755); err != nil {
+		return nil, domain.E(domain.CodeArtifactWriteFailed, "create artifact dir: %v", err)
+	}
+	return &Local{BaseDir: baseDir}, nil
+}
+
+func (l *Local) path(key string) (string, error) {
+	clean := filepath.Clean(key)
+	if strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
+		return "", domain.E(domain.CodeValidationError, "invalid artifact key %q", key)
+	}
+	return filepath.Join(l.BaseDir, clean), nil
+}
+
+func (l *Local) Put(_ context.Context, key string, data []byte) (string, error) {
+	p, err := l.path(key)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return "", domain.E(domain.CodeArtifactWriteFailed, "mkdir: %v", err)
+	}
+	if err := os.WriteFile(p, data, 0o644); err != nil {
+		return "", domain.E(domain.CodeArtifactWriteFailed, "write %s: %v", key, err)
+	}
+	return localScheme + key, nil
+}
+
+func (l *Local) Get(_ context.Context, uri string) ([]byte, error) {
+	if !strings.HasPrefix(uri, localScheme) {
+		return nil, domain.E(domain.CodeValidationError, "unsupported artifact uri scheme: %s", uri)
+	}
+	p, err := l.path(strings.TrimPrefix(uri, localScheme))
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return nil, domain.E(domain.CodeMediaNotFound, "artifact not found: %s", uri)
+	}
+	return data, nil
+}
+
+var _ ObjectStore = (*Local)(nil)
+
+// KeyFor builds a conventional artifact key.
+func KeyFor(jobID, kind, filename string) string {
+	return fmt.Sprintf("%s/%s/%s", jobID, kind, filename)
+}
