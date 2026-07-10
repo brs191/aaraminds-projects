@@ -11,6 +11,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"sync"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/aaraminds/transcript-agent/internal/audit"
 	"github.com/aaraminds/transcript-agent/internal/domain"
+	"github.com/aaraminds/transcript-agent/internal/metrics"
 	"github.com/aaraminds/transcript-agent/internal/state"
 	"github.com/aaraminds/transcript-agent/internal/tools"
 )
@@ -32,8 +34,18 @@ type Orchestrator struct {
 	Backoff time.Duration
 	// Sync makes Enqueue drive the job inline (deterministic tests/demos).
 	Sync bool
+	// DrainTimeout bounds how long in-flight steps may finish after Start's
+	// context is cancelled (SIGTERM drain; DRAIN_TIMEOUT env, default 30s).
+	DrainTimeout time.Duration
+	// StuckThreshold is the updated_at age past which a mid-pipeline job is
+	// reclaimed back to queued (PRD 18.4/18.5; STUCK_JOB_THRESHOLD env,
+	// default 10m).
+	StuckThreshold time.Duration
 
 	queue chan uuid.UUID
+	// done closes once the post-shutdown drain has completed (see Wait).
+	done     chan struct{}
+	doneOnce sync.Once
 
 	mu         sync.Mutex
 	pauseUntil time.Time // queue pause after STT quota exhaustion (PRD 19)
@@ -52,13 +64,16 @@ func New(ts *tools.Toolset, log *slog.Logger, backoff time.Duration, sync bool) 
 		backoff = 2 * time.Second
 	}
 	return &Orchestrator{
-		Tools:    ts,
-		Log:      log,
-		Backoff:  backoff,
-		Sync:     sync,
-		queue:    make(chan uuid.UUID, 256),
-		running:  map[uuid.UUID]bool{},
-		inFlight: map[uuid.UUID]bool{},
+		Tools:          ts,
+		Log:            log,
+		Backoff:        backoff,
+		Sync:           sync,
+		DrainTimeout:   30 * time.Second,
+		StuckThreshold: 10 * time.Minute,
+		queue:          make(chan uuid.UUID, 256),
+		done:           make(chan struct{}),
+		running:        map[uuid.UUID]bool{},
+		inFlight:       map[uuid.UUID]bool{},
 	}
 }
 
@@ -87,7 +102,11 @@ func (o *Orchestrator) Enqueue(jobID uuid.UUID) {
 }
 
 // Start launches the worker pool and the requeue scanner. It returns
-// immediately; workers stop when ctx is cancelled.
+// immediately. When ctx is cancelled (SIGTERM), intake stops and in-flight
+// steps get up to DrainTimeout to finish on a shutdown-independent context;
+// after the drain, Wait unblocks. Steps interrupted by the drain deadline
+// never mark their job failed — the job stays in its current durable state
+// for the stuck-job reclaim to pick up.
 func (o *Orchestrator) Start(ctx context.Context, workers int, scanInterval time.Duration) {
 	if workers <= 0 {
 		workers = 2
@@ -95,14 +114,27 @@ func (o *Orchestrator) Start(ctx context.Context, workers int, scanInterval time
 	if scanInterval <= 0 {
 		scanInterval = 3 * time.Second
 	}
+	// driveCtx outlives ctx so in-flight steps can finish during the drain
+	// window; it is cancelled when the drain times out.
+	driveCtx, cancelDrive := context.WithCancel(context.WithoutCancel(ctx))
+	var wg sync.WaitGroup
 	for i := 0; i < workers; i++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for {
+				// Priority check: once ctx is done, stop pulling new work even
+				// if the queue still has buffered entries (drain = close intake).
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
 				select {
 				case <-ctx.Done():
 					return
 				case id := <-o.queue:
-					o.Drive(ctx, id)
+					o.Drive(driveCtx, id)
 					o.mu.Lock()
 					delete(o.inFlight, id)
 					o.mu.Unlock()
@@ -122,11 +154,47 @@ func (o *Orchestrator) Start(ctx context.Context, workers int, scanInterval time
 			}
 		}
 	}()
+	go func() {
+		<-ctx.Done()
+		drained := make(chan struct{})
+		go func() { wg.Wait(); close(drained) }()
+		timeout := o.DrainTimeout
+		if timeout <= 0 {
+			timeout = 30 * time.Second
+		}
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		select {
+		case <-drained:
+		case <-timer.C:
+			o.Log.Warn("drain timeout reached; cancelling in-flight steps (jobs stay durable for reclaim)")
+		}
+		cancelDrive()
+		wg.Wait()
+		o.doneOnce.Do(func() { close(o.done) })
+	}()
+}
+
+// Wait blocks until the post-shutdown drain completes. Call after cancelling
+// the context passed to Start.
+func (o *Orchestrator) Wait() { <-o.done }
+
+// midPipelineStatuses are the worker-owned states a crashed or drained worker
+// can leave a job in. The scanner reclaims jobs stuck here (PRD 18.4/18.5).
+var midPipelineStatuses = []domain.Status{
+	domain.StatusValidating, domain.StatusMetadataExtracted,
+	domain.StatusCaptionChecked, domain.StatusExtractingAudio,
+	domain.StatusTranscribing, domain.StatusNormalizing,
+	domain.StatusQualityChecking,
 }
 
 // scan requeues jobs sitting in submitted/queued (crash recovery, quota
-// resume). It respects the quota pause window.
+// resume), reclaims stuck mid-pipeline jobs, and runs the retention sweep.
+// The requeue respects the quota pause window; reclaim and sweep do not.
 func (o *Orchestrator) scan(ctx context.Context) {
+	o.reclaimStuck(ctx)
+	o.SweepRetention(ctx)
+
 	o.mu.Lock()
 	paused := time.Now().Before(o.pauseUntil)
 	o.mu.Unlock()
@@ -140,6 +208,94 @@ func (o *Orchestrator) scan(ctx context.Context) {
 	}
 	for _, j := range jobs {
 		o.Enqueue(j.JobID) // skips IDs already queued or processing
+	}
+}
+
+// reclaimStuck CAS-returns mid-pipeline jobs whose updated_at is older than
+// StuckThreshold back to queued (PRD 18.4/18.5). Jobs currently enqueued or
+// being processed in this process are never reclaimed.
+func (o *Orchestrator) reclaimStuck(ctx context.Context) {
+	if o.StuckThreshold <= 0 {
+		return
+	}
+	jobs, err := o.Tools.Stores.Jobs.ListJobsByStatus(ctx, midPipelineStatuses...)
+	if err != nil {
+		o.Log.Error("stuck-job scan failed", "error", err)
+		return
+	}
+	cutoff := time.Now().UTC().Add(-o.StuckThreshold)
+	for _, j := range jobs {
+		if !j.UpdatedAt.Before(cutoff) {
+			continue
+		}
+		o.mu.Lock()
+		busy := o.inFlight[j.JobID] || o.running[j.JobID]
+		o.mu.Unlock()
+		if busy {
+			continue // guard: never reclaim a job this process is working on
+		}
+		from := j.Status
+		if _, err := o.Tools.Stores.Jobs.TransitionJob(ctx, j.JobID, from, func(job *domain.Job) error {
+			return state.Transition(job, domain.StatusQueued)
+		}); err != nil {
+			if domain.CodeOf(err) != domain.CodeStatusConflict {
+				o.Log.Error("stuck-job reclaim failed", "job_id", j.JobID, "from", from, "error", err)
+			}
+			continue
+		}
+		metrics.StuckJobsReclaimed.Add(1)
+		o.Log.Error("ALERT: stuck job reclaimed to queued",
+			"job_id", j.JobID, "stuck_in", from, "updated_at", j.UpdatedAt)
+		o.Tools.Audit(ctx, &j.JobID, audit.ActorSystem, "orchestrator", "job.reclaimed_stuck",
+			map[string]any{"stuck_in": string(from), "threshold": o.StuckThreshold.String()})
+		o.Enqueue(j.JobID)
+	}
+}
+
+// SweepRetention deletes media artifacts whose retention_until has passed
+// (PRD 16.4, R3): object-store bytes first, then the row. Exports carry no
+// retention_until and are never swept; artifacts of jobs currently in flight
+// in this process are skipped. Each deletion is audit-logged
+// (fire-and-forget).
+func (o *Orchestrator) SweepRetention(ctx context.Context) {
+	arts, err := o.Tools.Stores.Artifacts.ListExpiredArtifacts(ctx, time.Now().UTC(), 100)
+	if err != nil {
+		o.Log.Error("retention sweep scan failed", "error", err)
+		return
+	}
+	for _, art := range arts {
+		if art.ArtifactType == domain.ArtifactExport {
+			continue // exempt, never swept (belt and braces: exports get no retention_until)
+		}
+		o.mu.Lock()
+		busy := o.inFlight[art.JobID] || o.running[art.JobID]
+		o.mu.Unlock()
+		if busy {
+			continue
+		}
+		if err := o.Tools.Objects.Delete(ctx, art.URI); err != nil {
+			o.Log.Error("retention sweep: delete artifact bytes failed",
+				"artifact_id", art.ArtifactID, "error", err)
+			continue
+		}
+		if err := o.Tools.Stores.Artifacts.DeleteArtifact(ctx, art.ArtifactID); err != nil {
+			o.Log.Error("retention sweep: delete artifact row failed",
+				"artifact_id", art.ArtifactID, "error", err)
+			continue
+		}
+		metrics.ArtifactsSwept.Add(1)
+		var jobID *uuid.UUID
+		if art.JobID != uuid.Nil {
+			id := art.JobID
+			jobID = &id
+		}
+		o.Tools.Audit(ctx, jobID, audit.ActorSystem, "orchestrator", "artifact.retention_deleted",
+			map[string]any{
+				"artifact_id":     art.ArtifactID.String(),
+				"artifact_type":   art.ArtifactType,
+				"uri_hash":        tools.URIHash(art.URI),
+				"retention_until": art.RetentionUntil,
+			})
 	}
 }
 
@@ -166,9 +322,47 @@ func (o *Orchestrator) finishDrive(jobID uuid.UUID) {
 	o.mu.Unlock()
 }
 
+// sleep waits d or until ctx is cancelled. Returns false on cancellation so
+// callers abandon the retry instead of blocking shutdown (ctx-aware backoff).
+func (o *Orchestrator) sleep(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
+
+// retryBackoff counts the retry and waits the backoff, ctx-aware.
+func (o *Orchestrator) retryBackoff(ctx context.Context) bool {
+	metrics.Retries.Add(1)
+	return o.sleep(ctx, o.Backoff)
+}
+
+// shutdownInterrupted reports whether a step error came from shutdown/drain
+// cancellation rather than a real failure. Such errors must never mark the
+// job failed (PRD 18.5): the job stays in its durable state for reclaim.
+func shutdownInterrupted(ctx context.Context, err error) bool {
+	if ctx.Err() != nil {
+		return true
+	}
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
 // Drive advances one job until it blocks: needs_user_action, in_review,
-// queued-after-quota, or a terminal state.
+// queued-after-quota, or a terminal state. While the queue is quota-paused,
+// buffered jobs are not driven — they stay in their durable state and the
+// scanner re-enqueues them after the pause window (PRD 14.7/19).
 func (o *Orchestrator) Drive(ctx context.Context, jobID uuid.UUID) {
+	o.mu.Lock()
+	paused := time.Now().Before(o.pauseUntil)
+	o.mu.Unlock()
+	if paused {
+		o.Log.Info("queue quota-paused; job stays durable for requeue", "job_id", jobID)
+		return
+	}
 	if !o.beginDrive(jobID) {
 		return
 	}
@@ -245,16 +439,23 @@ func (o *Orchestrator) setStatus(ctx context.Context, job *domain.Job, to domain
 		return false
 	}
 	*job = *updated
-	if err := o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "job.status_changed",
-		map[string]any{"from": string(from), "to": string(to)}); err != nil {
-		o.Log.Error("audit status transition", "job_id", job.JobID, "from", from, "to", to, "error", err)
-		return false
+	if to == domain.StatusInReview {
+		metrics.JobsCompleted.Add(1) // pipeline complete: review handoff (18.2)
 	}
+	// Status-change audit is informational: fire-and-forget (failures are
+	// logged and counted by the writer; high-risk actions use AuditStrict).
+	o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "job.status_changed",
+		map[string]any{"from": string(from), "to": string(to)})
 	return true
 }
 
 // toNeedsUserAction parks the job for user correction (PRD R9).
 func (o *Orchestrator) toNeedsUserAction(ctx context.Context, job *domain.Job, action string, err error) {
+	if shutdownInterrupted(ctx, err) {
+		o.Log.Warn("shutdown interrupted step; leaving job durable for reclaim",
+			"job_id", job.JobID, "status", job.Status, "error", err)
+		return
+	}
 	de := domain.AsError(err)
 	job.ActionRequired = action
 	job.LastError = &domain.ErrorInfo{Code: de.Code, Message: de.Message}
@@ -265,14 +466,22 @@ func (o *Orchestrator) toNeedsUserAction(ctx context.Context, job *domain.Job, a
 		map[string]any{"action_required": action, "error_code": de.Code, "message": de.Message})
 }
 
-// toFailed marks the job terminally failed (PRD R9: terminal only).
+// toFailed marks the job terminally failed (PRD R9: terminal only). Steps
+// interrupted by shutdown/drain never fail the job — it stays in its current
+// durable state for the stuck-job reclaim.
 func (o *Orchestrator) toFailed(ctx context.Context, job *domain.Job, err error) {
+	if shutdownInterrupted(ctx, err) {
+		o.Log.Warn("shutdown interrupted step; leaving job durable for reclaim",
+			"job_id", job.JobID, "status", job.Status, "error", err)
+		return
+	}
 	de := domain.AsError(err)
 	job.ActionRequired = ""
 	job.LastError = &domain.ErrorInfo{Code: de.Code, Message: de.Message}
 	if !o.setStatus(ctx, job, domain.StatusFailed) {
 		return
 	}
+	metrics.JobsFailed.Add(1)
 	o.Tools.Audit(ctx, &job.JobID, audit.ActorSystem, "orchestrator", "job.failed",
 		map[string]any{"error_code": de.Code, "message": de.Message})
 }
@@ -309,7 +518,9 @@ func (o *Orchestrator) stepValidate(ctx context.Context, job *domain.Job) bool {
 	}
 	_, err := o.Tools.GetMediaMetadata(ctx, job)
 	if err != nil && domain.CodeOf(err) == domain.CodeMetadataTimeout {
-		time.Sleep(o.Backoff) // retry once with backoff
+		if !o.retryBackoff(ctx) { // ctx-aware retry backoff
+			return false
+		}
 		_, err = o.Tools.GetMediaMetadata(ctx, job)
 	}
 	if err != nil {
@@ -320,6 +531,18 @@ func (o *Orchestrator) stepValidate(ctx context.Context, job *domain.Job) bool {
 		default:
 			o.toFailed(ctx, job, err)
 		}
+		return false
+	}
+	// max_duration_seconds guardrail (PRD 20.2): the snapshot value caps media
+	// length. Over-limit jobs park in needs_user_action/duration_exceeded —
+	// the user replaces the media with a shorter file or cancels the job.
+	if cfg, cfgErr := o.Tools.Config(ctx, job); cfgErr == nil &&
+		cfg.MaxDurationSeconds != nil && *cfg.MaxDurationSeconds > 0 &&
+		job.DurationSeconds > *cfg.MaxDurationSeconds {
+		o.toNeedsUserAction(ctx, job, domain.ActionDurationExceeded,
+			domain.E(domain.CodeDurationLimitExceeded,
+				"media duration %ds exceeds the configured maximum of %ds; replace the media with a shorter file or cancel the job",
+				job.DurationSeconds, *cfg.MaxDurationSeconds))
 		return false
 	}
 	o.clearError(ctx, job)
@@ -334,7 +557,9 @@ func (o *Orchestrator) stepRouteAfterMetadata(ctx context.Context, job *domain.J
 	}
 	_, err := o.Tools.CheckYouTubeCaptions(ctx, job)
 	if err != nil && domain.CodeOf(err) == domain.CodeCaptionAPIUnavailable {
-		time.Sleep(o.Backoff) // retry once (PRD 14.3)
+		if !o.retryBackoff(ctx) { // retry once (PRD 14.3), ctx-aware
+			return false
+		}
 		_, err = o.Tools.CheckYouTubeCaptions(ctx, job)
 	}
 	if err != nil {
@@ -395,7 +620,9 @@ func (o *Orchestrator) stepExtractAudio(ctx context.Context, job *domain.Job) bo
 	if err != nil {
 		switch domain.CodeOf(err) {
 		case domain.CodeExtractionFailed, domain.CodeArtifactWriteFailed:
-			time.Sleep(o.Backoff)
+			if !o.retryBackoff(ctx) { // ctx-aware retry backoff
+				return false
+			}
 			_, err = o.Tools.ExtractAudio(ctx, job)
 		}
 	}
@@ -426,7 +653,9 @@ func (o *Orchestrator) stepTranscribe(ctx context.Context, job *domain.Job) bool
 	}
 	_, err = o.Tools.TranscribeAudio(ctx, job, audioURI, cfg)
 	if err != nil && domain.CodeOf(err) == domain.CodeSTTProviderTimeout {
-		time.Sleep(o.Backoff) // retry with backoff (PRD 19)
+		if !o.retryBackoff(ctx) { // retry with backoff (PRD 19), ctx-aware
+			return false
+		}
 		_, err = o.Tools.TranscribeAudio(ctx, job, audioURI, cfg)
 	}
 	if err != nil {
@@ -466,7 +695,9 @@ func (o *Orchestrator) stepNormalize(ctx context.Context, job *domain.Job) bool 
 	}
 	_, _, err = o.Tools.NormalizeTranscript(ctx, job, raw, cfg)
 	if err != nil && domain.CodeOf(err) == domain.CodeLLMOutputInvalid {
-		time.Sleep(o.Backoff) // retry once (PRD 14.8)
+		if !o.retryBackoff(ctx) { // retry once (PRD 14.8), ctx-aware
+			return false
+		}
 		_, _, err = o.Tools.NormalizeTranscript(ctx, job, raw, cfg)
 	}
 	if err != nil {
@@ -511,6 +742,10 @@ func (o *Orchestrator) ResumeAfterCaptionDecision(ctx context.Context, job *doma
 		return domain.E(domain.CodeJobNotInActionableState,
 			"caption decision applies only in needs_user_action/caption_decision; job is %s/%s", job.Status, job.ActionRequired)
 	}
+	if err := o.Tools.AuditStrict(ctx, &job.JobID, audit.ActorUser, decidedBy, "job.caption_decision_requested",
+		map[string]any{"reuse_captions": reuse}); err != nil {
+		return err
+	}
 	updated, err := o.Tools.Stores.Jobs.TransitionJob(ctx, job.JobID, domain.StatusNeedsUserAction, func(j *domain.Job) error {
 		if j.ActionRequired != domain.ActionCaptionDecision {
 			return domain.E(domain.CodeJobNotInActionableState,
@@ -525,10 +760,8 @@ func (o *Orchestrator) ResumeAfterCaptionDecision(ctx context.Context, job *doma
 		return err
 	}
 	*job = *updated
-	if err := o.Tools.Audit(ctx, &job.JobID, audit.ActorUser, decidedBy, "job.caption_decision_recorded",
-		map[string]any{"reuse_captions": reuse}); err != nil {
-		return err
-	}
+	o.Tools.Audit(ctx, &job.JobID, audit.ActorUser, decidedBy, "job.caption_decision_recorded",
+		map[string]any{"reuse_captions": reuse})
 	o.Enqueue(job.JobID)
 	return nil
 }

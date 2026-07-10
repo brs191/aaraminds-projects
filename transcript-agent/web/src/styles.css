@@ -341,6 +341,10 @@ button:disabled {
   margin: 0.5rem 0;
   font-size: 0.9rem;
 }
+.error-hint {
+  margin: 0.35rem 0 0;
+  color: #5f1c17;
+}
 .warn-banner,
 .notice-banner {
   border-radius: var(--radius);
@@ -661,4 +665,55 @@ button:disabled {
 }
 details summary {
   cursor: pointer;
+}
+
+/* ---------- P1 additions: approvals, rename resilience, cancel form ---------- */
+
+.chip-superseded {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.approvals-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.approval-item {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.approval-item:target {
+  outline: 2px solid var(--blue);
+}
+.approval-note {
+  margin: 0.3rem 0 0;
+  font-style: italic;
+}
+.rename-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.failed-segment-list {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+.validation-notes {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+.cancel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 480px;
 }

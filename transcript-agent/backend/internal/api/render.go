@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -49,6 +50,9 @@ func httpStatusFor(code string) int {
 		return http.StatusConflict
 	case domain.CodeRequestTooLarge:
 		return http.StatusRequestEntityTooLarge
+	case domain.CodeAuditUnavailable:
+		// Audit failure pauses high-risk actions (PRD 19 audit row).
+		return http.StatusServiceUnavailable
 	case domain.CodeAuditWriteFailed:
 		return http.StatusInternalServerError
 	default:
@@ -56,9 +60,28 @@ func httpStatusFor(code string) int {
 	}
 }
 
+// internalErrorLogger is implemented by the middleware's statusRecorder so
+// writeError can log the full internal error with the request ID.
+type internalErrorLogger interface {
+	logInternalError(err error)
+}
+
+// writeError renders the frozen error envelope. Unknown/internal errors are
+// sanitized: the full error is logged server-side with the request ID and the
+// client receives a generic INTERNAL_ERROR — no pgx/OS strings leak out.
 func writeError(w http.ResponseWriter, err error) {
 	de := domain.AsError(err)
-	writeJSON(w, httpStatusFor(de.Code), errorBody{Error: domain.ErrorInfo{Code: de.Code, Message: de.Message}})
+	status := httpStatusFor(de.Code)
+	code, msg := de.Code, de.Message
+	if status == http.StatusInternalServerError {
+		if lg, ok := w.(internalErrorLogger); ok {
+			lg.logInternalError(err)
+		} else {
+			slog.Default().Error("internal error", "error", err)
+		}
+		code, msg = domain.CodeInternalError, "internal error"
+	}
+	writeJSON(w, status, errorBody{Error: domain.ErrorInfo{Code: code, Message: msg}})
 }
 
 // --- frozen API JSON shapes ----------------------------------------------
@@ -196,18 +219,24 @@ type summaryJSON struct {
 	SummaryID                 string    `json:"summary_id"`
 	Text                      string    `json:"text"`
 	SourceTranscriptVersionID string    `json:"source_transcript_version_id"`
-	ValidationStatus          string    `json:"validation_status"`
+	ValidationStatus          string    `json:"validation_status"` // passed | needs_review | failed
+	ValidationNotes           *string   `json:"validation_notes"`  // null when no notes
 	CreatedAt                 time.Time `json:"created_at"`
 }
 
 func summaryView(sm *domain.Summary) summaryJSON {
-	return summaryJSON{
+	out := summaryJSON{
 		SummaryID:                 sm.SummaryID.String(),
 		Text:                      sm.Text,
 		SourceTranscriptVersionID: sm.SourceTranscriptVersionID.String(),
 		ValidationStatus:          sm.ValidationStatus,
 		CreatedAt:                 sm.CreatedAt,
 	}
+	if sm.ValidationNotes != "" {
+		notes := sm.ValidationNotes
+		out.ValidationNotes = &notes
+	}
+	return out
 }
 
 type qualityReportJSON struct {
@@ -241,11 +270,13 @@ func qualityReportView(r *domain.QualityReport) qualityReportJSON {
 }
 
 type exportJSON struct {
-	ExportID         string    `json:"export_id"`
-	Format           string    `json:"format"`
-	ValidationStatus string    `json:"validation_status"`
-	DownloadURL      string    `json:"download_url"`
-	CreatedAt        time.Time `json:"created_at"`
+	ExportID                    string    `json:"export_id"`
+	Format                      string    `json:"format"`
+	ValidationStatus            string    `json:"validation_status"`
+	ApprovedTranscriptVersionID string    `json:"approved_transcript_version_id"`
+	Superseded                  bool      `json:"superseded"`
+	DownloadURL                 string    `json:"download_url"`
+	CreatedAt                   time.Time `json:"created_at"`
 }
 
 // Signed-link kinds (frozen contract for POST /api/v1/signed-links).
@@ -295,12 +326,39 @@ func (s *Server) exportView(e *domain.ExportRecord) exportJSON {
 	id := e.ExportID.String()
 	url, _ := s.mintSignedURL(signedKindExport, id)
 	return exportJSON{
-		ExportID:         id,
-		Format:           e.Format,
-		ValidationStatus: e.ValidationStatus,
-		DownloadURL:      url,
-		CreatedAt:        e.CreatedAt,
+		ExportID:                    id,
+		Format:                      e.Format,
+		ValidationStatus:            e.ValidationStatus,
+		ApprovedTranscriptVersionID: e.ApprovedTranscriptVersionID.String(),
+		Superseded:                  e.Superseded,
+		DownloadURL:                 url,
+		CreatedAt:                   e.CreatedAt,
 	}
+}
+
+// approvalListJSON is the frozen shape of GET /jobs/{jobID}/approvals items.
+type approvalListJSON struct {
+	ApprovalID                  string    `json:"approval_id"`
+	ApprovedTranscriptVersionID string    `json:"approved_transcript_version_id"`
+	ApprovedBy                  string    `json:"approved_by"`
+	ApprovedAt                  time.Time `json:"approved_at"`
+	ApprovalNote                string    `json:"approval_note"`
+	SupersededByApprovalID      *string   `json:"superseded_by_approval_id"`
+}
+
+func approvalListView(a *domain.Approval) approvalListJSON {
+	out := approvalListJSON{
+		ApprovalID:                  a.ApprovalID.String(),
+		ApprovedTranscriptVersionID: a.ApprovedTranscriptVersionID.String(),
+		ApprovedBy:                  a.ApprovedBy,
+		ApprovedAt:                  a.ApprovedAt,
+		ApprovalNote:                a.ApprovalNote,
+	}
+	if a.SupersededByApprovalID != nil {
+		id := a.SupersededByApprovalID.String()
+		out.SupersededByApprovalID = &id
+	}
+	return out
 }
 
 type auditEventJSON struct {

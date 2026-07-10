@@ -18,6 +18,7 @@ import (
 
 	"github.com/aaraminds/transcript-agent/internal/audit"
 	"github.com/aaraminds/transcript-agent/internal/domain"
+	"github.com/aaraminds/transcript-agent/internal/metrics"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/providers/captions"
 	"github.com/aaraminds/transcript-agent/internal/providers/llm"
@@ -38,8 +39,27 @@ type Toolset struct {
 	// ConfigDefaults optionally overrides the PRD defaults used when creating
 	// job_config snapshots (admin-tunable via env; see cmd/server).
 	ConfigDefaults *domain.JobConfig
-	Auditor        *audit.Writer
-	Log            *slog.Logger
+	// RetentionDays sets media_artifacts.retention_until for source_media,
+	// audio_extract and caption_source artifacts at creation (PRD 16.4/R3;
+	// RETENTION_DAYS env, default 30). Exports and approved transcripts are
+	// exempt and never swept.
+	RetentionDays int
+	Auditor       *audit.Writer
+	Log           *slog.Logger
+}
+
+// DefaultRetentionDays is the PRD 16.4 default media retention window.
+const DefaultRetentionDays = 30
+
+// RetentionUntil returns the retention deadline stamped on newly created
+// media artifacts (source_media, audio_extract, caption_source).
+func (t *Toolset) RetentionUntil(now time.Time) *time.Time {
+	days := t.RetentionDays
+	if days <= 0 {
+		days = DefaultRetentionDays
+	}
+	u := now.Add(time.Duration(days) * 24 * time.Hour)
+	return &u
 }
 
 func (t *Toolset) log() *slog.Logger {
@@ -57,9 +77,22 @@ func (t *Toolset) auditor() *audit.Writer {
 }
 
 // Audit appends an audit event (PRD 13.3 audit_events, append-only) via the
-// audit writer helper.
+// audit writer helper. Fire-and-forget discipline: informational call sites
+// ignore the returned error. Tool contract failures feed the per-tool failure
+// counters (PRD 18.2).
 func (t *Toolset) Audit(ctx context.Context, jobID *uuid.UUID, actorType, actorID, eventType string, payload map[string]any) error {
+	if actorType == "tool" && strings.HasSuffix(eventType, ".failed") {
+		metrics.ToolFailures.Add(actorID, 1)
+	}
 	return t.auditor().Event(ctx, jobID, actorType, actorID, eventType, payload)
+}
+
+// AuditStrict is the must-succeed audit append for high-risk actions
+// (approve, export generation, cancel, replace-media, caption-decision): a
+// failed append returns AUDIT_UNAVAILABLE and the caller fails the request
+// with 503 (PRD 19 audit row).
+func (t *Toolset) AuditStrict(ctx context.Context, jobID *uuid.UUID, actorType, actorID, eventType string, payload map[string]any) error {
+	return t.auditor().EventStrict(ctx, jobID, actorType, actorID, eventType, payload)
 }
 
 // URIHash returns a short hash of a URI for audit payloads (PRD 18.1: prefer
@@ -210,11 +243,13 @@ func (t *Toolset) SubmitMediaJob(ctx context.Context, in SubmitMediaJobInput) (*
 		if err := t.Stores.Artifacts.CreateArtifact(ctx, &domain.MediaArtifact{
 			ArtifactID: uuid.New(), JobID: job.JobID,
 			ArtifactType: domain.ArtifactSourceMedia, URI: staged.URI,
-			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes, CreatedAt: now,
+			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes,
+			RetentionUntil: t.RetentionUntil(now), CreatedAt: now,
 		}); err != nil {
 			return nil, err
 		}
 	}
+	metrics.JobsSubmitted.Add(1)
 	t.Audit(ctx, &job.JobID, "user", in.SubmittedBy, "job.submitted", map[string]any{
 		"source_type":        in.SourceType,
 		"source_uri_hash":    URIHash(in.SourceURI),
@@ -386,10 +421,12 @@ func (t *Toolset) FetchExistingCaptions(ctx context.Context, job *domain.Job, ca
 	if err != nil {
 		return "", err
 	}
+	now := time.Now().UTC()
 	art := &domain.MediaArtifact{
 		ArtifactID: uuid.New(), JobID: job.JobID,
 		ArtifactType: domain.ArtifactCaptionSource, URI: uri,
-		MimeType: "text/vtt", SizeBytes: int64(len(data)), CreatedAt: time.Now().UTC(),
+		MimeType: "text/vtt", SizeBytes: int64(len(data)),
+		RetentionUntil: t.RetentionUntil(now), CreatedAt: now,
 	}
 	if err := t.Stores.Artifacts.CreateArtifact(ctx, art); err != nil {
 		return "", err

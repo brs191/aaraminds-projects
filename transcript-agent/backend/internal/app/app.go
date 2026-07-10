@@ -47,6 +47,15 @@ type Options struct {
 	Sync bool
 	// Backoff between a retryable failure and its single retry.
 	Backoff time.Duration
+	// DrainTimeout bounds in-flight step completion after SIGTERM
+	// (DRAIN_TIMEOUT env; zero means the 30s default).
+	DrainTimeout time.Duration
+	// StuckJobThreshold is the updated_at age past which mid-pipeline jobs are
+	// reclaimed to queued (STUCK_JOB_THRESHOLD env; zero means the 10m default).
+	StuckJobThreshold time.Duration
+	// RetentionDays sets media_artifacts.retention_until at creation
+	// (RETENTION_DAYS env; zero means the 30-day default).
+	RetentionDays int
 }
 
 // App is the wired application.
@@ -70,10 +79,17 @@ func New(o Options) *App {
 		Captions:       o.Captions,
 		STTProvider:    o.STTName,
 		ConfigDefaults: o.ConfigDefaults,
+		RetentionDays:  o.RetentionDays,
 		Auditor:        audit.New(o.Stores.Audit, o.Log),
 		Log:            o.Log,
 	}
 	orch := orchestrator.New(ts, o.Log, o.Backoff, o.Sync)
+	if o.DrainTimeout > 0 {
+		orch.DrainTimeout = o.DrainTimeout
+	}
+	if o.StuckJobThreshold > 0 {
+		orch.StuckThreshold = o.StuckJobThreshold
+	}
 	srv := api.NewServer(ts, orch, o.Objects, o.CORSOrigin, o.AuthProxySecret, o.SigningSecret, o.MaxUploadBytes, o.Log)
 	return &App{Tools: ts, Orch: orch, API: srv}
 }

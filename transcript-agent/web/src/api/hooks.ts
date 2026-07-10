@@ -6,6 +6,7 @@ import {
 import { api, apiMaybe, ApiError, mintSignedLink, uploadMediaFile } from "./client";
 import {
   isJobActive,
+  type Approval,
   type AuditEvent,
   type ExportArtifact,
   type ExportFormat,
@@ -87,13 +88,26 @@ export function useAudit(jobId: string) {
   });
 }
 
+/** Approvals chain, newest first (GET /jobs/{jobID}/approvals). */
+export function useApprovals(jobId: string) {
+  return useQuery({
+    queryKey: ["approvals", jobId],
+    queryFn: () => api<{ approvals: Approval[] }>(`/jobs/${jobId}/approvals`),
+  });
+}
+
 // ---------- Mutations ----------
 
+/**
+ * Every state-changing action writes an audit event (L3), so audit is
+ * invalidated together with the job queries.
+ */
 function useInvalidateJob() {
   const qc = useQueryClient();
   return (jobId: string) => {
     void qc.invalidateQueries({ queryKey: ["jobs"] });
     void qc.invalidateQueries({ queryKey: ["job", jobId] });
+    void qc.invalidateQueries({ queryKey: ["audit", jobId] });
   };
 }
 
@@ -200,7 +214,7 @@ export interface PatchSegmentInput {
   speaker_label?: string;
 }
 
-export function usePatchSegment(versionId: string | null) {
+export function usePatchSegment(versionId: string | null, jobId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ segmentId, ...patch }: PatchSegmentInput) =>
@@ -210,6 +224,47 @@ export function usePatchSegment(versionId: string | null) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["segments", versionId] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
+    },
+  });
+}
+
+export interface RenameSpeakerInput {
+  segmentIds: string[];
+  to: string;
+}
+
+export interface RenameSpeakerResult {
+  total: number;
+  failed: { segmentId: string; error: unknown }[];
+}
+
+/**
+ * Bulk speaker rename (C3): PATCHes every segment via Promise.allSettled so a
+ * partial failure reports exactly which segments failed, and invalidates the
+ * segments query ONCE after the whole batch instead of per PATCH.
+ */
+export function useRenameSpeaker(versionId: string | null, jobId: string) {
+  const qc = useQueryClient();
+  return useMutation<RenameSpeakerResult, unknown, RenameSpeakerInput>({
+    mutationFn: async ({ segmentIds, to }) => {
+      const results = await Promise.allSettled(
+        segmentIds.map((segmentId) =>
+          api<Segment>(`/transcripts/${versionId}/segments/${segmentId}`, {
+            method: "PATCH",
+            json: { speaker_label: to },
+          }),
+        ),
+      );
+      const failed: RenameSpeakerResult["failed"] = [];
+      results.forEach((r, i) => {
+        if (r.status === "rejected") failed.push({ segmentId: segmentIds[i], error: r.reason });
+      });
+      return { total: segmentIds.length, failed };
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["segments", versionId] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
     },
   });
 }
@@ -222,7 +277,7 @@ export function useApprove(jobId: string) {
       api<unknown>(`/jobs/${jobId}/approve`, { method: "POST", json: input }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["versions", jobId] });
-      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
+      void qc.invalidateQueries({ queryKey: ["approvals", jobId] });
       invalidate(jobId);
     },
     onError: (err) => {
@@ -239,6 +294,7 @@ export function useReopen(jobId: string) {
     mutationFn: () => api<Job>(`/jobs/${jobId}/reopen`, { method: "POST", json: {} }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["versions", jobId] });
+      void qc.invalidateQueries({ queryKey: ["approvals", jobId] });
       invalidate(jobId);
     },
   });
@@ -250,6 +306,7 @@ export function useGenerateSummary(jobId: string) {
     mutationFn: () => api<Summary>(`/jobs/${jobId}/summary`, { method: "POST", json: {} }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["summary", jobId] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
     },
   });
 }
@@ -261,6 +318,7 @@ export function usePatchSummary(jobId: string) {
       api<Summary>(`/summaries/${summaryId}`, { method: "PATCH", json: { text } }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["summary", jobId] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
     },
   });
 }
@@ -277,6 +335,7 @@ export function useCreateExports(jobId: string) {
       void qc.invalidateQueries({ queryKey: ["exports", jobId] });
       void qc.invalidateQueries({ queryKey: ["job", jobId] });
       void qc.invalidateQueries({ queryKey: ["jobs"] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
     },
   });
 }

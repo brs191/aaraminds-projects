@@ -197,10 +197,12 @@ type qualityResp struct {
 }
 
 type exportResp struct {
-	ExportID         string `json:"export_id"`
-	Format           string `json:"format"`
-	ValidationStatus string `json:"validation_status"`
-	DownloadURL      string `json:"download_url"`
+	ExportID                    string `json:"export_id"`
+	Format                      string `json:"format"`
+	ValidationStatus            string `json:"validation_status"`
+	ApprovedTranscriptVersionID string `json:"approved_transcript_version_id"`
+	Superseded                  bool   `json:"superseded"`
+	DownloadURL                 string `json:"download_url"`
 }
 
 type errResp struct {
@@ -396,7 +398,7 @@ func TestFullPipelineE2E(t *testing.T) {
 	var exports struct {
 		Exports []exportResp `json:"exports"`
 	}
-	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer, map[string]any{
+	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", reviewer, map[string]any{
 		"formats": []string{"txt", "md", "srt", "vtt"},
 	}, &exports), http.StatusCreated, "create exports")
 	if len(exports.Exports) != 4 {
@@ -551,7 +553,7 @@ func TestExportBlockedBeforeApproval(t *testing.T) {
 	e := newEnv(t, nil)
 	job := submitJob(e, "upload", "mock://uploads/blocked.mp3")
 	var er errResp
-	status := e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer,
+	status := e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", reviewer,
 		map[string]any{"formats": []string{"srt"}}, &er)
 	e.must(status, http.StatusConflict, "export before approval")
 	if er.Error.Code != "APPROVED_TRANSCRIPT_REQUIRED" {
@@ -1303,9 +1305,29 @@ func TestSignedLinks(t *testing.T) {
 	var exports struct {
 		Exports []exportResp `json:"exports"`
 	}
-	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer,
+	var er errResp
+	status := e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", producer,
+		map[string]any{"formats": []string{"txt"}}, &er)
+	e.must(status, http.StatusForbidden, "producer cannot generate exports")
+	if er.Error.Code != "USER_NOT_AUTHORIZED" {
+		t.Fatalf("producer export code %s, want USER_NOT_AUTHORIZED", er.Error.Code)
+	}
+	e.must(e.do("POST", "/api/v1/jobs/"+job.JobID+"/exports", reviewer,
 		map[string]any{"formats": []string{"txt"}}, &exports), http.StatusCreated, "create export")
 	exportID := exports.Exports[0].ExportID
+
+	status = e.do("POST", "/api/v1/signed-links", producer2,
+		map[string]any{"kind": "export", "id": exportID}, &er)
+	e.must(status, http.StatusForbidden, "other producer cannot mint export link")
+	if er.Error.Code != "USER_NOT_AUTHORIZED" {
+		t.Fatalf("other producer export signed-link code %s, want USER_NOT_AUTHORIZED", er.Error.Code)
+	}
+	status = e.do("POST", "/api/v1/signed-links", producer2,
+		map[string]any{"kind": "audio", "id": job.JobID}, &er)
+	e.must(status, http.StatusForbidden, "other producer cannot mint audio link")
+	if er.Error.Code != "USER_NOT_AUTHORIZED" {
+		t.Fatalf("other producer audio signed-link code %s, want USER_NOT_AUTHORIZED", er.Error.Code)
+	}
 
 	// Mint a signed export link (any authenticated role).
 	var link struct {
@@ -1332,6 +1354,10 @@ func TestSignedLinks(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("header-auth download status %d, want 200", res.StatusCode)
 	}
+	res, _ = e.get("/api/v1/exports/"+exportID+"/download", producer2, "")
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("other producer header-auth download status %d, want 403", res.StatusCode)
+	}
 
 	// No token, no auth -> 401.
 	res, _ = e.get("/api/v1/exports/"+exportID+"/download", nil, "")
@@ -1347,7 +1373,6 @@ func TestSignedLinks(t *testing.T) {
 		tampered += "0"
 	}
 	res, body = e.get(tampered, nil, "")
-	var er errResp
 	_ = json.Unmarshal(body, &er)
 	if res.StatusCode != http.StatusUnauthorized || er.Error.Code != "TOKEN_INVALID" {
 		t.Fatalf("tampered token: status %d code %s, want 401 TOKEN_INVALID", res.StatusCode, er.Error.Code)

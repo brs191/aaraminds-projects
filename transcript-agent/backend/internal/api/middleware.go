@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -36,10 +38,11 @@ func validRole(role string) bool {
 }
 
 // authExempt reports whether a path skips authentication entirely: health
-// checks only.
+// checks and the internal expvar metrics endpoint (PRD 18.2; deploy behind
+// the trusted proxy, not on the public edge).
 func authExempt(r *http.Request) bool {
 	p := r.URL.Path
-	return p == "/healthz" || p == "/api/v1/healthz"
+	return p == "/healthz" || p == "/api/v1/healthz" || p == "/debug/vars"
 }
 
 // tokenCapable reports whether the endpoint accepts EITHER a signed ?token=
@@ -93,6 +96,7 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 			w.Header().Set("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-Id, X-User-Role")
+			w.Header().Set("Access-Control-Expose-Headers", "X-Superseded, X-Request-Id")
 			w.Header().Set("Access-Control-Max-Age", "600")
 		}
 		if r.Method == http.MethodOptions {
@@ -107,7 +111,9 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		}
 
 		start := time.Now()
-		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		reqID := newRequestID()
+		w.Header().Set("X-Request-Id", reqID)
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK, reqID: reqID, log: s.Log}
 
 		switch {
 		case authExempt(r):
@@ -154,17 +160,39 @@ func (s *Server) logRequest(r *http.Request, rec *statusRecorder, start time.Tim
 		"status", rec.status,
 		"duration_ms", time.Since(start).Milliseconds(),
 		"user", userID,
+		"request_id", rec.reqID,
 	)
+}
+
+// newRequestID returns a short random request identifier for log correlation.
+func newRequestID() string {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "unknown"
+	}
+	return hex.EncodeToString(b[:])
 }
 
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
+	reqID  string
+	log    *slog.Logger
 }
 
 func (r *statusRecorder) WriteHeader(code int) {
 	r.status = code
 	r.ResponseWriter.WriteHeader(code)
+}
+
+// logInternalError records the full internal error server-side (writeError
+// sends the client only a generic INTERNAL_ERROR — audit M-sanitize-500s).
+func (r *statusRecorder) logInternalError(err error) {
+	log := r.log
+	if log == nil {
+		log = slog.Default()
+	}
+	log.Error("internal error", "request_id", r.reqID, "error", err)
 }
 
 // requireRole enforces endpoint-level RBAC (PRD 16.2). Returns an error when

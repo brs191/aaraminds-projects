@@ -5,6 +5,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -80,6 +81,12 @@ type ArtifactStore interface {
 	GetArtifact(ctx context.Context, id uuid.UUID) (*domain.MediaArtifact, error)
 	ListArtifactsByJob(ctx context.Context, jobID uuid.UUID, artifactType string) ([]*domain.MediaArtifact, error)
 	MarkArtifactsSuperseded(ctx context.Context, jobID uuid.UUID) error
+	// ListExpiredArtifacts returns up to limit artifacts whose retention_until
+	// is set and older than cutoff (retention sweep, PRD 16.4/R3). Exports are
+	// never returned (they carry no retention_until by construction).
+	ListExpiredArtifacts(ctx context.Context, cutoff time.Time, limit int) ([]*domain.MediaArtifact, error)
+	// DeleteArtifact removes the artifact row after its bytes were deleted.
+	DeleteArtifact(ctx context.Context, id uuid.UUID) error
 
 	CreateExport(ctx context.Context, e *domain.ExportRecord) error
 	GetExport(ctx context.Context, id uuid.UUID) (*domain.ExportRecord, error)
@@ -113,10 +120,11 @@ type ReopenJobParams struct {
 type ReviewTxStore interface {
 	// ApproveJob atomically: CAS job in_review -> approved (clearing
 	// last_error/action_required), inserts the approved version + segments,
-	// inserts the approval row, and marks every prior current approval for the
-	// job superseded by the new approval. Returns the updated job and the IDs
-	// of superseded approvals. domain.ErrStatusConflict when the job is not
-	// in_review anymore.
+	// inserts the approval row, marks every prior current approval for the
+	// job superseded by the new approval, and marks every prior export record
+	// superseded (PRD 13.2 r5) — all under the same lock/transaction. Returns
+	// the updated job and the IDs of superseded approvals.
+	// domain.ErrStatusConflict when the job is not in_review anymore.
 	ApproveJob(ctx context.Context, p ApproveJobParams) (*domain.Job, []uuid.UUID, error)
 	// ReopenJob atomically: CAS job approved|exported -> in_review and inserts
 	// the fresh reviewed version + segments. domain.ErrStatusConflict when the

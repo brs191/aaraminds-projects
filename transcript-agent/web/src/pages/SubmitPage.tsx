@@ -9,7 +9,7 @@ const ACCEPTED_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"];
 
 function uploadErrorMessage(error: unknown): string | null {
   if (!(error instanceof ApiError)) return null;
-  if (error.code === "UNSUPPORTED_FORMAT" || error.status === 400) {
+  if (error.code === "UNSUPPORTED_FORMAT") {
     return `That file type is not supported. Allowed formats: ${ACCEPTED_EXTENSIONS.join(", ")}.`;
   }
   if (error.code === "REQUEST_TOO_LARGE" || error.status === 413) {
@@ -80,6 +80,8 @@ export default function SubmitPage() {
           <div className="toggle-group" role="radiogroup" aria-label="Source type">
             <button
               type="button"
+              role="radio"
+              aria-checked={sourceType === "youtube"}
               className={sourceType === "youtube" ? "toggle active" : "toggle"}
               onClick={() => {
                 setSourceType("youtube");
@@ -91,6 +93,8 @@ export default function SubmitPage() {
             </button>
             <button
               type="button"
+              role="radio"
+              aria-checked={sourceType === "upload"}
               className={sourceType === "upload" ? "toggle active" : "toggle"}
               onClick={() => {
                 setSourceType("upload");
@@ -172,8 +176,8 @@ export default function SubmitPage() {
         )}
 
         <div className="field">
-          <label>Language</label>
-          <input type="text" value="en (English only in MVP)" disabled />
+          <label htmlFor="language">Language</label>
+          <input id="language" type="text" value="en (English only in MVP)" disabled />
         </div>
 
         <div className="field checkbox-field">

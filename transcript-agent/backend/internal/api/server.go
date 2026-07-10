@@ -6,9 +6,11 @@ package api
 
 import (
 	"crypto/rand"
+	"expvar"
 	"log/slog"
 	"net/http"
 
+	"github.com/aaraminds/transcript-agent/internal/domain"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/orchestrator"
 	"github.com/aaraminds/transcript-agent/internal/tools"
@@ -67,6 +69,9 @@ func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objec
 
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /api/v1/healthz", s.handleHealthz)
+	// Internal operational metrics (PRD 18.2); auth-exempt, keep off the
+	// public edge.
+	mux.Handle("GET /debug/vars", expvar.Handler())
 
 	mux.HandleFunc("POST /api/v1/jobs", s.handleSubmitJob)
 	mux.HandleFunc("POST /api/v1/uploads", s.handleUploadMedia)
@@ -78,6 +83,7 @@ func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objec
 	mux.HandleFunc("GET /api/v1/jobs/{jobID}/transcripts", s.handleListTranscripts)
 	mux.HandleFunc("POST /api/v1/jobs/{jobID}/review", s.handleCreateReview)
 	mux.HandleFunc("POST /api/v1/jobs/{jobID}/approve", s.handleApprove)
+	mux.HandleFunc("GET /api/v1/jobs/{jobID}/approvals", s.handleListApprovals)
 	mux.HandleFunc("POST /api/v1/jobs/{jobID}/reopen", s.handleReopen)
 	mux.HandleFunc("POST /api/v1/jobs/{jobID}/summary", s.handleGenerateSummary)
 	mux.HandleFunc("GET /api/v1/jobs/{jobID}/summary", s.handleGetSummary)
@@ -104,6 +110,20 @@ func (s *Server) Handler() http.Handler {
 	return s.middleware(s.mux)
 }
 
-func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
+// handleHealthz pings the job store (cheap status list) and the object store
+// (small write probe). Either failing answers 503 {"status":"degraded"}
+// (PRD 18.2).
+func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if _, err := s.Tools.Stores.Jobs.ListJobsByStatus(ctx, domain.StatusSubmitted); err != nil {
+		s.Log.Error("healthz: job store ping failed", "error", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "degraded"})
+		return
+	}
+	if _, err := s.Objects.Put(ctx, "healthz/probe", []byte("ok")); err != nil {
+		s.Log.Error("healthz: object store probe failed", "error", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "degraded"})
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

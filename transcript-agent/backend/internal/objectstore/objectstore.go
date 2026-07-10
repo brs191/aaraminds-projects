@@ -28,6 +28,9 @@ type ObjectStore interface {
 	// Open returns a seekable reader for a stored URI (Range-capable
 	// streaming), plus the artifact's size and modification time.
 	Open(ctx context.Context, uri string) (io.ReadSeekCloser, int64, time.Time, error)
+	// Delete removes the bytes for a stored URI (retention sweep). Deleting a
+	// URI that no longer exists is not an error.
+	Delete(ctx context.Context, uri string) error
 }
 
 const localScheme = "local://"
@@ -130,6 +133,17 @@ func (l *Local) Open(_ context.Context, uri string) (io.ReadSeekCloser, int64, t
 		return nil, 0, time.Time{}, domain.E(domain.CodeMediaNotFound, "artifact not found: %s", uri)
 	}
 	return f, st.Size(), st.ModTime(), nil
+}
+
+func (l *Local) Delete(_ context.Context, uri string) error {
+	p, err := l.PathFor(uri)
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+		return domain.E(domain.CodeArtifactWriteFailed, "delete %s: %v", uri, err)
+	}
+	return nil
 }
 
 var _ ObjectStore = (*Local)(nil)

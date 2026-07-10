@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/aaraminds/transcript-agent/internal/domain"
+	"github.com/aaraminds/transcript-agent/internal/metrics"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/providers/llm"
 )
@@ -48,10 +49,12 @@ func (t *Toolset) ExtractAudio(ctx context.Context, job *domain.Job) (string, er
 			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error()})
 		return "", err
 	}
+	now := time.Now().UTC()
 	art := &domain.MediaArtifact{
 		ArtifactID: uuid.New(), JobID: job.JobID,
 		ArtifactType: domain.ArtifactAudioExtract, URI: uri,
-		MimeType: "audio/wav", SizeBytes: int64(len(data)), CreatedAt: time.Now().UTC(),
+		MimeType: "audio/wav", SizeBytes: int64(len(data)),
+		RetentionUntil: t.RetentionUntil(now), CreatedAt: now,
 	}
 	if err := t.Stores.Artifacts.CreateArtifact(ctx, art); err != nil {
 		return "", err
@@ -120,6 +123,7 @@ func (t *Toolset) TranscribeAudio(ctx context.Context, job *domain.Job, audioArt
 	if err := t.Stores.Transcripts.CreateVersion(ctx, version, segs); err != nil {
 		return nil, err
 	}
+	metrics.STTSecondsProcessed.Add(int64(job.DurationSeconds))
 	t.Audit(ctx, &job.JobID, "tool", "transcribe_audio", "tool.transcribe_audio.completed",
 		map[string]any{
 			"provider":              res.Provider,

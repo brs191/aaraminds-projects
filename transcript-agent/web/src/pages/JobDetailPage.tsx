@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useJob } from "../api/hooks";
 import { ActionChip, ErrorBox, Loading, StatusBadge } from "../components/ui";
 import OverviewTab from "../tabs/OverviewTab";
@@ -16,6 +17,28 @@ export default function JobDetailPage() {
   const { jobId = "" } = useParams();
   const { data: job, isLoading, error } = useJob(jobId);
   const [tab, setTab] = useState<Tab>("Overview");
+  const qc = useQueryClient();
+
+  // H2: when the polled job advances (status or updated_at changes), refresh
+  // every derived query so a reviewer parked on any tab sees new data appear
+  // without switching tabs.
+  const status = job?.status;
+  const updatedAt = job?.updated_at;
+  const prevSignature = useRef<string | null>(null);
+  useEffect(() => {
+    if (!status || !updatedAt) return;
+    const signature = `${status}|${updatedAt}`;
+    if (prevSignature.current !== null && prevSignature.current !== signature) {
+      void qc.invalidateQueries({ queryKey: ["versions", jobId] });
+      void qc.invalidateQueries({ queryKey: ["segments"] });
+      void qc.invalidateQueries({ queryKey: ["quality-report", jobId] });
+      void qc.invalidateQueries({ queryKey: ["summary", jobId] });
+      void qc.invalidateQueries({ queryKey: ["exports", jobId] });
+      void qc.invalidateQueries({ queryKey: ["audit", jobId] });
+      void qc.invalidateQueries({ queryKey: ["approvals", jobId] });
+    }
+    prevSignature.current = signature;
+  }, [status, updatedAt, jobId, qc]);
 
   if (isLoading) return <Loading label="Loading job…" />;
   if (error) return <ErrorBox error={error} prefix="Could not load job:" />;

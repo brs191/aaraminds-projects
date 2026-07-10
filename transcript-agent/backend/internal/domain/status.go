@@ -70,8 +70,9 @@ const (
 
 // Action-required values surfaced with needs_user_action.
 const (
-	ActionCaptionDecision = "caption_decision"
-	ActionReplaceMedia    = "replace_media"
+	ActionCaptionDecision  = "caption_decision"
+	ActionReplaceMedia     = "replace_media"
+	ActionDurationExceeded = "duration_exceeded" // media longer than max_duration_seconds (PRD 20.2)
 )
 
 // Roles accepted by the API auth middleware.

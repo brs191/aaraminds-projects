@@ -50,10 +50,22 @@ export default function SummaryTab({ job }: { job: Job }) {
           </EmptyState>
         ) : (
           <>
+            {summary.validation_status === "failed" && (
+              <div className="error-box" role="alert">
+                <strong>Validation failed</strong> — this summary did not pass grounding
+                validation. Do not use it as-is; regenerate or rewrite it against the transcript.
+                {summary.validation_notes && (
+                  <p className="validation-notes">{summary.validation_notes}</p>
+                )}
+              </div>
+            )}
             {summary.validation_status === "needs_review" && (
               <div className="warn-banner">
                 Validation flagged this summary as <strong>needs review</strong> — check it for
                 claims not grounded in the transcript before using it.
+                {summary.validation_notes && (
+                  <p className="validation-notes">{summary.validation_notes}</p>
+                )}
               </div>
             )}
             <p className="muted">

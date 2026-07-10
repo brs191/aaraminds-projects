@@ -85,6 +85,9 @@ const (
 	CodeDurationMismatch   = "DURATION_MISMATCH"
 	CodeQualityCheckFailed = "QUALITY_CHECK_FAILED"
 
+	// 20.2 max_duration_seconds guardrail
+	CodeDurationLimitExceeded = "DURATION_LIMIT_EXCEEDED"
+
 	// 14.10 approve_transcript
 	CodeUserNotAuthorized              = "USER_NOT_AUTHORIZED"
 	CodeTranscriptVersionNotReviewable = "TRANSCRIPT_VERSION_NOT_REVIEWABLE"
@@ -121,6 +124,7 @@ const (
 	CodeUnauthenticated            = "UNAUTHENTICATED"
 	CodeInvalidStateTransition     = "INVALID_STATE_TRANSITION"
 	CodeAuditWriteFailed           = "AUDIT_WRITE_FAILED"
+	CodeAuditUnavailable           = "AUDIT_UNAVAILABLE"
 	CodeInternalError              = "INTERNAL_ERROR"
 	CodeNotConfigured              = "NOT_CONFIGURED"
 )

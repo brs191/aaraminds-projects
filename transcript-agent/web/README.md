@@ -25,8 +25,17 @@ Start the backend first; without it every screen shows a `NETWORK_ERROR` state.
 
 There is no real auth in the MVP. The header dropdown switches between
 `producer-1/producer`, `reviewer-1/reviewer`, and `admin-1/admin`; the choice is stored in
-localStorage and sent as `X-User-Id` / `X-User-Role` headers on every request. Only
-reviewer/admin see the Approve button (server must still enforce).
+localStorage and sent as `X-User-Id` / `X-User-Role` headers on every request.
+
+### Role mirroring (PRD 16.2)
+
+The UI mirrors the server's role rules purely for UX — the server remains the real
+enforcer (helpers in `src/identity.tsx`):
+
+- **Approve** and **Reopen**: reviewer/admin only (others see an inline hint).
+- **Generate exports**: reviewer/admin only; producers get a download-only Exports tab
+  with a hint.
+- **Cancel**: the job's submitter (`job.submitted_by === X-User-Id`) or admin.
 
 ## Layout
 
@@ -73,14 +82,41 @@ Download button mints a link via `POST /signed-links {kind:"export", id:exportID
 opens the returned tokenised, site-relative URL in a new tab. The button is disabled while
 minting and errors are shown inline.
 
+## Approvals view
+
+The Review tab renders an "Approvals" card from `GET /api/v1/jobs/{id}/approvals`
+(newest first): approver, timestamp, approved version (short id), note, and — when a
+newer approval superseded an older one — a `superseded` badge linking to the superseding
+entry. Export rows in the Exports tab show the `approved_transcript_version_id` (short)
+and a `superseded` badge when `superseded=true`, so stale artifacts are visible at a
+glance.
+
+## Caption-path timeline
+
+When the quality report says `confidence_unavailable` (the caption-reuse path), the
+Overview status timeline switches to a caption-path variant that omits
+`extracting_audio` / `transcribing` — those stages never ran, so they are not rendered
+as completed steps. The Review tab shows the caption-origin banner when the report says
+so OR when any visible segment carries `flags.caption_origin`.
+
 ## Contract notes
 
 - `GET /jobs/{id}/summary` and `GET /jobs/{id}/quality-report` 404s are treated as
   "not yet available", not errors.
-- Signed links (`POST /api/v1/signed-links`) are valid for 15 minutes and embed
-  `?token=` in a site-relative URL; the follow-up GET needs no auth headers.
+- Signed links (`POST /api/v1/signed-links`) require access to the underlying job,
+  are valid for 15 minutes, and embed `?token=` in a site-relative URL; the
+  follow-up GET needs no auth headers.
 - `409 STATUS_CONFLICT` on approve is surfaced inside the Approve dialog
   ("Job state changed — refresh") and triggers a job refetch. The confirm button is also
-  disabled while any segment `PATCH` is still in flight.
+  disabled while any segment `PATCH` or a bulk speaker rename is still in flight.
 - "Rename speaker everywhere" issues one `PATCH` per matching segment (no bulk endpoint
-  in the contract).
+  in the contract) via `Promise.allSettled`; partial failures list the exact failed
+  segments with a "Retry failed" button, and the segments query is invalidated once per
+  batch. Renaming onto an existing label asks for merge confirmation first.
+- `summary.validation_status` may be `passed`, `needs_review`, or `failed`;
+  `validation_notes` (nullable) is shown in the warning/error banner when present.
+- `action_required` may be `duration_exceeded` — resolved via replace-media (shorter
+  source) or cancel.
+- When the polled job's `status`/`updated_at` changes, all per-job queries (versions,
+  segments, quality report, summary, exports, audit, approvals) are invalidated so open
+  tabs refresh without switching.

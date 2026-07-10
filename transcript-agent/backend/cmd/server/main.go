@@ -122,9 +122,11 @@ func main() {
 		sttProvider = sttmock.New()
 	case "azure":
 		sttProvider = azure.New(azure.Config{
-			Region: os.Getenv("AZURE_SPEECH_REGION"),
-			Key:    os.Getenv("AZURE_SPEECH_KEY"),
-			Model:  os.Getenv("AZURE_SPEECH_MODEL"),
+			Endpoint:     os.Getenv("AZURE_SPEECH_ENDPOINT"),
+			Region:       os.Getenv("AZURE_SPEECH_REGION"),
+			Key:          os.Getenv("AZURE_SPEECH_KEY"),
+			Model:        os.Getenv("AZURE_SPEECH_MODEL"),
+			LocalDataDir: dataDir,
 		})
 	default:
 		log.Error("unknown STT_PROVIDER", "value", sttName)
@@ -140,6 +142,7 @@ func main() {
 			APIKey:       os.Getenv("ANTHROPIC_API_KEY"),
 			CleanupModel: env("ANTHROPIC_CLEANUP_MODEL", "claude-haiku-4-5"),
 			SummaryModel: env("ANTHROPIC_SUMMARY_MODEL", "claude-sonnet-4-5"),
+			BaseURL:      os.Getenv("ANTHROPIC_BASE_URL"),
 		})
 	default:
 		log.Error("unknown LLM_PROVIDER", "value", p)
@@ -179,6 +182,12 @@ func main() {
 	defaults.SummaryMaxWords = envInt("DEFAULT_SUMMARY_MAX_WORDS", defaults.SummaryMaxWords)
 	defaults.SummaryStyle = env("DEFAULT_SUMMARY_STYLE", defaults.SummaryStyle)
 	defaults.StylePolicyID = env("DEFAULT_STYLE_POLICY_ID", defaults.StylePolicyID)
+	// max_duration_seconds guardrail (PRD 20.2): 0 = disabled. The value is
+	// snapshotted into every job_config; over-limit jobs park in
+	// needs_user_action/duration_exceeded (replace media or cancel).
+	if v := envInt("MAX_DURATION_SECONDS", 0); v > 0 {
+		defaults.MaxDurationSeconds = &v
+	}
 
 	// --- wiring ----------------------------------------------------------------
 	maxUploadBytes := int64(2) << 30 // 2 GiB default
@@ -203,6 +212,10 @@ func main() {
 		MaxUploadBytes:  maxUploadBytes,
 		Sync:            false,
 		Backoff:         envDuration("RETRY_BACKOFF", 2*time.Second),
+		// Graceful drain, stuck-job reclaim, retention sweep (P1 hardening).
+		DrainTimeout:      envDuration("DRAIN_TIMEOUT", 30*time.Second),
+		StuckJobThreshold: envDuration("STUCK_JOB_THRESHOLD", 10*time.Minute),
+		RetentionDays:     envInt("RETENTION_DAYS", 30),
 	})
 	if os.Getenv("AUTH_PROXY_SECRET") == "" {
 		log.Warn("AUTH_PROXY_SECRET is not set; header auth is running in development mode and must not be exposed directly")
@@ -228,11 +241,15 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	log.Info("shutting down")
+	log.Info("shutting down: draining workers", "drain_timeout", envDuration("DRAIN_TIMEOUT", 30*time.Second))
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown", "error", err)
 	}
+	// Workers stopped accepting when ctx was cancelled; in-flight steps get up
+	// to DRAIN_TIMEOUT to finish. Interrupted steps leave their jobs in the
+	// current durable state for the stuck-job reclaim — never marked failed.
+	a.Orch.Wait()
 	fmt.Println("bye")
 }

@@ -513,6 +513,40 @@ func (s *Store) MarkArtifactsSuperseded(_ context.Context, jobID uuid.UUID) erro
 	return nil
 }
 
+func (s *Store) ListExpiredArtifacts(_ context.Context, cutoff time.Time, limit int) ([]*domain.MediaArtifact, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []*domain.MediaArtifact
+	for _, id := range s.artOrder {
+		a := s.artifacts[id]
+		if a.RetentionUntil == nil || !a.RetentionUntil.Before(cutoff) {
+			continue
+		}
+		c := *a
+		out = append(out, &c)
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (s *Store) DeleteArtifact(_ context.Context, id uuid.UUID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.artifacts[id]; !ok {
+		return domain.E(domain.CodeMediaNotFound, "artifact %s not found", id)
+	}
+	delete(s.artifacts, id)
+	for i, aid := range s.artOrder {
+		if aid == id {
+			s.artOrder = append(s.artOrder[:i], s.artOrder[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
 func (s *Store) CreateExport(_ context.Context, e *domain.ExportRecord) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -565,6 +599,13 @@ func (s *Store) ApproveJob(_ context.Context, p store.ApproveJobParams) (*domain
 			by := p.Approval.ApprovalID
 			a.SupersededByApprovalID = &by
 			superseded = append(superseded, a.ApprovalID)
+		}
+	}
+	// Re-approval supersedes every prior export in the same atomic operation
+	// (PRD 13.2 r5): they stay downloadable but are flagged.
+	for _, id := range s.expOrder {
+		if e := s.exports[id]; e.JobID == p.JobID && !e.Superseded {
+			e.Superseded = true
 		}
 	}
 	next := copyJob(cur)

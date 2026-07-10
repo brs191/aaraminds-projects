@@ -11,22 +11,28 @@ import (
 )
 
 // allowed maps each status to the set of statuses it may transition to.
+// Every mid-pipeline worker state may also return to queued: the stuck-job
+// reclaim (PRD 18.4/18.5) CAS-requeues jobs abandoned by a crashed or
+// drained worker.
 var allowed = map[domain.Status][]domain.Status{
 	domain.StatusSubmitted: {domain.StatusQueued, domain.StatusCancelled},
 	domain.StatusQueued:    {domain.StatusValidating, domain.StatusCancelled},
 	domain.StatusValidating: {
 		domain.StatusMetadataExtracted, domain.StatusNeedsUserAction,
+		domain.StatusQueued, // stuck-job reclaim (18.4/18.5)
 		domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusMetadataExtracted: {
 		domain.StatusCaptionChecked,  // youtube path: caption pre-check
 		domain.StatusExtractingAudio, // upload path: no caption check
+		domain.StatusQueued,          // stuck-job reclaim (18.4/18.5)
 		domain.StatusNeedsUserAction, domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusCaptionChecked: {
 		domain.StatusNeedsUserAction, // pause for producer caption decision
 		domain.StatusExtractingAudio, // fresh transcription
 		domain.StatusNormalizing,     // caption reuse: parsed raw goes straight to normalization (11.1 step 7)
+		domain.StatusQueued,          // stuck-job reclaim (18.4/18.5)
 		domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusNeedsUserAction: {
@@ -36,18 +42,23 @@ var allowed = map[domain.Status][]domain.Status{
 	},
 	domain.StatusExtractingAudio: {
 		domain.StatusTranscribing, domain.StatusNeedsUserAction,
+		domain.StatusQueued, // stuck-job reclaim (18.4/18.5)
 		domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusTranscribing: {
 		domain.StatusNormalizing,
-		domain.StatusQueued, // STT quota exhaustion returns job to queued (14.7)
+		domain.StatusQueued, // STT quota exhaustion returns job to queued (14.7); stuck-job reclaim
 		domain.StatusNeedsUserAction, domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusNormalizing: {
-		domain.StatusQualityChecking, domain.StatusFailed, domain.StatusCancelled,
+		domain.StatusQualityChecking,
+		domain.StatusQueued, // stuck-job reclaim (18.4/18.5)
+		domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusQualityChecking: {
-		domain.StatusDrafted, domain.StatusFailed, domain.StatusCancelled,
+		domain.StatusDrafted,
+		domain.StatusQueued, // stuck-job reclaim (18.4/18.5)
+		domain.StatusFailed, domain.StatusCancelled,
 	},
 	domain.StatusDrafted: {
 		domain.StatusInReview, domain.StatusFailed, domain.StatusCancelled,

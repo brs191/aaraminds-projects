@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import {
+  useApprovals,
   useApprove,
   useAudioLink,
   usePatchSegment,
   useQualityReport,
+  useRenameSpeaker,
   useReopen,
   useSegments,
   useStartReview,
   useTranscriptVersions,
 } from "../api/hooks";
-import type { Job, Segment, TranscriptVersion } from "../api/types";
-import { canApprove, useIdentity } from "../identity";
+import type { Approval, Job, Segment, TranscriptVersion } from "../api/types";
+import { canApprove, canReopen as canReopenRole, useIdentity } from "../identity";
 import { EmptyState, ErrorBox, Loading, formatMs, formatTimestamp } from "../components/ui";
 
 function pickDefaultVersion(job: Job, versions: TranscriptVersion[]): TranscriptVersion | null {
@@ -25,14 +27,20 @@ function pickDefaultVersion(job: Job, versions: TranscriptVersion[]): Transcript
   return byType("reviewed") ?? byType("clean") ?? byType("raw") ?? versions[versions.length - 1];
 }
 
-function isLowConfidence(seg: Segment, threshold: number): boolean {
+/**
+ * H5: the server flag is authoritative. The client-side comparison is a
+ * fallback applied ONLY when the job config (and thus the real threshold) is
+ * loaded — there is no hardcoded default threshold.
+ */
+function isLowConfidence(seg: Segment, threshold: number | null): boolean {
   if (seg.flags?.low_confidence) return true;
+  if (threshold === null) return false;
   return seg.confidence !== null && seg.confidence < threshold;
 }
 
 interface SegmentRowProps {
   segment: Segment;
-  threshold: number;
+  threshold: number | null;
   editable: boolean;
   onSave: (patch: { text?: string; speaker_label?: string }) => void;
   /** Present only when the job has playable audio. */
@@ -45,20 +53,37 @@ function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: S
   const [editingText, setEditingText] = useState(false);
   const [text, setText] = useState(segment.text);
   const [speaker, setSpeaker] = useState(segment.speaker_label);
+  // H3a: refs mirror the editing state so the server-resync effects never
+  // clobber local text/speaker while the row is actively being edited.
+  const editingTextRef = useRef(false);
+  const editingSpeakerRef = useRef(false);
 
-  // Re-sync local state when the server copy changes (e.g. after invalidation).
+  const startTextEdit = () => {
+    editingTextRef.current = true;
+    setEditingText(true);
+  };
+  const stopTextEdit = () => {
+    editingTextRef.current = false;
+    setEditingText(false);
+  };
+
+  // Re-sync local state when the server copy changes (e.g. after invalidation)
+  // — but never while the user is mid-edit (H3a).
   useEffect(() => {
-    setText(segment.text);
-    setSpeaker(segment.speaker_label);
-  }, [segment.text, segment.speaker_label]);
+    if (!editingTextRef.current) setText(segment.text);
+  }, [segment.text]);
+  useEffect(() => {
+    if (!editingSpeakerRef.current) setSpeaker(segment.speaker_label);
+  }, [segment.speaker_label]);
 
   const low = isLowConfidence(segment, threshold);
 
   const saveText = () => {
-    setEditingText(false);
+    stopTextEdit();
     if (text !== segment.text) onSave({ text });
   };
   const saveSpeaker = () => {
+    editingSpeakerRef.current = false;
     const trimmed = speaker.trim();
     if (trimmed && trimmed !== segment.speaker_label) onSave({ speaker_label: trimmed });
     else setSpeaker(segment.speaker_label);
@@ -94,6 +119,9 @@ function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: S
             className="speaker-input"
             value={speaker}
             aria-label="Speaker label"
+            onFocus={() => {
+              editingSpeakerRef.current = true;
+            }}
             onChange={(e) => setSpeaker(e.target.value)}
             onBlur={saveSpeaker}
             onKeyDown={(e) => {
@@ -121,7 +149,21 @@ function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: S
         <p
           className={editable ? "segment-text editable" : "segment-text"}
           title={editable ? "Click to edit" : undefined}
-          onClick={editable ? () => setEditingText(true) : undefined}
+          // M5: click-to-edit must also be keyboard-operable.
+          role={editable ? "button" : undefined}
+          tabIndex={editable ? 0 : undefined}
+          aria-label={editable ? "Edit segment text" : undefined}
+          onClick={editable ? startTextEdit : undefined}
+          onKeyDown={
+            editable
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startTextEdit();
+                  }
+                }
+              : undefined
+          }
         >
           {segment.text}
         </p>
@@ -145,38 +187,74 @@ function RenameSpeakerBar({
   );
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  // C3: when the target label already exists on other segments, renaming is a
+  // merge — require explicit confirmation first.
+  const [pendingMerge, setPendingMerge] = useState<{ from: string; to: string } | null>(null);
 
   useEffect(() => {
     if (!from && labels.length > 0) setFrom(labels[0]);
     else if (from && !labels.includes(from) && labels.length > 0) setFrom(labels[0]);
   }, [labels, from]);
 
+  const startRename = () => {
+    const target = to.trim();
+    if (!target || target === from) return;
+    if (labels.includes(target)) {
+      setPendingMerge({ from, to: target });
+      return;
+    }
+    onRename(from, target);
+    setTo("");
+  };
+
+  const mergeCount = pendingMerge
+    ? segments.filter((s) => s.speaker_label === pendingMerge.from).length
+    : 0;
+
   return (
-    <div className="rename-bar">
-      <span className="muted">Rename speaker everywhere:</span>
-      <select value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Speaker to rename">
-        {labels.map((l) => (
-          <option key={l} value={l}>
-            {l}
-          </option>
-        ))}
-      </select>
-      <span aria-hidden>→</span>
-      <input
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-        placeholder="New name"
-        aria-label="New speaker name"
-      />
-      <button
-        disabled={busy || !from || !to.trim() || to.trim() === from}
-        onClick={() => {
-          onRename(from, to.trim());
-          setTo("");
-        }}
-      >
-        {busy ? "Renaming…" : "Rename"}
-      </button>
+    <div className="rename-bar-wrap">
+      <div className="rename-bar">
+        <span className="muted">Rename speaker everywhere:</span>
+        <select value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Speaker to rename">
+          {labels.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <span aria-hidden>→</span>
+        <input
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="New name"
+          aria-label="New speaker name"
+        />
+        <button disabled={busy || !from || !to.trim() || to.trim() === from} onClick={startRename}>
+          {busy ? "Renaming…" : "Rename"}
+        </button>
+      </div>
+      {pendingMerge && (
+        <div className="notice-banner" role="alertdialog" aria-label="Confirm speaker merge">
+          This merges <strong>{pendingMerge.from}</strong> into <strong>{pendingMerge.to}</strong>{" "}
+          — {mergeCount} segment{mergeCount === 1 ? "" : "s"}. Continue?
+          <div className="button-row">
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => {
+                onRename(pendingMerge.from, pendingMerge.to);
+                setPendingMerge(null);
+                setTo("");
+              }}
+            >
+              Continue
+            </button>
+            <button disabled={busy} onClick={() => setPendingMerge(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -187,6 +265,8 @@ function ApproveDialog({
   busy,
   editsPending,
   error,
+  version,
+  lowConfidenceCount,
 }: {
   onConfirm: (note: string) => void;
   onCancel: () => void;
@@ -194,6 +274,10 @@ function ApproveDialog({
   /** A segment PATCH (or bulk rename) is still in flight — block confirmation. */
   editsPending: boolean;
   error: unknown;
+  /** The reviewed version being approved (M3). */
+  version: TranscriptVersion;
+  /** Low-confidence segment count from the quality report; null when no report. */
+  lowConfidenceCount: number | null;
 }) {
   const [note, setNote] = useState("");
   const conflict =
@@ -202,6 +286,17 @@ function ApproveDialog({
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Approve transcript">
       <div className="modal">
         <h2>Approve transcript</h2>
+        <p>
+          Approving version{" "}
+          <span className="mono">{version.transcript_version_id.slice(0, 8)}</span> (reviewed,
+          created {formatTimestamp(version.created_at)}).
+        </p>
+        {lowConfidenceCount !== null && lowConfidenceCount > 0 && (
+          <p className="warn-text">
+            {lowConfidenceCount} segment{lowConfidenceCount === 1 ? " is" : "s are"} still flagged
+            low-confidence in the quality report — double-check them before approving.
+          </p>
+        )}
         <p>
           Per the PRD: <em>"approval creates an immutable version"</em>. After approval, further
           corrections require reopening the job and approving a new superseding version.
@@ -246,6 +341,38 @@ function ApproveDialog({
   );
 }
 
+/** Approvals chain (newest first) from GET /jobs/{id}/approvals. */
+function ApprovalsCard({ approvals }: { approvals: Approval[] }) {
+  if (approvals.length === 0) return null;
+  return (
+    <div className="card">
+      <h2>Approvals</h2>
+      <ol className="approvals-list">
+        {approvals.map((a) => (
+          <li key={a.approval_id} id={`approval-${a.approval_id}`} className="approval-item">
+            <div className="approval-head">
+              <span className="mono">{a.approval_id.slice(0, 8)}</span>
+              {" — "}
+              <strong>{a.approved_by}</strong> approved version{" "}
+              <span className="mono">{a.approved_transcript_version_id.slice(0, 8)}</span>{" "}
+              <span className="muted">{formatTimestamp(a.approved_at)}</span>{" "}
+              {a.superseded_by_approval_id !== null && (
+                <>
+                  <span className="badge chip-superseded">superseded</span>{" "}
+                  <a href={`#approval-${a.superseded_by_approval_id}`} className="muted">
+                    by {a.superseded_by_approval_id.slice(0, 8)}
+                  </a>
+                </>
+              )}
+            </div>
+            {a.approval_note && <p className="muted approval-note">"{a.approval_note}"</p>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export default function ReviewTab({ job }: { job: Job }) {
   const { identity } = useIdentity();
   const versionsQuery = useTranscriptVersions(job.job_id);
@@ -264,15 +391,27 @@ export default function ReviewTab({ job }: { job: Job }) {
   const selected = versions.find((v) => v.transcript_version_id === selectedId) ?? null;
   const segmentsQuery = useSegments(selected ? selected.transcript_version_id : null);
   const qualityQuery = useQualityReport(job.job_id);
+  const approvalsQuery = useApprovals(job.job_id);
 
   const startReview = useStartReview(job.job_id);
-  const patchSegment = usePatchSegment(selected ? selected.transcript_version_id : null);
+  const patchSegment = usePatchSegment(
+    selected ? selected.transcript_version_id : null,
+    job.job_id,
+  );
+  const renameSpeaker = useRenameSpeaker(
+    selected ? selected.transcript_version_id : null,
+    job.job_id,
+  );
   const approve = useApprove(job.job_id);
   const reopen = useReopen(job.job_id);
 
   const [showApprove, setShowApprove] = useState(false);
-  const [renaming, setRenaming] = useState(false);
-  const [renameError, setRenameError] = useState<unknown>(null);
+  // C3: after a partial rename failure, which segments failed and what target
+  // label to retry them with.
+  const [renameFailures, setRenameFailures] = useState<{
+    to: string;
+    segmentIds: string[];
+  } | null>(null);
 
   // Audio playback (PRD R7). Signed link resolves to null when the job has no
   // audio artifact (caption-reuse path) — render a quiet note instead of a player.
@@ -301,14 +440,22 @@ export default function ReviewTab({ job }: { job: Job }) {
   const editable =
     selected !== null && selected.version_type === "reviewed" && !selected.is_immutable;
   const segments = segmentsQuery.data?.segments ?? [];
-  const threshold = job.job_config?.confidence_threshold ?? 0.8;
-  const captionOrigin = qualityQuery.data?.confidence_unavailable === true;
+  // H5: no hardcoded fallback — the client-side comparison only applies once
+  // job_config (and its threshold) is loaded. Server flags always apply.
+  const threshold = job.job_config?.confidence_threshold ?? null;
+  // H6: caption-origin is signalled by the quality report OR by per-segment
+  // caption_origin flags (the report may not exist yet for the visible version).
+  const captionOrigin =
+    qualityQuery.data?.confidence_unavailable === true ||
+    segments.some((s) => s.flags?.caption_origin === true);
   const jobTerminal = job.status === "failed" || job.status === "cancelled";
   const canStartReview = !hasReviewed && !jobTerminal && job.status !== "approved";
   const approveAllowed = canApprove(identity);
+  const reopenAllowed = canReopenRole(identity);
   const canApproveNow =
     reviewedVersion !== null && !jobTerminal && job.status !== "approved" && job.status !== "exported";
   const canReopen = job.status === "approved" || job.status === "exported";
+  const approvals = approvalsQuery.data?.approvals ?? [];
 
   const audioAvailable = !!audioLink.data && !audioBroken;
 
@@ -341,20 +488,32 @@ export default function ReviewTab({ job }: { job: Job }) {
     setAudioBroken(true);
   };
 
-  const renameEverywhere = async (from: string, to: string) => {
-    if (!selected) return;
-    setRenaming(true);
-    setRenameError(null);
-    try {
-      const targets = segments.filter((s) => s.speaker_label === from);
-      for (const seg of targets) {
-        await patchSegment.mutateAsync({ segmentId: seg.segment_id, speaker_label: to });
-      }
-    } catch (err) {
-      setRenameError(err);
-    } finally {
-      setRenaming(false);
-    }
+  const runRename = (segmentIds: string[], to: string) => {
+    if (!selected || segmentIds.length === 0) return;
+    setRenameFailures(null);
+    renameSpeaker.mutate(
+      { segmentIds, to },
+      {
+        onSuccess: (result) => {
+          if (result.failed.length > 0) {
+            setRenameFailures({ to, segmentIds: result.failed.map((f) => f.segmentId) });
+          }
+        },
+      },
+    );
+  };
+
+  const renameEverywhere = (from: string, to: string) => {
+    runRename(
+      segments.filter((s) => s.speaker_label === from).map((s) => s.segment_id),
+      to,
+    );
+  };
+
+  const renaming = renameSpeaker.isPending;
+  const describeSegment = (segmentId: string): string => {
+    const seg = segments.find((s) => s.segment_id === segmentId);
+    return seg ? `${formatMs(seg.start_ms)}–${formatMs(seg.end_ms)}` : segmentId.slice(0, 8);
   };
 
   return (
@@ -414,10 +573,15 @@ export default function ReviewTab({ job }: { job: Job }) {
                 Approval requires the reviewer or admin role (currently {identity.role}).
               </span>
             )}
-            {canReopen && (
+            {canReopen && reopenAllowed && (
               <button disabled={reopen.isPending} onClick={() => reopen.mutate()}>
                 {reopen.isPending ? "Reopening…" : "Reopen for correction"}
               </button>
+            )}
+            {canReopen && !reopenAllowed && (
+              <span className="muted hint">
+                Reopening requires the reviewer or admin role (currently {identity.role}).
+              </span>
             )}
           </div>
         </div>
@@ -425,7 +589,32 @@ export default function ReviewTab({ job }: { job: Job }) {
         <ErrorBox error={startReview.error} prefix="Start review failed:" />
         <ErrorBox error={reopen.error} prefix="Reopen failed:" />
         <ErrorBox error={patchSegment.error} prefix="Edit failed:" />
-        <ErrorBox error={renameError} prefix="Rename failed:" />
+        <ErrorBox error={renameSpeaker.error} prefix="Rename failed:" />
+        {renameFailures && (
+          <div className="error-box" role="alert">
+            <strong>Rename partially failed:</strong> {renameFailures.segmentIds.length} segment
+            {renameFailures.segmentIds.length === 1 ? "" : "s"} could not be renamed to{" "}
+            <strong>{renameFailures.to}</strong>:
+            <ul className="failed-segment-list">
+              {renameFailures.segmentIds.map((id) => (
+                <li key={id} className="mono">
+                  {describeSegment(id)}
+                </li>
+              ))}
+            </ul>
+            <div className="button-row">
+              <button
+                disabled={renaming}
+                onClick={() => runRename(renameFailures.segmentIds, renameFailures.to)}
+              >
+                {renaming ? "Retrying…" : "Retry failed"}
+              </button>
+              <button disabled={renaming} onClick={() => setRenameFailures(null)}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         {editable && (
           <>
@@ -489,11 +678,19 @@ export default function ReviewTab({ job }: { job: Job }) {
         )}
       </div>
 
+      {approvalsQuery.error ? (
+        <ErrorBox error={approvalsQuery.error} prefix="Could not load approvals:" />
+      ) : (
+        <ApprovalsCard approvals={approvals} />
+      )}
+
       {showApprove && reviewedVersion && (
         <ApproveDialog
           busy={approve.isPending}
           editsPending={patchSegment.isPending || renaming}
           error={approve.error}
+          version={reviewedVersion}
+          lowConfidenceCount={qualityQuery.data?.low_confidence_segment_count ?? null}
           onCancel={() => setShowApprove(false)}
           onConfirm={(note) =>
             approve.mutate(

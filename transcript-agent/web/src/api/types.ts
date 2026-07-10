@@ -18,7 +18,11 @@ export type JobStatus =
   | "failed"
   | "cancelled";
 
-export type ActionRequired = "" | "caption_decision" | "replace_media";
+export type ActionRequired =
+  | ""
+  | "caption_decision"
+  | "replace_media"
+  | "duration_exceeded";
 
 export interface JobConfig {
   confidence_threshold: number;
@@ -81,7 +85,8 @@ export interface Summary {
   summary_id: string;
   text: string;
   source_transcript_version_id: string;
-  validation_status: "passed" | "needs_review";
+  validation_status: "passed" | "needs_review" | "failed";
+  validation_notes: string | null;
   created_at: string;
 }
 
@@ -112,7 +117,21 @@ export interface ExportArtifact {
   format: ExportFormat;
   validation_status: string;
   download_url: string;
+  /** Transcript version this export was generated from. */
+  approved_transcript_version_id: string;
+  /** True when a newer approval superseded the version behind this export. */
+  superseded: boolean;
   created_at: string;
+}
+
+/** Item of GET /jobs/{jobID}/approvals — newest first. */
+export interface Approval {
+  approval_id: string;
+  approved_transcript_version_id: string;
+  approved_by: string;
+  approved_at: string;
+  approval_note: string;
+  superseded_by_approval_id: string | null;
 }
 
 /** Response of POST /uploads (multipart). */
@@ -175,3 +194,11 @@ export const PIPELINE_ORDER: JobStatus[] = [
   "approved",
   "exported",
 ];
+
+/**
+ * Pipeline order for the caption-reuse path: audio extraction and transcription
+ * never run, so they must not render as completed steps.
+ */
+export const CAPTION_PIPELINE_ORDER: JobStatus[] = PIPELINE_ORDER.filter(
+  (s) => s !== "extracting_audio" && s !== "transcribing",
+);

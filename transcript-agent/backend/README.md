@@ -16,6 +16,7 @@ Dependencies: stdlib `net/http` (Go 1.22+ method routing), `log/slog`,
 ```bash
 make run          # in-memory storage + mock providers on :8080
 make test         # go test ./...
+make postgres-test # opt-in pgx store workflow test; set POSTGRES_TEST_DATABASE_URL
 make vet build    # static checks + bin/server
 ```
 
@@ -30,10 +31,19 @@ is allowed by default; the UI sends `X-User-Id` / `X-User-Role` headers.
 | `PORT` | `8080` | HTTP listen port |
 | `STORAGE` | `memory` | `memory` or `postgres` |
 | `DATABASE_URL` | — | pgx DSN, required for `STORAGE=postgres` |
+| `POSTGRES_TEST_DATABASE_URL` | — | Optional pgx DSN used only by `make postgres-test` / the skipped-by-default Postgres integration test |
 | `MIGRATIONS_DIR` | `migrations` | SQL migration files (applied at boot, `schema_migrations` table) |
 | `DATA_DIR` | `./data` | Local object store root (audio, captions, exports) |
-| `STT_PROVIDER` | `mock` | `mock` or `azure` (Azure Speech batch skeleton, needs `AZURE_SPEECH_REGION`/`AZURE_SPEECH_KEY`) |
-| `LLM_PROVIDER` | `mock` | `mock` or `anthropic` (skeleton, needs `ANTHROPIC_API_KEY`) |
+| `STT_PROVIDER` | `mock` | `mock` or `azure` (Azure Speech fast transcription) |
+| `AZURE_SPEECH_ENDPOINT` | — | Azure Speech/Foundry resource endpoint for `STT_PROVIDER=azure`, e.g. `https://<resource>.cognitiveservices.azure.com` |
+| `AZURE_SPEECH_REGION` | — | Legacy fallback when `AZURE_SPEECH_ENDPOINT` is unset; builds `https://<region>.api.cognitive.microsoft.com` |
+| `AZURE_SPEECH_KEY` | — | Azure Speech resource key for `STT_PROVIDER=azure` |
+| `AZURE_SPEECH_MODEL` | — | Optional model/deployment label recorded in audit metadata |
+| `LLM_PROVIDER` | `mock` | `mock` or `anthropic` (Claude Messages API) |
+| `ANTHROPIC_API_KEY` | — | Required for `LLM_PROVIDER=anthropic` |
+| `ANTHROPIC_CLEANUP_MODEL` | `claude-haiku-4-5` | Model for strict segment cleanup |
+| `ANTHROPIC_SUMMARY_MODEL` | `claude-sonnet-4-5` | Model for grounded summaries |
+| `ANTHROPIC_BASE_URL` | — | Optional Messages API URL override for tests/proxies |
 | `CAPTION_PROVIDER` | `mock` | `mock` or `youtube` (Data API v3 skeleton, needs `YOUTUBE_OAUTH_TOKEN`, `YOUTUBE_CHANNEL_OWNED=true`) |
 | `MEDIA_PROVIDER` | `mock` | `mock`, or `ffmpeg`/`auto` (uses ffmpeg/ffprobe when on PATH) |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
@@ -41,8 +51,12 @@ is allowed by default; the UI sends `X-User-Id` / `X-User-Role` headers.
 | `SIGNING_SECRET` | random per boot | HMAC-SHA256 key for signed download/audio links (15-min TTL). When unset the server warns and uses a random per-boot secret — signed links stop working on restart |
 | `MAX_UPLOAD_BYTES` | `2147483648` (2 GiB) | Body limit for `POST /api/v1/uploads` (413 `REQUEST_TOO_LARGE` above it) |
 | `WORKERS` | `2` | Orchestrator worker goroutines |
-| `REQUEUE_INTERVAL` | `3s` | Scan interval for submitted/queued jobs |
-| `RETRY_BACKOFF` | `2s` | Wait before the single retry of retryable failures |
+| `REQUEUE_INTERVAL` | `3s` | Scan interval for submitted/queued jobs, stuck-job reclaim, and retention sweep |
+| `RETRY_BACKOFF` | `2s` | Wait before the single retry of retryable failures (context-aware: shutdown interrupts it) |
+| `DRAIN_TIMEOUT` | `30s` | SIGTERM drain: intake stops immediately, in-flight steps get this long to finish. Interrupted steps never mark the job failed — it stays in its durable state for reclaim |
+| `STUCK_JOB_THRESHOLD` | `10m` | Jobs sitting in a mid-pipeline state (`validating`, `metadata_extracted`, `caption_checked`, `extracting_audio`, `transcribing`, `normalizing`, `quality_checking`) with `updated_at` older than this are CAS'd back to `queued` by the scanner (ALERT-logged + audited); jobs in flight in this process are never reclaimed |
+| `RETENTION_DAYS` | `30` | `media_artifacts.retention_until` for `source_media`, `audio_extract`, `caption_source` at creation. The scan loop deletes expired artifacts (object bytes + row) and audit-logs each deletion. Exports and approved transcripts are exempt — never swept |
+| `MAX_DURATION_SECONDS` | `0` (disabled) | Media duration cap (PRD 20.2), snapshotted into `job_config`. Over-limit jobs park in `needs_user_action`/`duration_exceeded` with `DURATION_LIMIT_EXCEEDED`; resolution is replace-media with a shorter file or cancel (no override endpoint in MVP) |
 | `DEFAULT_CONFIDENCE_THRESHOLD` | `0.80` | job_config snapshot default (PRD R5) |
 | `DEFAULT_SUMMARY_MAX_WORDS` | `150` | job_config snapshot default (PRD R10) |
 | `DEFAULT_SUMMARY_STYLE` | `neutral-professional` | job_config snapshot default |
@@ -68,7 +82,7 @@ route (413 `REQUEST_TOO_LARGE`); only `POST /api/v1/uploads` uses the larger
   `upload://` URI that resolves to a staged artifact (or a `mock://` URI in
   mock/demo mode). Raw filesystem paths and `file://` URIs are rejected with
   400 `INVALID_SOURCE_URI` — the backend never reads arbitrary server paths.
-- `POST /api/v1/signed-links` (auth required, any role) —
+- `POST /api/v1/signed-links` (auth required, any role with job access) —
   `{"kind":"export"|"audio","id":"<exportID or jobID>"}` →
   `201 {"url":"...?token=...","expires_at":"RFC3339"}`. Tokens are
   HMAC-SHA256 over `kind|id|expiry-unix` keyed by `SIGNING_SECRET`, valid 15
@@ -87,6 +101,40 @@ concurrent writers (double approve, cancel vs. worker, duplicate workers)
 lose the race with 409 `STATUS_CONFLICT` instead of overwriting state, and
 approve/reopen are single atomic store operations (one pgx transaction on
 Postgres).
+
+## Approvals, export supersede semantics
+
+- `GET /api/v1/jobs/{jobID}/approvals` (auth, any role with job access) →
+  `200 {"approvals":[{approval_id, approved_transcript_version_id,
+  approved_by, approved_at, approval_note,
+  superseded_by_approval_id (string|null)}]}`, newest first. The supersede
+  chain records post-approval corrections (PRD 11.4).
+- Export JSON objects (POST/GET `/jobs/{id}/exports`) carry
+  `approved_transcript_version_id` and `superseded`. Re-approving a job marks
+  **all** prior exports superseded inside the approve transaction
+  (PRD 13.2 r5). Superseded exports remain downloadable; the download response
+  carries `X-Superseded: true`.
+- Summary JSON carries `validation_status` (`passed` | `needs_review` |
+  `failed`) and `validation_notes` (`string|null`).
+
+## Audit discipline, metrics, healthz
+
+- **High-risk actions require a successful audit append** (PRD 19 audit row):
+  approve, export generation, cancel, replace-media, caption-decision (and
+  reopen) fail with `503 AUDIT_UNAVAILABLE` when the audit store is down.
+  Informational tool/status events stay fire-and-forget (logged + counted).
+- `GET /debug/vars` (auth-exempt, internal — keep off the public edge) serves
+  expvar counters: `jobs_submitted`, `jobs_completed` (reached `in_review`),
+  `jobs_failed_total`, `tool_failures_total` (per tool),
+  `retries_total`, `export_validation_failures`, `audit_write_failures`,
+  `stt_seconds_processed`, `stuck_jobs_reclaimed_total`,
+  `artifacts_swept_total`.
+- `GET /healthz` pings the job store (cheap status list) and the object store
+  (small write probe); either failing answers `503 {"status":"degraded"}`.
+- Unknown/internal errors are sanitized: the full error is logged server-side
+  with the request ID (`X-Request-Id` response header) and clients receive
+  `500 {"error":{"code":"INTERNAL_ERROR","message":"internal error"}}` — no
+  pgx/OS strings leak.
 
 ## Mock walkthrough
 
@@ -143,7 +191,7 @@ curl -s -X POST $B/jobs/$JOB/approve -H 'Content-Type: application/json' \
   -H 'X-User-Id: bob' -H 'X-User-Role: reviewer' \
   -d "{\"reviewed_transcript_version_id\":\"$REV\",\"approval_note\":\"ship it\"}"
 EX=$(curl -s -X POST $B/jobs/$JOB/exports -H 'Content-Type: application/json' \
-  -H 'X-User-Id: alice' -H 'X-User-Role: producer' \
+  -H 'X-User-Id: bob' -H 'X-User-Role: reviewer' \
   -d '{"formats":["txt","md","srt","vtt"]}' \
   | python3 -c 'import sys,json;print(json.load(sys.stdin)["exports"][0]["download_url"])')
 # Signed download URLs need no auth headers; tokens expire after 15 minutes.
@@ -175,22 +223,23 @@ internal/store/        interfaces; memory/ (default+tests); postgres/ (pgx + mig
 internal/objectstore/  ObjectStore interface + local-FS impl (DATA_DIR)
 internal/providers/    media (stub+ffmpeg), stt (mock+azure), llm (mock+anthropic), captions (mock+youtube)
 internal/tools/        one Go function per PRD §14 tool contract
-internal/orchestrator/ worker pool + requeue scan; retry/failure matrix (PRD 19)
+internal/orchestrator/ worker pool + requeue/reclaim/retention scan; graceful drain; retry/failure matrix (PRD 19)
 internal/exporter/     deterministic txt/md/srt/vtt generators + parse-back validators
 internal/api/          REST handlers, upload staging, auth/RBAC/logging/CORS middleware
-internal/audit/        append-only audit writer
+internal/audit/        append-only audit writer (fire-and-forget + strict variants)
+internal/metrics/      expvar counters served at /debug/vars (PRD 18.2)
 internal/app/          shared wiring for main and the e2e test suite
-migrations/            PRD 13.3 schema (+ runtime columns in 0006, upload staging in 0007)
+migrations/            PRD 13.3 schema (+ runtime columns in 0006, upload staging in 0007, export supersede in 0008)
 ```
 
 ## RBAC (PRD 16.2 MVP-minimum)
 
-- **producer** — submit, upload media, view own jobs, caption decision, replace own media, cancel own jobs, summaries, exports/downloads, signed links, audio playback.
-- **reviewer** — everything producers can do, plus review versions, segment edits, approve, reopen (also acts as team lead).
+- **producer** — submit, upload media, view own jobs, caption decision, replace own media, cancel own jobs, summaries, download approved exports, signed links for accessible jobs, audio playback.
+- **reviewer** — everything producers can do, plus review versions, segment edits, approve, reopen, and generate exports (also acts as team lead).
 - **admin** — everything, including cancel after approval.
 
 Missing/invalid identity headers → `401`; role violations → `403`;
-approve/review/reopen/segment-edit require reviewer or admin.
+approve/review/reopen/segment-edit/export-generation require reviewer or admin.
 
 **Security note:** identity transport is the `X-User-Id` / `X-User-Role`
 header pair — a **pilot stub pending SSO integration**. It is only safe

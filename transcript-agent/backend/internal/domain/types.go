@@ -168,7 +168,9 @@ type MediaArtifact struct {
 }
 
 // ExportRecord links an export artifact to the approved transcript version it
-// was generated from (PRD 14.12 / R8).
+// was generated from (PRD 14.12 / R8). Superseded is set on every prior
+// export when the job is re-approved (PRD 13.2 r5): the artifact stays
+// downloadable but responses carry X-Superseded: true.
 type ExportRecord struct {
 	ExportID                    uuid.UUID
 	JobID                       uuid.UUID
@@ -176,6 +178,7 @@ type ExportRecord struct {
 	Format                      string
 	ArtifactURI                 string
 	ValidationStatus            string // passed | failed
+	Superseded                  bool
 	CreatedBy                   string
 	CreatedAt                   time.Time
 }

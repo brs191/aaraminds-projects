@@ -1,12 +1,15 @@
 GO ?= go
 
-.PHONY: build test vet run tidy clean
+.PHONY: build test postgres-test vet run tidy clean
 
 build:
 	$(GO) build -o bin/server ./cmd/server
 
 test:
 	$(GO) test ./...
+
+postgres-test:
+	$(GO) test ./internal/app -run TestPostgresBackedWorkflowIntegration -count=1
 
 vet:
 	$(GO) vet ./...

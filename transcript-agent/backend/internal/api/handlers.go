@@ -160,31 +160,32 @@ func (s *Server) handleUploadMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mime := uploadMime(ext)
+	now := time.Now().UTC()
 	// The staged artifact's ID IS the upload URI's uuid: upload://<uuid>
-	// resolves via the artifact store only (audit M5).
+	// resolves via the artifact store only (audit M5). Staged media carries a
+	// retention deadline like every source_media artifact (PRD 16.4/R3).
 	art := &domain.MediaArtifact{
-		ArtifactID:   uploadID,
-		ArtifactType: domain.ArtifactSourceMedia,
-		URI:          uri,
-		MimeType:     mime,
-		SizeBytes:    size,
-		CreatedAt:    time.Now().UTC(),
+		ArtifactID:     uploadID,
+		ArtifactType:   domain.ArtifactSourceMedia,
+		URI:            uri,
+		MimeType:       mime,
+		SizeBytes:      size,
+		RetentionUntil: s.Tools.RetentionUntil(now),
+		CreatedAt:      now,
 	}
 	if err := s.Tools.Stores.Artifacts.CreateArtifact(r.Context(), art); err != nil {
 		writeError(w, err)
 		return
 	}
 	uploadURI := tools.UploadURIScheme + uploadID.String()
-	if err := s.Tools.Audit(r.Context(), nil, audit.ActorUser, ident.UserID, "upload.media_staged", map[string]any{
+	// Informational event: fire-and-forget.
+	s.Tools.Audit(r.Context(), nil, audit.ActorUser, ident.UserID, "upload.media_staged", map[string]any{
 		"upload_uri":      uploadURI,
 		"source_uri_hash": tools.URIHash(uri),
 		"filename":        filename,
 		"size_bytes":      size,
 		"mime_type":       mime,
-	}); err != nil {
-		writeError(w, err)
-		return
-	}
+	})
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"upload_uri": uploadURI,
 		"filename":   filename,
@@ -483,6 +484,27 @@ func (s *Server) handleApprove(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, approvalView(approval))
 }
 
+// handleListApprovals implements GET /api/v1/jobs/{jobID}/approvals (frozen
+// contract addition): the approval history newest first, including the
+// supersede chain (PRD 11.4). Any authenticated role with job access.
+func (s *Server) handleListApprovals(w http.ResponseWriter, r *http.Request) {
+	job, err := s.loadAuthorizedJob(r)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	approvals, err := s.Tools.Stores.Approvals.ListApprovalsByJob(r.Context(), job.JobID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	out := make([]approvalListJSON, 0, len(approvals))
+	for i := len(approvals) - 1; i >= 0; i-- { // store returns oldest first
+		out = append(out, approvalListView(approvals[i]))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"approvals": out})
+}
+
 // handleReopen implements post-approval correction (PRD 11.4): approved or
 // exported jobs return to in_review with a fresh reviewed version copied from
 // the approved one. The prior approval is superseded on re-approval.
@@ -600,11 +622,9 @@ func (s *Server) handleEditSummary(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	if err := s.Tools.Audit(r.Context(), &summary.JobID, audit.ActorUser, ident.UserID, "summary.edited",
-		map[string]any{"summary_id": summary.SummaryID.String()}); err != nil {
-		writeError(w, err)
-		return
-	}
+	// Informational event: fire-and-forget.
+	s.Tools.Audit(r.Context(), &summary.JobID, audit.ActorUser, ident.UserID, "summary.edited",
+		map[string]any{"summary_id": summary.SummaryID.String()})
 	writeJSON(w, http.StatusOK, summaryView(summary))
 }
 
@@ -628,6 +648,10 @@ func (s *Server) handleQualityReport(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateExports(w http.ResponseWriter, r *http.Request) {
 	ident := identityFrom(r.Context())
+	if err := requireRole(ident, domain.RoleReviewer, domain.RoleAdmin); err != nil {
+		writeError(w, err)
+		return
+	}
 	job, err := s.loadAuthorizedJob(r)
 	if err != nil {
 		writeError(w, err)
@@ -712,9 +736,10 @@ func (s *Server) requireTokenOrAuth(r *http.Request, kind, id string) (Identity,
 }
 
 // handleCreateSignedLink implements POST /api/v1/signed-links (frozen
-// contract): any authenticated role mints a short-lived signed URL for an
-// export download or a job's audio stream.
+// contract): any authenticated role with access to the underlying job mints a
+// short-lived signed URL for an export download or a job's audio stream.
 func (s *Server) handleCreateSignedLink(w http.ResponseWriter, r *http.Request) {
+	ident := identityFrom(r.Context())
 	var in struct {
 		Kind string `json:"kind"`
 		ID   string `json:"id"`
@@ -730,7 +755,17 @@ func (s *Server) handleCreateSignedLink(w http.ResponseWriter, r *http.Request) 
 			writeError(w, err)
 			return
 		}
-		if _, err := s.Tools.Stores.Artifacts.GetExport(r.Context(), exportID); err != nil {
+		rec, err := s.Tools.Stores.Artifacts.GetExport(r.Context(), exportID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		job, err := s.Tools.Stores.Jobs.GetJob(r.Context(), rec.JobID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if err := requireJobAccess(ident, job); err != nil {
 			writeError(w, err)
 			return
 		}
@@ -740,7 +775,12 @@ func (s *Server) handleCreateSignedLink(w http.ResponseWriter, r *http.Request) 
 			writeError(w, err)
 			return
 		}
-		if _, err := s.Tools.Stores.Jobs.GetJob(r.Context(), jobID); err != nil {
+		job, err := s.Tools.Stores.Jobs.GetJob(r.Context(), jobID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if err := requireJobAccess(ident, job); err != nil {
 			writeError(w, err)
 			return
 		}
@@ -777,7 +817,8 @@ func (s *Server) handleDownloadExport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	if _, _, err := s.requireTokenOrAuth(r, signedKindExport, exportID.String()); err != nil {
+	ident, byToken, err := s.requireTokenOrAuth(r, signedKindExport, exportID.String())
+	if err != nil {
 		writeError(w, err)
 		return
 	}
@@ -785,6 +826,17 @@ func (s *Server) handleDownloadExport(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	if !byToken {
+		job, err := s.Tools.Stores.Jobs.GetJob(r.Context(), rec.JobID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if err := requireJobAccess(ident, job); err != nil {
+			writeError(w, err)
+			return
+		}
 	}
 	data, err := s.Objects.Get(r.Context(), rec.ArtifactURI)
 	if err != nil {
@@ -794,6 +846,11 @@ func (s *Server) handleDownloadExport(w http.ResponseWriter, r *http.Request) {
 	filename := fmt.Sprintf("transcript-%s.%s", strings.SplitN(rec.JobID.String(), "-", 2)[0], rec.Format)
 	w.Header().Set("Content-Type", tools.ExportMime(rec.Format))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	if rec.Superseded {
+		// A newer approval superseded this export (PRD 13.2 r5); it stays
+		// downloadable but the response says so.
+		w.Header().Set("X-Superseded", "true")
+	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
 }

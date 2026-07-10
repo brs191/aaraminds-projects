@@ -69,3 +69,19 @@ export function useIdentity(): IdentityContextValue {
 export function canApprove(identity: Identity): boolean {
   return identity.role === "reviewer" || identity.role === "admin";
 }
+
+/**
+ * UX mirrors of the server-side role rules (PRD 16.2). The server remains the
+ * real enforcer — these only hide/disable controls that would 403 anyway.
+ */
+export function canGenerateExports(identity: Identity): boolean {
+  return identity.role === "reviewer" || identity.role === "admin";
+}
+
+export function canReopen(identity: Identity): boolean {
+  return identity.role === "reviewer" || identity.role === "admin";
+}
+
+export function canCancel(identity: Identity, submittedBy: string): boolean {
+  return identity.role === "admin" || identity.userId === submittedBy;
+}

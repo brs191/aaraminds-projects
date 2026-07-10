@@ -686,6 +686,13 @@ func (s *Store) ApproveJob(ctx context.Context, p store.ApproveJobParams) (*doma
 	if err := rows.Err(); err != nil {
 		return nil, nil, err
 	}
+	// Re-approval supersedes every prior export inside the same transaction
+	// (PRD 13.2 r5): they stay downloadable but are flagged.
+	if _, err := tx.Exec(ctx, `
+		UPDATE exports SET superseded = TRUE
+		WHERE job_id = $1 AND superseded = FALSE`, p.JobID); err != nil {
+		return nil, nil, err
+	}
 	j.Status = domain.StatusApproved
 	j.LastError = nil
 	j.ActionRequired = ""
@@ -853,23 +860,57 @@ func (s *Store) MarkArtifactsSuperseded(ctx context.Context, jobID uuid.UUID) er
 	return err
 }
 
+func (s *Store) ListExpiredArtifacts(ctx context.Context, cutoff time.Time, limit int) ([]*domain.MediaArtifact, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT `+artifactColumns+` FROM media_artifacts
+		WHERE retention_until IS NOT NULL AND retention_until < $1
+		ORDER BY retention_until ASC LIMIT $2`, cutoff, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*domain.MediaArtifact
+	for rows.Next() {
+		a, err := scanArtifact(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) DeleteArtifact(ctx context.Context, id uuid.UUID) error {
+	tag, err := s.pool.Exec(ctx, `DELETE FROM media_artifacts WHERE artifact_id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return notFound(domain.CodeMediaNotFound, "artifact %s not found", id)
+	}
+	return nil
+}
+
 func (s *Store) CreateExport(ctx context.Context, e *domain.ExportRecord) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO exports (export_id, job_id, approved_transcript_version_id,
-			format, artifact_uri, validation_status, created_by, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			format, artifact_uri, validation_status, superseded, created_by, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
 		e.ExportID, e.JobID, e.ApprovedTranscriptVersionID,
-		e.Format, e.ArtifactURI, e.ValidationStatus, e.CreatedBy, e.CreatedAt)
+		e.Format, e.ArtifactURI, e.ValidationStatus, e.Superseded, e.CreatedBy, e.CreatedAt)
 	return err
 }
 
 const exportColumns = `export_id, job_id, approved_transcript_version_id,
-	format, artifact_uri, validation_status, created_by, created_at`
+	format, artifact_uri, validation_status, superseded, created_by, created_at`
 
 func scanExport(row pgx.Row) (*domain.ExportRecord, error) {
 	var e domain.ExportRecord
 	err := row.Scan(&e.ExportID, &e.JobID, &e.ApprovedTranscriptVersionID,
-		&e.Format, &e.ArtifactURI, &e.ValidationStatus, &e.CreatedBy, &e.CreatedAt)
+		&e.Format, &e.ArtifactURI, &e.ValidationStatus, &e.Superseded, &e.CreatedBy, &e.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

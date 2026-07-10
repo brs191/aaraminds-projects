@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ApiError } from "../api/client";
 import { useCreateExports, useExports, useMintExportLink } from "../api/hooks";
 import type { ExportFormat, Job } from "../api/types";
+import { canGenerateExports, useIdentity } from "../identity";
 import { EmptyState, ErrorBox, Loading, formatTimestamp } from "../components/ui";
 
 const ALL_FORMATS: ExportFormat[] = ["txt", "md", "srt", "vtt"];
@@ -40,12 +41,16 @@ function DownloadCell({ exportId }: { exportId: string }) {
 }
 
 export default function ExportsTab({ job }: { job: Job }) {
+  const { identity } = useIdentity();
   const exportsQuery = useExports(job.job_id);
   const createExports = useCreateExports(job.job_id);
   const [selected, setSelected] = useState<ExportFormat[]>([...ALL_FORMATS]);
 
   const approved = job.status === "approved" || job.status === "exported";
-  const canGenerate = approved && selected.length > 0 && !createExports.isPending;
+  // M1 (PRD 16.2): only reviewer/admin generate exports; producers keep
+  // download access. UX mirror only — the server is the real enforcer.
+  const roleAllowed = canGenerateExports(identity);
+  const canGenerate = approved && roleAllowed && selected.length > 0 && !createExports.isPending;
 
   const toggle = (f: ExportFormat) =>
     setSelected((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
@@ -54,31 +59,41 @@ export default function ExportsTab({ job }: { job: Job }) {
 
   return (
     <div className="stack">
-      <div className="card">
-        <h2>Generate exports</h2>
-        <div className="format-row">
-          {ALL_FORMATS.map((f) => (
-            <label key={f} className="format-check">
-              <input type="checkbox" checked={selected.includes(f)} onChange={() => toggle(f)} />{" "}
-              .{f}
-            </label>
-          ))}
+      {roleAllowed ? (
+        <div className="card">
+          <h2>Generate exports</h2>
+          <div className="format-row">
+            {ALL_FORMATS.map((f) => (
+              <label key={f} className="format-check">
+                <input type="checkbox" checked={selected.includes(f)} onChange={() => toggle(f)} />{" "}
+                .{f}
+              </label>
+            ))}
+          </div>
+          {!approved && (
+            <p className="muted hint">
+              Exports are generated only from an approved transcript version. Approve the
+              transcript in the Review tab first.
+            </p>
+          )}
+          <ErrorBox error={createExports.error} prefix="Export failed:" />
+          <button
+            className="primary"
+            disabled={!canGenerate}
+            onClick={() => createExports.mutate(selected)}
+          >
+            {createExports.isPending ? "Generating…" : "Generate exports"}
+          </button>
         </div>
-        {!approved && (
+      ) : (
+        <div className="card">
+          <h2>Generate exports</h2>
           <p className="muted hint">
-            Exports are generated only from an approved transcript version. Approve the transcript
-            in the Review tab first.
+            Generating exports requires the reviewer or admin role (currently {identity.role}).
+            You can still download existing export artifacts below.
           </p>
-        )}
-        <ErrorBox error={createExports.error} prefix="Export failed:" />
-        <button
-          className="primary"
-          disabled={!canGenerate}
-          onClick={() => createExports.mutate(selected)}
-        >
-          {createExports.isPending ? "Generating…" : "Generate exports"}
-        </button>
-      </div>
+        </div>
+      )}
 
       <div className="card">
         <h2>Export artifacts</h2>
@@ -93,6 +108,7 @@ export default function ExportsTab({ job }: { job: Job }) {
             <thead>
               <tr>
                 <th>Format</th>
+                <th>Version</th>
                 <th>Validation</th>
                 <th>Created</th>
                 <th>Download</th>
@@ -102,6 +118,14 @@ export default function ExportsTab({ job }: { job: Job }) {
               {items.map((e) => (
                 <tr key={e.export_id}>
                   <td className="mono">.{e.format}</td>
+                  <td>
+                    <span className="mono">
+                      {e.approved_transcript_version_id
+                        ? e.approved_transcript_version_id.slice(0, 8)
+                        : "—"}
+                    </span>{" "}
+                    {e.superseded && <span className="badge chip-superseded">superseded</span>}
+                  </td>
                   <td>
                     <span
                       className={

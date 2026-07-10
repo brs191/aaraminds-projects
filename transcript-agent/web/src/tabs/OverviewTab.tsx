@@ -1,16 +1,58 @@
 import { useState, type FormEvent } from "react";
-import { useCancelJob, useCaptionDecision, useReplaceMedia } from "../api/hooks";
-import { PIPELINE_ORDER, TERMINAL_STATUSES, type Job, type SourceType } from "../api/types";
+import { useCancelJob, useCaptionDecision, useQualityReport, useReplaceMedia } from "../api/hooks";
+import {
+  CAPTION_PIPELINE_ORDER,
+  PIPELINE_ORDER,
+  TERMINAL_STATUSES,
+  type Job,
+  type SourceType,
+} from "../api/types";
+import { canCancel, useIdentity } from "../identity";
 import { ErrorBox, formatDuration, formatTimestamp } from "../components/ui";
 
-function StatusTimeline({ job }: { job: Job }) {
-  const offPipeline = !PIPELINE_ORDER.includes(job.status);
-  const currentIdx = PIPELINE_ORDER.indexOf(job.status);
+function recoveryHint(code: string, actionRequired: Job["action_required"]): string | null {
+  switch (code) {
+    case "NOT_CONFIGURED":
+      return "Provider configuration is missing on the backend. Set the provider env vars, restart, then resubmit or replace media.";
+    case "STT_PROVIDER_TIMEOUT":
+      return "Transcription timed out after retry. Try again when the provider is healthy, or replace media with shorter, cleaner audio.";
+    case "STT_PROVIDER_QUOTA_EXCEEDED":
+      return "Transcription is paused for provider quota. Queued jobs resume after the quota pause clears.";
+    case "LLM_PROVIDER_TIMEOUT":
+      return "The cleanup or summary provider timed out. Retry after the provider recovers.";
+    case "LLM_OUTPUT_INVALID":
+      return "The model response did not match the transcript contract, so it was rejected instead of being saved.";
+    case "AUDIT_UNAVAILABLE":
+      return "The requested action was not applied because the audit event could not be written. Retry after audit storage is healthy.";
+    case "UNSUPPORTED_FORMAT":
+      return "Replace media with a supported file type: mp3, m4a, wav, mp4, or mov.";
+    case "NO_AUDIO_TRACK":
+      return "Replace media with a file that contains an audio track.";
+    case "MEDIA_NOT_FOUND":
+      return "Replace media with a source the backend can access.";
+    case "DURATION_LIMIT_EXCEEDED":
+      return "Replace media with a shorter source or cancel the job.";
+    case "INVALID_SOURCE_URI":
+      return actionRequired === "replace_media"
+        ? "Use a staged upload:// URI or a valid YouTube URL for replacement media."
+        : "Use a staged upload:// URI for uploads or a valid YouTube URL.";
+    default:
+      return null;
+  }
+}
+
+function StatusTimeline({ job, captionPath }: { job: Job; captionPath: boolean }) {
+  // M10: on the caption-reuse path, extracting_audio / transcribing never ran —
+  // do not render them as completed steps.
+  const order = captionPath ? CAPTION_PIPELINE_ORDER : PIPELINE_ORDER;
+  const offPipeline = !order.includes(job.status);
+  const currentIdx = order.indexOf(job.status);
+  const hint = job.last_error ? recoveryHint(job.last_error.code, job.action_required) : null;
   return (
     <div className="card">
       <h2>Status</h2>
       <ol className="timeline">
-        {PIPELINE_ORDER.map((s, i) => {
+        {order.map((s, i) => {
           let cls = "timeline-step";
           if (!offPipeline && i < currentIdx) cls += " done";
           if (!offPipeline && i === currentIdx) cls += " current";
@@ -21,6 +63,11 @@ function StatusTimeline({ job }: { job: Job }) {
           );
         })}
       </ol>
+      {captionPath && (
+        <p className="muted hint">
+          Caption-reuse path — audio extraction and transcription were skipped.
+        </p>
+      )}
       {offPipeline && (
         <p className={job.status === "needs_user_action" ? "warn-text" : "error-text"}>
           Job is currently <strong>{job.status.replace(/_/g, " ")}</strong>
@@ -30,6 +77,7 @@ function StatusTimeline({ job }: { job: Job }) {
       {job.last_error && (
         <div className="error-box">
           Last error: <code>{job.last_error.code}</code> — {job.last_error.message}
+          {hint && <p className="error-hint">{hint}</p>}
         </div>
       )}
     </div>
@@ -38,6 +86,8 @@ function StatusTimeline({ job }: { job: Job }) {
 
 function CaptionDecisionPanel({ job }: { job: Job }) {
   const decision = useCaptionDecision(job.job_id);
+  // L6: reuse is a lossy, irreversible-ish choice — confirm before committing.
+  const [confirmingReuse, setConfirmingReuse] = useState(false);
   return (
     <div className="card action-panel">
       <h2>Caption decision required</h2>
@@ -46,23 +96,43 @@ function CaptionDecisionPanel({ job }: { job: Job }) {
         diarization) or transcribe fresh?
       </p>
       <ErrorBox error={decision.error} />
-      <div className="button-row">
-        <button
-          className="primary"
-          disabled={decision.isPending}
-          onClick={() => decision.mutate(true)}
-        >
-          Reuse captions
-        </button>
-        <button disabled={decision.isPending} onClick={() => decision.mutate(false)}>
-          Transcribe fresh
-        </button>
-      </div>
+      {confirmingReuse ? (
+        <div className="notice-banner" role="alertdialog" aria-label="Confirm caption reuse">
+          Reuses official captions: no confidence scores or speaker detection. Continue?
+          <div className="button-row">
+            <button
+              className="primary"
+              disabled={decision.isPending}
+              onClick={() =>
+                decision.mutate(true, { onSettled: () => setConfirmingReuse(false) })
+              }
+            >
+              {decision.isPending ? "Applying…" : "Continue"}
+            </button>
+            <button disabled={decision.isPending} onClick={() => setConfirmingReuse(false)}>
+              Back
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="button-row">
+          <button
+            className="primary"
+            disabled={decision.isPending}
+            onClick={() => setConfirmingReuse(true)}
+          >
+            Reuse captions
+          </button>
+          <button disabled={decision.isPending} onClick={() => decision.mutate(false)}>
+            Transcribe fresh
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function ReplaceMediaPanel({ job }: { job: Job }) {
+function ReplaceMediaPanel({ job, durationExceeded }: { job: Job; durationExceeded: boolean }) {
   const replace = useReplaceMedia(job.job_id);
   const [sourceType, setSourceType] = useState<SourceType>(job.source_type);
   const [sourceUri, setSourceUri] = useState("");
@@ -81,8 +151,15 @@ function ReplaceMediaPanel({ job }: { job: Job }) {
 
   return (
     <div className="card action-panel">
-      <h2>Replace media</h2>
-      <p>The source media cannot be processed. Provide replacement media to resume this job.</p>
+      <h2>{durationExceeded ? "Media too long" : "Replace media"}</h2>
+      {durationExceeded ? (
+        <p>
+          The source media exceeds the maximum allowed duration. Replace it with shorter media
+          below, or cancel the job.
+        </p>
+      ) : (
+        <p>The source media cannot be processed. Provide replacement media to resume this job.</p>
+      )}
       <form onSubmit={onSubmit} className="form">
         <div className="field">
           <label htmlFor="replace-type">Source type</label>
@@ -102,7 +179,11 @@ function ReplaceMediaPanel({ job }: { job: Job }) {
             type="text"
             value={sourceUri}
             onChange={(e) => setSourceUri(e.target.value)}
-            placeholder={sourceType === "youtube" ? "https://www.youtube.com/watch?v=…" : "uploads/…"}
+            placeholder={
+              sourceType === "youtube"
+                ? "https://www.youtube.com/watch?v=…"
+                : "upload://… or mock://…"
+            }
           />
         </div>
         <div className="field checkbox-field">
@@ -125,23 +206,33 @@ function ReplaceMediaPanel({ job }: { job: Job }) {
 }
 
 export default function OverviewTab({ job }: { job: Job }) {
+  const { identity } = useIdentity();
   const cancel = useCancelJob(job.job_id);
+  const qualityQuery = useQualityReport(job.job_id);
   const cancellable = !TERMINAL_STATUSES.includes(job.status) && job.status !== "exported";
+  // M1 (PRD 16.2): cancel is submitter-or-admin. UX mirror only — server enforces.
+  const cancelAllowed = canCancel(identity, job.submitted_by);
 
-  const onCancel = () => {
-    const reason = window.prompt("Reason for cancelling this job:");
-    if (reason === null) return;
-    cancel.mutate(reason.trim() || "cancelled by user");
-  };
+  // M4: inline reason input instead of window.prompt. An empty reason is sent
+  // as empty — no fabricated default.
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const cfg = job.job_config;
+  const captionPath = qualityQuery.data?.confidence_unavailable === true;
 
   return (
     <div className="stack">
-      <StatusTimeline job={job} />
+      <StatusTimeline job={job} captionPath={captionPath} />
 
       {job.action_required === "caption_decision" && <CaptionDecisionPanel job={job} />}
-      {job.action_required === "replace_media" && <ReplaceMediaPanel job={job} />}
+      {(job.action_required === "replace_media" ||
+        job.action_required === "duration_exceeded") && (
+        <ReplaceMediaPanel
+          job={job}
+          durationExceeded={job.action_required === "duration_exceeded"}
+        />
+      )}
 
       <div className="card">
         <h2>Job details</h2>
@@ -195,9 +286,51 @@ export default function OverviewTab({ job }: { job: Job }) {
             retained.
           </p>
           <ErrorBox error={cancel.error} />
-          <button className="danger" disabled={cancel.isPending} onClick={onCancel}>
-            {cancel.isPending ? "Cancelling…" : "Cancel job"}
-          </button>
+          {!cancelAllowed ? (
+            <p className="muted hint">
+              Only the submitter ({job.submitted_by}) or an admin can cancel this job (currently{" "}
+              {identity.userId}/{identity.role}).
+            </p>
+          ) : !cancelOpen ? (
+            <button className="danger" disabled={cancel.isPending} onClick={() => setCancelOpen(true)}>
+              Cancel job
+            </button>
+          ) : (
+            <div className="cancel-form">
+              <div className="field">
+                <label htmlFor="cancel-reason">Reason (optional)</label>
+                <input
+                  id="cancel-reason"
+                  type="text"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Why is this job being cancelled?"
+                />
+              </div>
+              <div className="button-row">
+                <button
+                  className="danger"
+                  disabled={cancel.isPending}
+                  onClick={() =>
+                    cancel.mutate(cancelReason.trim(), {
+                      onSuccess: () => setCancelOpen(false),
+                    })
+                  }
+                >
+                  {cancel.isPending ? "Cancelling…" : "Confirm cancel"}
+                </button>
+                <button
+                  disabled={cancel.isPending}
+                  onClick={() => {
+                    setCancelOpen(false);
+                    setCancelReason("");
+                  }}
+                >
+                  Keep job
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

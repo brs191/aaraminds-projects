@@ -10,6 +10,7 @@ import (
 
 	"github.com/aaraminds/transcript-agent/internal/domain"
 	"github.com/aaraminds/transcript-agent/internal/exporter"
+	"github.com/aaraminds/transcript-agent/internal/metrics"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/state"
 	"github.com/aaraminds/transcript-agent/internal/store"
@@ -47,14 +48,14 @@ func (t *Toolset) buildClone(ctx context.Context, job *domain.Job, source *domai
 	return version, newSegs, nil
 }
 
-func (t *Toolset) auditVersionCreated(ctx context.Context, job *domain.Job, version *domain.TranscriptVersion, source *domain.TranscriptVersion, createdBy string, segmentCount int) error {
-	return t.Audit(ctx, &job.JobID, "user", createdBy, "transcript.version_created", map[string]any{
+func versionCreatedPayload(version, source *domain.TranscriptVersion, segmentCount int) map[string]any {
+	return map[string]any{
 		"transcript_version_id": version.TranscriptVersionID.String(),
 		"version_type":          version.VersionType,
 		"source_version_id":     source.TranscriptVersionID.String(),
 		"is_immutable":          version.IsImmutable,
 		"segment_count":         segmentCount,
-	})
+	}
 }
 
 // CloneToVersion copies the segments of source into a new persisted version
@@ -67,9 +68,9 @@ func (t *Toolset) CloneToVersion(ctx context.Context, job *domain.Job, source *d
 	if err := t.Stores.Transcripts.CreateVersion(ctx, version, newSegs); err != nil {
 		return nil, err
 	}
-	if err := t.auditVersionCreated(ctx, job, version, source, createdBy, len(newSegs)); err != nil {
-		return nil, err
-	}
+	// Informational event: fire-and-forget (audit failures are logged/counted).
+	t.Audit(ctx, &job.JobID, "user", createdBy, "transcript.version_created",
+		versionCreatedPayload(version, source, len(newSegs)))
 	return version, nil
 }
 
@@ -111,9 +112,8 @@ func (t *Toolset) EditSegment(ctx context.Context, versionID, segmentID uuid.UUI
 	if err := t.Stores.Transcripts.UpdateSegment(ctx, seg); err != nil {
 		return nil, err
 	}
-	if err := t.Audit(ctx, &version.JobID, "user", editedBy, "transcript.segment_edited", payload); err != nil {
-		return nil, err
-	}
+	// Informational event: fire-and-forget (audit failures are logged/counted).
+	t.Audit(ctx, &version.JobID, "user", editedBy, "transcript.segment_edited", payload)
 	return seg, nil
 }
 
@@ -175,6 +175,14 @@ func (t *Toolset) ApproveTranscript(ctx context.Context, job *domain.Job, review
 		ApprovedAt:                  time.Now().UTC(),
 		ApprovalNote:                note,
 	}
+	if err := t.AuditStrict(ctx, &job.JobID, "user", approvedBy, "transcript.approval_requested", map[string]any{
+		"approval_id":                    approval.ApprovalID.String(),
+		"reviewed_transcript_version_id": reviewedVersionID.String(),
+		"approved_transcript_version_id": approvedVersion.TranscriptVersionID.String(),
+		"approval_note":                  note,
+	}); err != nil {
+		return nil, nil, err
+	}
 	updatedJob, superseded, err := t.Stores.Review.ApproveJob(ctx, store.ApproveJobParams{
 		JobID:           job.JobID,
 		ApprovedVersion: approvedVersion,
@@ -185,25 +193,23 @@ func (t *Toolset) ApproveTranscript(ctx context.Context, job *domain.Job, review
 		return nil, nil, err
 	}
 	*job = *updatedJob
-	if err := t.auditVersionCreated(ctx, job, approvedVersion, reviewed, approvedBy, len(approvedSegs)); err != nil {
-		return nil, nil, err
-	}
+	// Approval already passed its strict pre-mutation audit reservation above.
+	// Completion events are best-effort so a post-commit audit outage never makes
+	// the API answer 503 after the approval has already been durably committed.
+	t.Audit(ctx, &job.JobID, "user", approvedBy, "transcript.version_created",
+		versionCreatedPayload(approvedVersion, reviewed, len(approvedSegs)))
 	for _, priorID := range superseded {
-		if err := t.Audit(ctx, &job.JobID, "system", "approve_transcript", "approval.superseded", map[string]any{
+		t.Audit(ctx, &job.JobID, "system", "approve_transcript", "approval.superseded", map[string]any{
 			"superseded_approval_id":    priorID.String(),
 			"superseded_by_approval_id": approval.ApprovalID.String(),
-		}); err != nil {
-			return nil, nil, err
-		}
+		})
 	}
-	if err := t.Audit(ctx, &job.JobID, "user", approvedBy, "transcript.approved", map[string]any{
+	t.Audit(ctx, &job.JobID, "user", approvedBy, "transcript.approved", map[string]any{
 		"approval_id":                    approval.ApprovalID.String(),
 		"reviewed_transcript_version_id": reviewedVersionID.String(),
 		"approved_transcript_version_id": approvedVersion.TranscriptVersionID.String(),
 		"approval_note":                  note,
-	}); err != nil {
-		return nil, nil, err
-	}
+	})
 	return approval, approvedVersion, nil
 }
 
@@ -226,6 +232,13 @@ func (t *Toolset) ReopenJob(ctx context.Context, job *domain.Job, reopenedBy str
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := t.AuditStrict(ctx, &job.JobID, "user", reopenedBy, "job.reopen_requested",
+		map[string]any{
+			"from_approved_version_id": approved.TranscriptVersionID.String(),
+			"reviewed_version_id":      reviewed.TranscriptVersionID.String(),
+		}); err != nil {
+		return nil, nil, err
+	}
 	updatedJob, err := t.Stores.Review.ReopenJob(ctx, store.ReopenJobParams{
 		JobID:           job.JobID,
 		ReviewedVersion: reviewed,
@@ -235,13 +248,10 @@ func (t *Toolset) ReopenJob(ctx context.Context, job *domain.Job, reopenedBy str
 		return nil, nil, err
 	}
 	*job = *updatedJob
-	if err := t.auditVersionCreated(ctx, job, reviewed, approved, reopenedBy, len(segs)); err != nil {
-		return nil, nil, err
-	}
-	if err := t.Audit(ctx, &job.JobID, "user", reopenedBy, "job.reopened",
-		map[string]any{"from_approved_version_id": approved.TranscriptVersionID.String()}); err != nil {
-		return nil, nil, err
-	}
+	t.Audit(ctx, &job.JobID, "user", reopenedBy, "transcript.version_created",
+		versionCreatedPayload(reviewed, approved, len(segs)))
+	t.Audit(ctx, &job.JobID, "user", reopenedBy, "job.reopened",
+		map[string]any{"from_approved_version_id": approved.TranscriptVersionID.String()})
 	return job, reviewed, nil
 }
 
@@ -310,7 +320,8 @@ func (t *Toolset) GenerateSummary(ctx context.Context, job *domain.Job, source *
 	if err := t.Stores.Summaries.CreateSummary(ctx, summary); err != nil {
 		return nil, err
 	}
-	if err := t.Audit(ctx, &job.JobID, "tool", "generate_summary", "tool.generate_summary.completed",
+	// Informational tool event: fire-and-forget.
+	t.Audit(ctx, &job.JobID, "tool", "generate_summary", "tool.generate_summary.completed",
 		map[string]any{
 			"summary_id":                   summary.SummaryID.String(),
 			"source_transcript_version_id": source.TranscriptVersionID.String(),
@@ -318,9 +329,7 @@ func (t *Toolset) GenerateSummary(ctx context.Context, job *domain.Job, source *
 			"summary_max_words":            cfg.SummaryMaxWords,
 			"summary_style":                cfg.SummaryStyle,
 			"validation_status":            validation,
-		}); err != nil {
-		return nil, err
-	}
+		})
 	return summary, nil
 }
 
@@ -355,6 +364,14 @@ func (t *Toolset) ExportTranscript(ctx context.Context, job *domain.Job, approve
 	if err != nil {
 		return nil, err
 	}
+	if err := t.AuditStrict(ctx, &job.JobID, "tool", "export_transcript", "tool.export_transcript.requested",
+		map[string]any{
+			"approved_transcript_version_id": approved.TranscriptVersionID.String(),
+			"formats":                        formats,
+			"requested_by":                   requestedBy,
+		}); err != nil {
+		return nil, err
+	}
 	var records []*domain.ExportRecord
 	for _, format := range formats {
 		data, err := exporter.Generate(format, segs)
@@ -366,6 +383,7 @@ func (t *Toolset) ExportTranscript(ctx context.Context, job *domain.Job, approve
 		validation := "passed"
 		if err := exporter.Validate(format, data); err != nil {
 			validation = "failed"
+			metrics.ExportValidationFailures.Add(1)
 			t.Audit(ctx, &job.JobID, "tool", "export_transcript", "export.validation_failed",
 				map[string]any{"format": format, "error": err.Error()})
 		}
@@ -416,15 +434,13 @@ func (t *Toolset) ExportTranscript(ctx context.Context, job *domain.Job, approve
 	for i, r := range records {
 		ids[i] = r.ExportID.String()
 	}
-	if err := t.Audit(ctx, &job.JobID, "tool", "export_transcript", "tool.export_transcript.completed",
+	t.Audit(ctx, &job.JobID, "tool", "export_transcript", "tool.export_transcript.completed",
 		map[string]any{
 			"approved_transcript_version_id": approved.TranscriptVersionID.String(),
 			"formats":                        formats,
 			"export_ids":                     ids,
 			"requested_by":                   requestedBy,
-		}); err != nil {
-		return nil, err
-	}
+		})
 	return records, nil
 }
 
@@ -484,6 +500,14 @@ func (t *Toolset) ReplaceJobMedia(ctx context.Context, job *domain.Job, in Repla
 		}
 	}
 	priorHash := URIHash(job.SourceURI)
+	if err := t.AuditStrict(ctx, &job.JobID, "user", in.ReplacedBy, "job.media_replace_requested", map[string]any{
+		"prior_source_uri_hash": priorHash,
+		"new_source_uri_hash":   URIHash(in.SourceURI),
+		"source_type":           in.SourceType,
+		"ownership_attested":    true,
+	}); err != nil {
+		return nil, err
+	}
 	// Prior artifacts stay in storage under retention, marked superseded.
 	if err := t.Stores.Artifacts.MarkArtifactsSuperseded(ctx, job.JobID); err != nil {
 		return nil, err
@@ -505,22 +529,22 @@ func (t *Toolset) ReplaceJobMedia(ctx context.Context, job *domain.Job, in Repla
 	}
 	*job = *updated
 	if staged != nil {
+		now := time.Now().UTC()
 		if err := t.Stores.Artifacts.CreateArtifact(ctx, &domain.MediaArtifact{
 			ArtifactID: uuid.New(), JobID: job.JobID,
 			ArtifactType: domain.ArtifactSourceMedia, URI: staged.URI,
-			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes, CreatedAt: time.Now().UTC(),
+			MimeType: staged.MimeType, SizeBytes: staged.SizeBytes,
+			RetentionUntil: t.RetentionUntil(now), CreatedAt: now,
 		}); err != nil {
 			return nil, err
 		}
 	}
-	if err := t.Audit(ctx, &job.JobID, "user", in.ReplacedBy, "job.media_replaced", map[string]any{
+	t.Audit(ctx, &job.JobID, "user", in.ReplacedBy, "job.media_replaced", map[string]any{
 		"prior_source_uri_hash": priorHash,
 		"new_source_uri_hash":   URIHash(in.SourceURI),
 		"source_type":           in.SourceType,
 		"ownership_attested":    true,
-	}); err != nil {
-		return nil, err
-	}
+	})
 	return job, nil
 }
 
@@ -547,6 +571,12 @@ func (t *Toolset) CancelJob(ctx context.Context, job *domain.Job, cancelledBy, r
 	// CAS from the status the caller saw: if the pipeline advanced (or another
 	// actor won) in the meantime the cancel answers 409 STATUS_CONFLICT and
 	// the caller retries against the fresh state.
+	if err := t.AuditStrict(ctx, &job.JobID, "user", cancelledBy, "job.cancel_requested", map[string]any{
+		"reason":       reason,
+		"prior_status": string(priorStatus),
+	}); err != nil {
+		return nil, err
+	}
 	updated, err := t.Stores.Jobs.TransitionJob(ctx, job.JobID, priorStatus, func(j *domain.Job) error {
 		j.CancelReason = reason
 		j.ActionRequired = ""
@@ -556,11 +586,9 @@ func (t *Toolset) CancelJob(ctx context.Context, job *domain.Job, cancelledBy, r
 		return nil, err
 	}
 	*job = *updated
-	if err := t.Audit(ctx, &job.JobID, "user", cancelledBy, "job.cancelled", map[string]any{
+	t.Audit(ctx, &job.JobID, "user", cancelledBy, "job.cancelled", map[string]any{
 		"reason":       reason,
 		"prior_status": string(priorStatus),
-	}); err != nil {
-		return nil, err
-	}
+	})
 	return job, nil
 }
