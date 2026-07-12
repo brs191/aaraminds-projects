@@ -56,6 +56,9 @@ type Options struct {
 	// RetentionDays sets media_artifacts.retention_until at creation
 	// (RETENTION_DAYS env; zero means the 30-day default).
 	RetentionDays int
+	// WebDist, when set, serves the built React UI from this directory at /
+	// with SPA fallback (WEB_DIST env). Empty disables static serving.
+	WebDist string
 }
 
 // App is the wired application.
@@ -91,5 +94,6 @@ func New(o Options) *App {
 		orch.StuckThreshold = o.StuckJobThreshold
 	}
 	srv := api.NewServer(ts, orch, o.Objects, o.CORSOrigin, o.AuthProxySecret, o.SigningSecret, o.MaxUploadBytes, o.Log)
+	srv.StaticDir = o.WebDist
 	return &App{Tools: ts, Orch: orch, API: srv}
 }

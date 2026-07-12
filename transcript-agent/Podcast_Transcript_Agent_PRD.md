@@ -1,11 +1,11 @@
-# PRD: Podcast Transcript Agent v1.5 — Handoff-Ready MVP
+# PRD: Podcast Transcript Agent v1.6 — Handoff-Ready MVP
 
 | | |
 |---|---|
-| **Status** | Draft v1.5 — Handoff-ready MVP baseline |
+| **Status** | Draft v1.6 — MVP built; §25 blocking decisions recorded |
 | **Author** | Raja |
 | **Original Draft** | v1.0, July 3, 2026 |
-| **Updated** | July 8, 2026 — v1.5 review fixes |
+| **Updated** | July 9, 2026 — v1.6 records §25 decisions (no owned YouTube channel, same-person approval, 30-day retention) |
 | **Audience** | Internal enterprise media/content team, engineering, architecture, security, product, operations |
 | **Target Scale** | 1–10 podcast episodes/month, English-only |
 | **Primary Channel** | YouTube + direct media upload |
@@ -14,6 +14,8 @@
 ---
 
 ## 0. Version Change Summary
+
+This v1.6 records the resolved §25 blocking decisions (July 9, 2026): the YouTube channel is **not owned** and OAuth is not available, so caption download/reuse is out of MVP scope (pre-check remains as availability logging only; `fetch_existing_captions`/`parse_captions_to_transcript` stay defined but inactive until an owned channel exists); **same-person approval is allowed** (producer may review and approve their own submission); **media retention is 30 days** after approval. The v1.5 change summary below is retained for history.
 
 This v1.5 keeps the v1.4 MVP scope and closes review gaps found before engineering handoff:
 
@@ -230,6 +232,7 @@ Ordered by MVP priority.
 - For YouTube jobs, check for existing official caption tracks before transcription.
 - Treat official captions as reusable only when the channel is owned/authorized and captions are downloadable.
 - Treat auto-generated captions as unavailable for reuse unless a future policy explicitly permits them.
+- **Scope note (July 9, 2026):** the team does not own the target channel and has no OAuth authorization, so caption download/reuse cannot activate in MVP. The pre-check runs for availability logging and cost-signal purposes only; all jobs proceed to transcription.
 
 **Acceptance Criteria**
 
@@ -1542,7 +1545,7 @@ For the target scale of 1–10 episodes/month, RBAC should start minimum viable 
 ### 16.4 Privacy and Retention
 
 - Uploaded source media should be retained only as long as needed for review and audit support.
-- Suggested default: delete source media and extracted audio N days after approval. N must be approved by team policy.
+- **Approved policy (July 9, 2026): delete source media and extracted audio 30 days after approval.**
 - Approved transcripts and audit logs are durable records.
 - Guest consent language should explicitly cover transcript generation and derived content. **[VERIFY with legal/policy]**
 
@@ -1793,8 +1796,8 @@ This is a rough engineering estimate for planning. It assumes one small product-
 **Sizing assumptions:**
 
 1. Existing auth, storage, secrets, and database patterns are available.
-2. YouTube channel ownership is confirmed at Phase 0 exit (revised target: July 10, 2026).
-3. Retention policy is confirmed at Phase 0 exit (revised target: July 10, 2026).
+2. YouTube channel ownership: resolved July 9, 2026 — not owned; caption reuse out of MVP scope.
+3. Retention policy: resolved July 9, 2026 — 30 days after approval.
 4. No real-time transcription, multi-language support, CMS integration, or auto-publishing enters MVP.
 5. The review UI is purpose-built and minimal; it is not a full media-editing product.
 6. `.docx`, chapters, quotes, show notes, Teams notifications, and speaker name suggestions remain deferred.
@@ -1881,16 +1884,16 @@ Add only if demand exists:
 
 Blocking questions must have a target resolution date. If the date is missed, the product owner must either cut scope, assign a decision owner, or pause the dependent workstream.
 
-**Status as of July 8, 2026:** the July 6 blocking items (channel ownership/OAuth, approver policy) are past due and the retention-window item is due today. Per the rule above, the product owner must confirm resolution or act now. Revised targets below assume decisions land by July 10, 2026; if they slip again, Phase 1 start pauses.
+**Status as of July 9, 2026:** three of the four blocking items are RESOLVED (recorded below). The STT provider bake-off remains the only open blocking item.
 
 | Question | Owner | Blocking? | Target Resolution | Notes |
 |---|---|---|---|---|
-| Is the YouTube channel owned and OAuth-authorizable? | Content/Admin | Yes | July 10, 2026 (was July 6 — past due) | Determines caption reuse and future auto-publish feasibility; API behavior is verified, channel ownership still must be confirmed |
+| Is the YouTube channel owned and OAuth-authorizable? | Content/Admin | Yes | **RESOLVED July 9, 2026** | **Decision: not owned, no OAuth.** Caption download/reuse is out of MVP scope; caption pre-check remains as availability logging only. `fetch_existing_captions`/`parse_captions_to_transcript` stay defined but inactive until an owned channel exists. Future auto-publish (Phase 3) is infeasible without channel ownership. |
 | Which STT provider should be selected? | Engineering | Yes | July 13, 2026 | Run 3-episode bake-off before final choice; pricing basis captured in section 20 |
 | What is the clean transcript style policy? | Content/Reviewer | No | July 8, 2026 | Draft during MVP build |
 | Does guest consent cover transcript and derived content? | Legal/Policy | No, but needed before external guests | July 15, 2026 | **[VERIFY]** before processing external guest episodes |
-| Who can approve transcripts? | Team Lead | Yes | July 10, 2026 (was July 6 — past due) | Decide whether producer and reviewer can be same person |
-| What is the media retention window? | Content/Security | Yes | July 10, 2026 (was July 8 — due today) | Required before production use |
+| Who can approve transcripts? | Team Lead | Yes | **RESOLVED July 9, 2026** | **Decision: same person allowed.** A producer may review and approve their own submission (small-team mode). Revisit if the team grows or governance requires separation of duties. |
+| What is the media retention window? | Content/Security | Yes | **RESOLVED July 9, 2026** | **Decision: 30 days after approval** for source media and extracted audio. Approved transcripts and audit logs remain durable. |
 | What is the maximum episode duration for MVP? | Product/Engineering | No | July 8, 2026 | Helps cost and timeout control |
 | Is `.docx` truly required in MVP? | Content Team | No | July 8, 2026 | Recommendation: defer |
 

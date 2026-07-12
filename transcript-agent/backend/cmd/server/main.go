@@ -196,6 +196,27 @@ func main() {
 			maxUploadBytes = n
 		}
 	}
+	// --- built web UI (optional) ----------------------------------------------
+	// WEB_DIST points at the built React UI (vite build output). Default
+	// ../web/dist is used only when it exists; an explicit WEB_DIST that is
+	// not a directory logs a warning and static serving stays off.
+	webDist := ""
+	switch dist := os.Getenv("WEB_DIST"); {
+	case dist != "":
+		if fi, err := os.Stat(dist); err == nil && fi.IsDir() {
+			webDist = dist
+		} else {
+			log.Warn("WEB_DIST is not a directory; static UI serving disabled", "web_dist", dist)
+		}
+	default:
+		if fi, err := os.Stat("../web/dist"); err == nil && fi.IsDir() {
+			webDist = "../web/dist"
+		}
+	}
+	if webDist != "" {
+		log.Info("serving built web UI", "web_dist", webDist)
+	}
+
 	a := app.New(app.Options{
 		Log:             log,
 		Stores:          stores,
@@ -216,6 +237,7 @@ func main() {
 		DrainTimeout:      envDuration("DRAIN_TIMEOUT", 30*time.Second),
 		StuckJobThreshold: envDuration("STUCK_JOB_THRESHOLD", 10*time.Minute),
 		RetentionDays:     envInt("RETENTION_DAYS", 30),
+		WebDist:           webDist,
 	})
 	if os.Getenv("AUTH_PROXY_SECRET") == "" {
 		log.Warn("AUTH_PROXY_SECRET is not set; header auth is running in development mode and must not be exposed directly")

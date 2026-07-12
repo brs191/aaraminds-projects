@@ -38,11 +38,16 @@ func validRole(role string) bool {
 }
 
 // authExempt reports whether a path skips authentication entirely: health
-// checks and the internal expvar metrics endpoint (PRD 18.2; deploy behind
-// the trusted proxy, not on the public edge).
+// checks, the internal expvar metrics endpoint (PRD 18.2; deploy behind the
+// trusted proxy, not on the public edge), and everything outside /api/ —
+// static UI assets and SPA routes are public; the API contract under /api/
+// stays authenticated.
 func authExempt(r *http.Request) bool {
 	p := r.URL.Path
-	return p == "/healthz" || p == "/api/v1/healthz" || p == "/debug/vars"
+	if !strings.HasPrefix(p, "/api/") {
+		return true // /healthz, /debug/vars, static UI + SPA fallback
+	}
+	return p == "/api/v1/healthz"
 }
 
 // tokenCapable reports whether the endpoint accepts EITHER a signed ?token=

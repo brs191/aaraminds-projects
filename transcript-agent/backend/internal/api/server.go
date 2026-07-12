@@ -29,7 +29,11 @@ type Server struct {
 	SigningSecret []byte
 	// MaxUploadBytes caps POST /api/v1/uploads bodies (MAX_UPLOAD_BYTES env).
 	MaxUploadBytes int64
-	Log            *slog.Logger
+	// StaticDir, when set, serves the built React UI (WEB_DIST env) at /
+	// with SPA fallback. Empty disables static serving (dev mode: Vite on
+	// :5173 talks to the API cross-origin via CORS).
+	StaticDir string
+	Log       *slog.Logger
 
 	mux *http.ServeMux
 }
@@ -100,6 +104,10 @@ func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objec
 	mux.HandleFunc("POST /api/v1/signed-links", s.handleCreateSignedLink)
 	mux.HandleFunc("GET /api/v1/jobs/{jobID}/audio", s.handleJobAudio)
 	mux.HandleFunc("GET /api/v1/exports/{exportID}/download", s.handleDownloadExport)
+
+	// Catch-all: built web UI with SPA fallback (no-op 404 until StaticDir
+	// is set). Every registered pattern above is more specific and wins.
+	mux.HandleFunc("GET /", s.handleStatic)
 
 	s.mux = mux
 	return s
