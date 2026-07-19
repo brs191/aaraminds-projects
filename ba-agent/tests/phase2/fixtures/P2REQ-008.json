@@ -1,0 +1,153 @@
+{
+  "case_id": "P2REQ-008",
+  "case_label": "[SYNTHETIC] SignalBridge tool-origin evidence discovery slice",
+  "input_type": "synthetic_tool_origin_evidence",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-008\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-008\n[SYNTHETIC] SOURCE: JiraBoard | Avery Stone, Tool Steward | synthetic-2026-07-09T12:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] SOURCE: ConfluenceNotes | Avery Stone, Tool Steward | synthetic-2026-07-09T12:10:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] SOURCE: TeamsDigest | Avery Stone, Tool Steward | synthetic-2026-07-09T11:30:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Avery Stone, Tool Steward; Tool Steward\n[SYNTHETIC] FACT: SignalBridge is the fictional tool-origin evidence case for this source-metadata slice.\n[SYNTHETIC] FACT: JiraBoard issue snapshot says approval queue should include escalated requests.\n[SYNTHETIC] FACT: ConfluenceNotes page says approval queue should exclude escalated requests until policy review.\n[SYNTHETIC] FACT: TeamsDigest summary is older than the JiraBoard and ConfluenceNotes snapshots.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no source is treated as authoritative automatically.\n[SYNTHETIC] INFERRED: Source staleness may affect which evidence should guide the next review.\n[SYNTHETIC] CONFLICT: JiraBoard says escalated requests are included, while ConfluenceNotes says escalated requests are excluded until policy review.\n[SYNTHETIC] QUESTION: Which source is authoritative for escalated-request queue behavior?\n[SYNTHETIC] QUESTION: What source freshness rule should govern tool-origin evidence?",
+  "project_context": {
+    "project_name": "[SYNTHETIC] SignalBridge",
+    "business_domain": "[SYNTHETIC] tool-origin evidence requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Avery Stone, Tool Steward",
+      "[SYNTHETIC] Tool Steward"
+    ],
+    "target_users": [
+      "[SYNTHETIC] approval coordinators",
+      "[SYNTHETIC] platform reviewers"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] JiraBoard",
+      "[SYNTHETIC] ConfluenceNotes",
+      "[SYNTHETIC] TeamsDigest"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Authoritative source rule is unresolved"
+    ],
+    "constraints": [
+      "[SYNTHETIC] External tool execution remains blocked"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] SGB-008",
+    "confluence_space": "[SYNTHETIC] SGB-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft tool-origin evidence summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] JiraBoard",
+      "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+      "timestamp": "synthetic-2026-07-09T12:00:00Z",
+      "retrieved_at": "synthetic-2026-07-09T12:20:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    },
+    {
+      "system": "[SYNTHETIC] ConfluenceNotes",
+      "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+      "timestamp": "synthetic-2026-07-09T12:10:00Z",
+      "retrieved_at": "synthetic-2026-07-09T12:21:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    },
+    {
+      "system": "[SYNTHETIC] TeamsDigest",
+      "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+      "timestamp": "synthetic-2026-07-09T11:30:00Z",
+      "retrieved_at": "synthetic-2026-07-09T12:22:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] tool-origin evidence",
+        "text": "[SYNTHETIC] synthetic JiraBoard, ConfluenceNotes, and TeamsDigest metadata only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] JiraBoard",
+        "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+        "timestamp": "synthetic-2026-07-09T12:00:00Z",
+        "retrieved_at": "synthetic-2026-07-09T12:20:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-008"
+      },
+      {
+        "system": "[SYNTHETIC] ConfluenceNotes",
+        "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+        "timestamp": "synthetic-2026-07-09T12:10:00Z",
+        "retrieved_at": "synthetic-2026-07-09T12:21:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-008"
+      },
+      {
+        "system": "[SYNTHETIC] TeamsDigest",
+        "owner": "[SYNTHETIC] Avery Stone, Tool Steward",
+        "timestamp": "synthetic-2026-07-09T11:30:00Z",
+        "retrieved_at": "synthetic-2026-07-09T12:22:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-008"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] SignalBridge has tool-origin evidence from JiraBoard, ConfluenceNotes, and TeamsDigest with conflicting escalated-request guidance and different source timestamps.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory tool-origin evidence summary that preserves source metadata, conflict, staleness, classification, and evidence refs.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: SignalBridge should preserve source system, owner, timestamp, retrieved timestamp, classification, conflict, and authoritative-source questions before any queue behavior is decided.",
+    "draft_story": "[SYNTHETIC] As a synthetic Tool Steward, I want tool-origin evidence preserved with source metadata so that reviewers can decide which source governs escalated-request queue behavior.",
+    "facts": [
+      "[SYNTHETIC] JiraBoard issue snapshot says approval queue should include escalated requests.",
+      "[SYNTHETIC] ConfluenceNotes page says approval queue should exclude escalated requests until policy review.",
+      "[SYNTHETIC] TeamsDigest summary is older than the JiraBoard and ConfluenceNotes snapshots."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no source is treated as authoritative automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] Source staleness may affect which evidence should guide the next review."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Which source is authoritative for escalated-request queue behavior?",
+      "[SYNTHETIC] What source freshness rule should govern tool-origin evidence?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] External tool execution remains blocked."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-008:001 -> p2-obj:P2REQ-008:001 -> p2-req-draft:P2REQ-008:001 -> p2-story-draft:P2REQ-008:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] JiraBoard includes escalated requests.",
+      "[SYNTHETIC] ConfluenceNotes excludes escalated requests until policy review.",
+      "[SYNTHETIC] TeamsDigest is older."
+    ],
+    "conflicts": [
+      "[SYNTHETIC] JiraBoard queue behavior conflicts with ConfluenceNotes queue behavior."
+    ],
+    "missing_rules": [
+      "[SYNTHETIC] Authoritative source rule.",
+      "[SYNTHETIC] Source freshness rule."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Architect [RAJA]",
+    "Platform/tool owner [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-008"
+  ]
+}

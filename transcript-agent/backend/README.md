@@ -34,7 +34,10 @@ is allowed by default; the UI sends `X-User-Id` / `X-User-Role` headers.
 | `POSTGRES_TEST_DATABASE_URL` | — | Optional pgx DSN used only by `make postgres-test` / the skipped-by-default Postgres integration test |
 | `MIGRATIONS_DIR` | `migrations` | SQL migration files (applied at boot, `schema_migrations` table) |
 | `DATA_DIR` | `./data` | Local object store root (audio, captions, exports) |
-| `STT_PROVIDER` | `mock` | `mock` or `azure` (Azure Speech fast transcription) |
+| `STT_PROVIDER` | `mock` | `mock`, `whisperx` (local WhisperX sidecar — the default real-STT path) or `azure` (Azure Speech fast transcription) |
+| `WHISPERX_URL` | `http://localhost:9090` | WhisperX sidecar base URL for `STT_PROVIDER=whisperx` |
+| `WHISPERX_POLL_INTERVAL` | `5s` | Wait between sidecar job-status polls |
+| `WHISPERX_TIMEOUT` | `2h` | Overall per-transcription deadline (submit + poll); exceeding it fails the attempt as retryable `STT_PROVIDER_TIMEOUT` |
 | `AZURE_SPEECH_ENDPOINT` | — | Azure Speech/Foundry resource endpoint for `STT_PROVIDER=azure`, e.g. `https://<resource>.cognitiveservices.azure.com` |
 | `AZURE_SPEECH_REGION` | — | Legacy fallback when `AZURE_SPEECH_ENDPOINT` is unset; builds `https://<region>.api.cognitive.microsoft.com` |
 | `AZURE_SPEECH_KEY` | — | Azure Speech resource key for `STT_PROVIDER=azure` |
@@ -56,6 +59,9 @@ is allowed by default; the UI sends `X-User-Id` / `X-User-Role` headers.
 | `DRAIN_TIMEOUT` | `30s` | SIGTERM drain: intake stops immediately, in-flight steps get this long to finish. Interrupted steps never mark the job failed — it stays in its durable state for reclaim |
 | `STUCK_JOB_THRESHOLD` | `10m` | Jobs sitting in a mid-pipeline state (`validating`, `metadata_extracted`, `caption_checked`, `extracting_audio`, `transcribing`, `normalizing`, `quality_checking`) with `updated_at` older than this are CAS'd back to `queued` by the scanner (ALERT-logged + audited); jobs in flight in this process are never reclaimed |
 | `RETENTION_DAYS` | `30` | `media_artifacts.retention_until` for `source_media`, `audio_extract`, `caption_source` at creation. The scan loop deletes expired artifacts (object bytes + row) and audit-logs each deletion. Exports and approved transcripts are exempt — never swept |
+| `LIBRARY_POLL_INTERVAL` | `30m` | Library mode: RSS feed poll cadence in the orchestrator scan loop (first scan after boot polls immediately; per-feed polls also via `POST /library/feeds/{id}/poll`) |
+| `LIBRARY_AUTO_PER_POLL` | `3` | Library mode: max NEW episodes auto-transcribed per feed per poll for `auto_transcribe` feeds (backfilled episodes are never auto-transcribed) |
+| `LIBRARY_MAX_DOWNLOAD_BYTES` | `524288000` (500 MiB) | Library mode: enclosure download size cap. Over-cap episodes park their job in `needs_user_action`/`replace_media` with `LIBRARY_DOWNLOAD_TOO_LARGE` |
 | `MAX_DURATION_SECONDS` | `0` (disabled) | Media duration cap (PRD 20.2), snapshotted into `job_config`. Over-limit jobs park in `needs_user_action`/`duration_exceeded` with `DURATION_LIMIT_EXCEEDED`; resolution is replace-media with a shorter file or cancel (no override endpoint in MVP) |
 | `DEFAULT_CONFIDENCE_THRESHOLD` | `0.80` | job_config snapshot default (PRD R5) |
 | `DEFAULT_SUMMARY_MAX_WORDS` | `150` | job_config snapshot default (PRD R10) |
@@ -65,6 +71,37 @@ is allowed by default; the UI sends `X-User-Id` / `X-User-Role` headers.
 All configuration is snapshotted into `job_config` when a job enters
 `validating`; tools read the snapshot via `job_config_id` and never accept
 thresholds/style/summary parameters as inputs (PRD 13.2 rule 7).
+
+## WhisperX STT provider (`STT_PROVIDER=whisperx`)
+
+Local, no-cloud-credentials real STT via the WhisperX sidecar in
+`../stt-sidecar/` (faster-whisper + word alignment + optional pyannote
+diarization). Start the sidecar (`../scripts/stt-setup.sh` once, then
+`../scripts/stt-run.sh`), then run the backend with `STT_PROVIDER=whisperx`
+(and `WHISPERX_URL` if not `http://localhost:9090`). Sidecar setup, env vars
+(`WHISPER_MODEL`, `HF_TOKEN`, GPU notes) and the frozen HTTP API are
+documented in `../stt-sidecar/README.md`.
+
+Provider behavior (`internal/providers/stt/whisperx/`):
+
+- Reads the `local://` audio artifact from `DATA_DIR` (same resolution rules
+  as the azure provider), streams it to `POST /v1/jobs`, then polls
+  `GET /v1/jobs/{id}` every `WHISPERX_POLL_INTERVAL` until done/error, bounded
+  by `WHISPERX_TIMEOUT` (context-aware; abandoned sidecar jobs get a
+  best-effort `DELETE`).
+- Sidecar unreachable / job lost / deadline exceeded map to
+  `STT_PROVIDER_TIMEOUT` (retryable per the PRD 19 matrix); HTTP 429 maps to
+  `STT_PROVIDER_QUOTA_EXCEEDED`; sidecar `LANGUAGE_UNSUPPORTED` passes
+  through.
+- Diarization speaker IDs (`SPEAKER_00`, ...) map to `Speaker 1`,
+  `Speaker 2`, ... by first appearance; when the sidecar runs without
+  `HF_TOKEN` the job still succeeds with everything labeled `Speaker 1` and
+  segments flagged `diarization_unavailable`.
+- `job_config.expected_speaker_count` is forwarded as
+  `min_speakers`/`max_speakers` (via the optional `stt.SpeakerHinter`
+  interface — mock and azure are unaffected).
+- Audit metadata: `provider=whisperx`, `model` from the sidecar (e.g.
+  `large-v3-turbo`), `request_id` = sidecar job id.
 
 The HTTP server runs with `ReadTimeout=30s`, `WriteTimeout=120s` (audio
 streaming headroom), `IdleTimeout=120s`, and a 1 MiB body cap on every JSON
@@ -116,6 +153,76 @@ Postgres).
   carries `X-Superseded: true`.
 - Summary JSON carries `validation_status` (`passed` | `needs_review` |
   `failed`) and `validation_notes` (`string|null`).
+
+## Library mode (personal-use extension)
+
+Library mode turns the agent into a personal podcast transcript library:
+subscribe to open RSS feeds, transcribe episodes (manually or automatically),
+and full-text-search the transcripts. It is a personal-use extension outside
+the PRD's review workflow.
+
+**Concepts**
+
+- A **feed** is a subscribed RSS 2.0 URL (enclosures + `itunes:duration`;
+  parsed with stdlib `encoding/xml`, Atom not supported). Adding a feed
+  validates it by fetching synchronously (10s timeout, 5 MiB cap) and
+  backfills the current episodes **without** transcribing them.
+- An **episode** is one feed item, unique per `(feed_id, guid)` (missing GUIDs
+  fall back to the enclosure URL). Deleting a feed is a soft delete: the feed
+  and its episodes leave the listings, but episodes, jobs, and transcripts are
+  kept.
+- A **library job** is a normal job with `library_mode=true` and upload
+  semantics: no caption pre-check, and the pipeline **stops at `drafted`** —
+  there is no review gate. The summary is auto-generated right after the
+  quality check (fire-and-forget; a summary failure leaves the episode
+  drafted). Transcripts are readable and searchable immediately at `drafted`.
+- **Ownership**: instead of the manual attestation, library jobs set
+  `ownership_attested=true` programmatically and record
+  `source_basis="open_rss_personal_use"` on the job plus a
+  `job.ownership_attested` audit event noting the basis.
+- **Media**: the enclosure is downloaded as the job's first pipeline step
+  (HTTP GET streamed to the object store under `library/<episode_id>.<ext>`,
+  capped by `LIBRARY_MAX_DOWNLOAD_BYTES`, 10-minute timeout) so the worker
+  pool bounds download concurrency. The job's `source_uri` is
+  `library://<episode_id>`, resolved through the object store exactly like
+  `upload://`. Over-cap or repeatedly failing downloads park the job in
+  `needs_user_action`/`replace_media` (documented choice for the cap failure
+  mode).
+- **Poller**: runs in the orchestrator scan loop every
+  `LIBRARY_POLL_INTERVAL`; for `auto_transcribe` feeds it enqueues NEW
+  episodes only (never the backfill), at most `LIBRARY_AUTO_PER_POLL` per feed
+  per poll. Poll failures record `feeds.poll_error` and never kill the poller.
+
+**API** (base `/api/v1`, standard auth headers, standard error envelope; any
+authenticated role — the library is a shared personal space, so library jobs
+and their transcripts are readable by every authenticated user):
+
+- `POST /library/feeds` `{"feed_url","auto_transcribe"}` → `201 Feed`.
+  Errors: `FEED_URL_INVALID` (400), `FEED_FETCH_FAILED` (400),
+  `FEED_ALREADY_EXISTS` (409).
+- `GET /library/feeds` → `{"feeds":[Feed]}` — Feed carries `episode_count`,
+  `last_polled_at`, `poll_error`.
+- `DELETE /library/feeds/{feedID}` → `204` (soft delete).
+- `POST /library/feeds/{feedID}/poll` → `202 {"status":"poll_queued"}`.
+- `GET /library/episodes?feed_id=&q=&transcribed=true|false` →
+  `{"episodes":[Episode]}` newest `published_at` first (nulls last); Episode
+  carries `feed_title`, `job_id`, `job_status`.
+- `POST /library/episodes/{episodeID}/transcribe` → `202 Episode`;
+  `409 EPISODE_ALREADY_TRANSCRIBED` when a job already exists.
+- `GET /library/search?q=` (min 2 chars, else 400) →
+  `{"results":[{episode_id, episode_title, feed_title, job_id,
+  transcript_version_id, segment_id, start_ms, snippet, rank}]}` — snippets
+  wrap matches in `<b>...</b>`, limit 50. Searches the latest drafted library
+  transcript (clean, raw fallback) per library job **and** the current
+  approved version of non-library jobs (those hits carry null episode/feed
+  fields).
+
+**Search backends**: on Postgres, search uses a generated `tsvector` column +
+GIN index on `transcript_segments.text` (migration 0010) with
+`websearch_to_tsquery`, `ts_headline`, and `ts_rank` — **Postgres is the
+recommended storage for search**. The memory store ships a naive
+case-insensitive substring implementation so everything works (and is tested)
+without Postgres, but without stemming or ranking quality.
 
 ## Audit discipline, metrics, healthz
 
@@ -229,7 +336,8 @@ internal/api/          REST handlers, upload staging, auth/RBAC/logging/CORS mid
 internal/audit/        append-only audit writer (fire-and-forget + strict variants)
 internal/metrics/      expvar counters served at /debug/vars (PRD 18.2)
 internal/app/          shared wiring for main and the e2e test suite
-migrations/            PRD 13.3 schema (+ runtime columns in 0006, upload staging in 0007, export supersede in 0008)
+internal/rss/          stdlib RSS 2.0 parser (enclosures, itunes:duration) for library mode
+migrations/            PRD 13.3 schema (+ runtime columns in 0006, upload staging in 0007, export supersede in 0008, library feeds/episodes in 0009, segment search in 0010)
 ```
 
 ## RBAC (PRD 16.2 MVP-minimum)

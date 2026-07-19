@@ -31,8 +31,43 @@ type Job struct {
 	CaptionTrackID    string // first reusable official track
 	CaptionReuse      *bool  // producer decision; nil = undecided
 	CancelReason      string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	// LibraryMode marks personal-use library jobs (RSS episodes): the pipeline
+	// stops at drafted (no review gate) and the summary is auto-generated.
+	LibraryMode bool
+	// SourceBasis records the ownership basis when attestation is programmatic
+	// (library jobs: "open_rss_personal_use"). Empty for manual attestations.
+	SourceBasis string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// Feed is a feeds row (library mode): a subscribed podcast RSS feed.
+type Feed struct {
+	FeedID         uuid.UUID
+	FeedURL        string
+	Title          string
+	Description    string
+	ImageURL       string // "" renders as null
+	AutoTranscribe bool
+	LastPolledAt   *time.Time
+	PollError      string // "" renders as null; recorded on poll failure, feed stays
+	CreatedAt      time.Time
+	DeletedAt      *time.Time // soft delete: episodes/jobs/transcripts are kept
+}
+
+// Episode is an episodes row (library mode), unique per (feed_id, guid).
+type Episode struct {
+	EpisodeID       uuid.UUID
+	FeedID          uuid.UUID
+	GUID            string
+	Title           string
+	Description     string
+	AudioURL        string
+	PublishedAt     *time.Time
+	DurationSeconds *int
+	MediaArtifactID *uuid.UUID // set once the enclosure is downloaded
+	JobID           *uuid.UUID // set once a transcription job exists
+	CreatedAt       time.Time
 }
 
 // JobConfig is the per-job configuration snapshot (PRD 13.3 job_config).

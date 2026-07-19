@@ -1,0 +1,116 @@
+{
+  "case_id": "P2REQ-005",
+  "case_label": "[SYNTHETIC] Northstar Privacy regulatory-change discovery slice",
+  "input_type": "synthetic_regulatory_change_summary",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-005\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-005\n[SYNTHETIC] SOURCE: PrivacyOps | Mina Patel, Compliance Liaison | synthetic-2026-07-09T09:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Mina Patel, Compliance Liaison; Compliance Liaison\n[SYNTHETIC] FACT: Northstar Privacy is the fictional regulatory-change summary for this compliance slice.\n[SYNTHETIC] FACT: PrivacyOps summary says data-retention notices may need review before customer-facing release.\n[SYNTHETIC] FACT: Compliance Liaison says legal interpretation is not approved yet.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no regulatory obligation is approved automatically.\n[SYNTHETIC] INFERRED: Privacy, legal, audit, and product review lanes may need to inspect the draft obligation summary.\n[SYNTHETIC] QUESTION: Which retention-notice obligation is legally binding?\n[SYNTHETIC] QUESTION: Which privacy reviewer approves customer-facing wording?\n[SYNTHETIC] RISK: Treating draft regulatory language as approved could create compliance risk.",
+  "project_context": {
+    "project_name": "[SYNTHETIC] Northstar Privacy",
+    "business_domain": "[SYNTHETIC] regulatory requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Mina Patel, Compliance Liaison",
+      "[SYNTHETIC] Compliance Liaison"
+    ],
+    "target_users": [
+      "[SYNTHETIC] product managers",
+      "[SYNTHETIC] privacy reviewers"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] PrivacyOps"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Legal interpretation is not approved yet"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Regulatory obligations require human approval"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] NSP-005",
+    "confluence_space": "[SYNTHETIC] NSP-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft regulatory-change discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] PrivacyOps",
+      "owner": "[SYNTHETIC] Mina Patel, Compliance Liaison",
+      "timestamp": "synthetic-2026-07-09T09:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] regulatory summary",
+        "text": "[SYNTHETIC] synthetic regulatory summary only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] PrivacyOps",
+        "owner": "[SYNTHETIC] Mina Patel, Compliance Liaison",
+        "timestamp": "synthetic-2026-07-09T09:00:00Z",
+        "retrieved_at": "synthetic-2026-07-09T09:05:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-005"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] Northstar Privacy has a regulatory-change summary that may affect retention notices, but legal interpretation is not approved.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory regulatory-change discovery summary that flags legal, privacy, and audit review without approving obligations.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: Northstar Privacy should route retention-notice obligations for compliance/legal and privacy review before customer-facing wording is used.",
+    "draft_story": "[SYNTHETIC] As a synthetic Product Owner, I want regulatory-change impacts labeled as draft and non-approved so that legal and privacy reviewers can decide obligations.",
+    "facts": [
+      "[SYNTHETIC] PrivacyOps summary says data-retention notices may need review before customer-facing release.",
+      "[SYNTHETIC] Compliance Liaison says legal interpretation is not approved yet."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no regulatory obligation is approved automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] Privacy, legal, audit, and product review lanes may need to inspect the draft obligation summary."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Which retention-notice obligation is legally binding?",
+      "[SYNTHETIC] Which privacy reviewer approves customer-facing wording?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Treating draft regulatory language as approved could create compliance risk."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-005:001 -> p2-obj:P2REQ-005:001 -> p2-req-draft:P2REQ-005:001 -> p2-story-draft:P2REQ-005:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Retention notices may need review.",
+      "[SYNTHETIC] Legal interpretation is not approved."
+    ],
+    "conflicts": [],
+    "missing_rules": [
+      "[SYNTHETIC] Binding obligation interpretation.",
+      "[SYNTHETIC] Privacy approval owner."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Security/privacy owner [RAJA]",
+    "Compliance/legal owner [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-005"
+  ]
+}

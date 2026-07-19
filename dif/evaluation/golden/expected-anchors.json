@@ -1,0 +1,86 @@
+{
+  "version": "0.1.0",
+  "anchors": [
+    {
+      "anchor_alias": "anchor-md-architecture-owner",
+      "document_alias": "doc-architecture-overview",
+      "anchor_type": "md",
+      "source_ref": "golden-admitted@docver-architecture-overview:md:architecture-overview.md#L5-L8",
+      "path": "architecture-overview.md",
+      "heading_path": "Architecture Overview > Ownership",
+      "line_start": 5,
+      "line_end": 8,
+      "expected_excerpt": "The architecture service is owned by Platform Architecture."
+    },
+    {
+      "anchor_alias": "anchor-txt-runbook-retry",
+      "document_alias": "doc-runbook",
+      "anchor_type": "txt",
+      "source_ref": "golden-admitted@docver-runbook:txt:runbook.txt#L4-L7",
+      "path": "runbook.txt",
+      "line_start": 4,
+      "line_end": 7,
+      "expected_excerpt": "Retry the ingestion job once after verifying the source path is reachable."
+    },
+    {
+      "anchor_alias": "anchor-docx-approval",
+      "document_alias": "doc-requirements",
+      "anchor_type": "docx",
+      "source_ref": "golden-admitted@docver-requirements:docx:requirements.docx#p2",
+      "path": "requirements.docx",
+      "heading_path": "Requirements > Governance",
+      "paragraph_index": 2,
+      "expected_excerpt": "Any production corpus requires owner approval before indexing."
+    },
+    {
+      "anchor_alias": "anchor-json-service-owner",
+      "document_alias": "doc-service-config",
+      "anchor_type": "json",
+      "source_ref": "golden-admitted@docver-service-config:json:service-config.json#$.services[0].owner",
+      "path": "service-config.json",
+      "json_path": "$.services[0].owner",
+      "expected_excerpt": "platform-payments"
+    },
+    {
+      "anchor_alias": "anchor-json-class-reference",
+      "document_alias": "doc-service-config",
+      "anchor_type": "json",
+      "source_ref": "golden-admitted@docver-service-config:json:service-config.json#$.services[0].className",
+      "path": "service-config.json",
+      "json_path": "$.services[0].className",
+      "expected_excerpt": "com.example.payments.PaymentService",
+      "expected_code_entity_candidate": {
+        "candidate_text": "com.example.payments.PaymentService",
+        "candidate_kind": "class",
+        "match_status": "rif_unavailable"
+      }
+    }
+  ],
+  "resolver_failure_cases": [
+    {
+      "case_id": "missing-anchor",
+      "input_source_ref": "golden-admitted@docver-service-config:json:service-config.json#$.missing",
+      "expected_status": "anchor_not_found"
+    },
+    {
+      "case_id": "missing-document-version",
+      "input_source_ref": "golden-admitted@docver-missing:md:architecture-overview.md#L1-L2",
+      "expected_status": "document_version_not_found"
+    },
+    {
+      "case_id": "line-out-of-range",
+      "input_source_ref": "golden-admitted@docver-runbook:txt:runbook.txt#L100-L101",
+      "expected_status": "anchor_out_of_range"
+    },
+    {
+      "case_id": "source-content-unavailable",
+      "input_source_ref": "golden-admitted@docver-source-unavailable:txt:missing-source.txt#L1-L1",
+      "expected_status": "source_content_unavailable"
+    },
+    {
+      "case_id": "unsupported-anchor-type",
+      "input_source_ref": "golden-admitted@docver-architecture-overview:pdf:architecture-overview.pdf#p1",
+      "expected_status": "anchor_type_unsupported"
+    }
+  ]
+}

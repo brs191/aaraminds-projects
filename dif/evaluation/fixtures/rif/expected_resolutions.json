@@ -1,0 +1,89 @@
+{
+  "version": "0.1.0",
+  "variant_expectations": [
+    {
+      "variant": "no-rif",
+      "rif_status": "rif_not_deployed",
+      "shadow_status": null,
+      "expected_match_count": 0,
+      "required_caveats": ["No RIF compatibility surface is available."]
+    },
+    {
+      "variant": "rif-incompatible",
+      "rif_status": "rif_incompatible",
+      "shadow_status": null,
+      "expected_match_count": 0,
+      "required_missing_capabilities": ["source_ref", "confidence"]
+    },
+    {
+      "variant": "age-only-compatible",
+      "rif_status": "rif_compatible",
+      "shadow_status": "rif_shadow_empty",
+      "expected_match_count": 4,
+      "required_caveats": ["RIF relational shadows are empty; AGE fallback is active."]
+    },
+    {
+      "variant": "shadow-compatible",
+      "rif_status": "rif_compatible",
+      "shadow_status": "rif_shadow_populated",
+      "expected_match_count": 4,
+      "required_caveats": []
+    },
+    {
+      "variant": "shadow-empty-no-age",
+      "rif_status": "rif_incompatible",
+      "shadow_status": "rif_shadow_empty",
+      "expected_match_count": 0,
+      "required_caveats": ["RIF shadows are empty and no AGE/API fallback is available."]
+    }
+  ],
+  "lookup_expectations": [
+    {
+      "case_id": "exact-method-qualified-name",
+      "variant": "age-only-compatible",
+      "mode": "qualified_name",
+      "input": "com.example.payments.PaymentService#authorize(com.example.payments.PaymentRequest)",
+      "expected_entity_aliases": ["method-payment-authorize"],
+      "expected_confidence": "exact"
+    },
+    {
+      "case_id": "exact-file-path",
+      "variant": "age-only-compatible",
+      "mode": "source_path",
+      "input": "src/main/java/com/example/payments/PaymentService.java",
+      "expected_entity_aliases": ["file-payment-service"],
+      "expected_confidence": "exact"
+    },
+    {
+      "case_id": "exact-class-qualified-name",
+      "variant": "age-only-compatible",
+      "mode": "qualified_name",
+      "input": "com.example.payments.PaymentService",
+      "expected_entity_aliases": ["class-payment-service"],
+      "expected_confidence": "exact"
+    },
+    {
+      "case_id": "simple-name-ambiguous",
+      "variant": "age-only-compatible",
+      "mode": "simple_name",
+      "input": "authorize",
+      "expected_entity_aliases": ["method-billing-authorize", "method-payment-authorize"],
+      "expected_confidence": "inferred",
+      "required_caveats": ["ambiguous_simple_name"]
+    },
+    {
+      "case_id": "unknown-entity",
+      "variant": "age-only-compatible",
+      "mode": "qualified_name",
+      "input": "com.example.missing.MissingService",
+      "expected_entity_aliases": [],
+      "expected_status": "unresolved"
+    }
+  ],
+  "id_expectations": {
+    "node_algorithm": "sha256(repoId + NUL + qualifiedName + NUL + kind)",
+    "edge_algorithm": "sha256(fromNodeId + NUL + label + NUL + toNodeId)",
+    "reject_legacy_space_separated_hashes": true
+  }
+}
+

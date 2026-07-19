@@ -11,6 +11,11 @@ func canAccessJob(id Identity, job *domain.Job) bool {
 	if id.Role == domain.RoleReviewer || id.Role == domain.RoleAdmin {
 		return true
 	}
+	// Library jobs are a shared personal-use space: any authenticated user can
+	// read them (they may be submitted by the poller, "system:library-poller").
+	if job.LibraryMode && id.UserID != "" {
+		return true
+	}
 	return id.Role == domain.RoleProducer && id.UserID == job.SubmittedBy
 }
 

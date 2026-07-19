@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useJob } from "../api/hooks";
 import { ActionChip, ErrorBox, Loading, StatusBadge } from "../components/ui";
@@ -16,7 +16,12 @@ type Tab = (typeof TABS)[number];
 export default function JobDetailPage() {
   const { jobId = "" } = useParams();
   const { data: job, isLoading, error } = useJob(jobId);
-  const [tab, setTab] = useState<Tab>("Overview");
+  // Deep links from library search (/jobs/{id}?t=<ms>) land on the Review tab
+  // so the target segment is visible immediately.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() =>
+    searchParams.get("t") !== null ? "Review" : "Overview",
+  );
   const qc = useQueryClient();
 
   // H2: when the polled job advances (status or updated_at changes), refresh

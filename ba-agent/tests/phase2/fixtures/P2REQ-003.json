@@ -1,0 +1,128 @@
+{
+  "case_id": "P2REQ-003",
+  "case_label": "[SYNTHETIC] Nova Claims approval-step conflict discovery slice",
+  "input_type": "synthetic_conflicting_stakeholder_statements",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-003\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-003\n[SYNTHETIC] SOURCE: ClaimsDesk | Casey Rivera, Product Owner | synthetic-2026-07-08T08:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] SOURCE: AuditBook | Morgan Lee, Compliance Reviewer | synthetic-2026-07-08T08:05:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Casey Rivera, Product Owner; Morgan Lee, Compliance Reviewer\n[SYNTHETIC] FACT: Nova Claims is the fictional claims-intake product for this conflict slice.\n[SYNTHETIC] FACT: Casey Rivera, Product Owner says approval step must be removed before intake triage.\n[SYNTHETIC] FACT: Morgan Lee, Compliance Reviewer says approval step is mandatory for audit.\n[SYNTHETIC] ASSUMPTION: The conflict requires human review and no approval policy is changed automatically.\n[SYNTHETIC] CONFLICT: Casey Rivera, Product Owner says approval step must be removed before intake triage, while Morgan Lee, Compliance Reviewer says approval step is mandatory for audit.\n[SYNTHETIC] QUESTION: Who owns the approval-step policy decision?",
+  "project_context": {
+    "project_name": "[SYNTHETIC] Nova Claims",
+    "business_domain": "[SYNTHETIC] claims-intake requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Casey Rivera, Product Owner",
+      "[SYNTHETIC] Morgan Lee, Compliance Reviewer",
+      "[SYNTHETIC] Casey Rivera",
+      "[SYNTHETIC] Morgan Lee",
+      "[SYNTHETIC] Product Owner",
+      "[SYNTHETIC] Compliance Reviewer"
+    ],
+    "target_users": [
+      "[SYNTHETIC] claims intake coordinators"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] ClaimsDesk",
+      "[SYNTHETIC] AuditBook"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Approval-step policy is unresolved for intake triage"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Audit review must remain human-gated"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] NVC-003",
+    "confluence_space": "[SYNTHETIC] NVC-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft conflict-discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] ClaimsDesk",
+      "owner": "[SYNTHETIC] Casey Rivera, Product Owner",
+      "timestamp": "synthetic-2026-07-08T08:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    },
+    {
+      "system": "[SYNTHETIC] AuditBook",
+      "owner": "[SYNTHETIC] Morgan Lee, Compliance Reviewer",
+      "timestamp": "synthetic-2026-07-08T08:05:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] stakeholder notes",
+        "text": "[SYNTHETIC] synthetic conflicting statements only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] ClaimsDesk",
+        "owner": "[SYNTHETIC] Casey Rivera, Product Owner",
+        "timestamp": "synthetic-2026-07-08T08:00:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-003"
+      },
+      {
+        "system": "[SYNTHETIC] AuditBook",
+        "owner": "[SYNTHETIC] Morgan Lee, Compliance Reviewer",
+        "timestamp": "synthetic-2026-07-08T08:05:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-003"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] Nova Claims has conflicting stakeholder direction on whether the approval step should be removed or retained for audit.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory conflict summary with both stakeholder statements preserved and routed for human decision.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: Nova Claims should preserve unresolved approval-step policy statements for Product Owner, BA SME, and compliance review.",
+    "draft_story": "[SYNTHETIC] As a synthetic Product Owner, I want conflicting approval-step statements surfaced with evidence so that the owning reviewers can decide the policy.",
+    "facts": [
+      "[SYNTHETIC] Casey Rivera, Product Owner says approval step must be removed before intake triage.",
+      "[SYNTHETIC] Morgan Lee, Compliance Reviewer says approval step is mandatory for audit."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The conflict requires human review and no approval policy is changed automatically."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Who owns the approval-step policy decision?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Audit review must remain human-gated."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-003:001 -> p2-obj:P2REQ-003:001 -> p2-req-draft:P2REQ-003:001 -> p2-story-draft:P2REQ-003:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Casey Rivera wants approval-step removal.",
+      "[SYNTHETIC] Morgan Lee requires approval-step retention for audit."
+    ],
+    "conflicts": [
+      "[SYNTHETIC] Approval step removal conflicts with approval step retention for audit."
+    ],
+    "missing_rules": [
+      "[SYNTHETIC] Approval-step policy owner."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Compliance/legal owner [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-003"
+  ]
+}

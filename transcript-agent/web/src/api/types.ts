@@ -202,3 +202,80 @@ export const PIPELINE_ORDER: JobStatus[] = [
 export const CAPTION_PIPELINE_ORDER: JobStatus[] = PIPELINE_ORDER.filter(
   (s) => s !== "extracting_audio" && s !== "transcribing",
 );
+
+// ---------- Library (podcast feeds) ----------
+
+export interface Feed {
+  feed_id: string;
+  feed_url: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  auto_transcribe: boolean;
+  episode_count: number;
+  last_polled_at: string | null;
+  poll_error: string | null;
+  created_at: string;
+}
+
+export interface Episode {
+  episode_id: string;
+  feed_id: string;
+  feed_title: string;
+  title: string;
+  description: string;
+  published_at: string | null;
+  duration_seconds: number | null;
+  audio_url: string;
+  /** Null until a transcription job exists for this episode. */
+  job_id: string | null;
+  job_status: string | null;
+  created_at: string;
+}
+
+/**
+ * Item of GET /library/search. `snippet` is plain text with matches wrapped in
+ * <b>…</b> — the ONLY markup the contract allows. Parse the markers manually;
+ * never inject the string as HTML. Episode/feed fields are null for hits from
+ * approved non-library transcripts (the search spans both).
+ */
+export interface LibrarySearchResult {
+  episode_id: string | null;
+  episode_title: string | null;
+  feed_title: string | null;
+  job_id: string;
+  transcript_version_id: string;
+  segment_id: string;
+  start_ms: number;
+  snippet: string;
+  rank: number;
+}
+
+const JOB_STATUS_SET = new Set<string>([
+  ...PIPELINE_ORDER,
+  "needs_user_action",
+  "failed",
+  "cancelled",
+]);
+
+/** Type guard for the loosely-typed `Episode.job_status` string. */
+export function isJobStatus(status: string): status is JobStatus {
+  return JOB_STATUS_SET.has(status);
+}
+
+/**
+ * Library jobs stop at "drafted". An episode's job is "active" (worth polling)
+ * when it has a status that is neither terminal nor drafted/in_review or later.
+ */
+const EPISODE_SETTLED_STATUSES = new Set<string>([
+  "drafted",
+  "in_review",
+  "approved",
+  "exported",
+  "failed",
+  "cancelled",
+]);
+
+export function isEpisodeJobActive(episode: Episode): boolean {
+  return episode.job_status !== null && !EPISODE_SETTLED_STATUSES.has(episode.job_status);
+}

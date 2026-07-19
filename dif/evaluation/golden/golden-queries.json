@@ -1,0 +1,80 @@
+{
+  "version": "0.1.0",
+  "queries": [
+    {
+      "query_id": "q-architecture-owner",
+      "corpus_id": "golden-admitted",
+      "query": "Who owns the architecture service?",
+      "accepted_result_count": {"min": 1, "max": 3},
+      "required_top_source_refs": [
+        "golden-admitted@docver-architecture-overview:md:architecture-overview.md#L5-L8"
+      ],
+      "required_behavior": "Return grounded Markdown passage naming Platform Architecture as owner.",
+      "prohibited_behavior": "Do not answer without an md source_ref."
+    },
+    {
+      "query_id": "q-runbook-retry",
+      "corpus_id": "golden-admitted",
+      "query": "What is the retry procedure?",
+      "accepted_result_count": {"min": 1, "max": 3},
+      "required_top_source_refs": [
+        "golden-admitted@docver-runbook:txt:runbook.txt#L4-L7"
+      ],
+      "required_behavior": "Return TXT line-range evidence for retry steps.",
+      "prohibited_behavior": "Do not invent escalation steps outside the runbook."
+    },
+    {
+      "query_id": "q-docx-requirement",
+      "corpus_id": "golden-admitted",
+      "query": "Which requirement mentions approval?",
+      "accepted_result_count": {"min": 1, "max": 2},
+      "required_top_source_refs": [
+        "golden-admitted@docver-requirements:docx:requirements.docx#p2"
+      ],
+      "required_behavior": "Return DOCX paragraph source ref for approval requirement.",
+      "prohibited_behavior": "Do not cite the DOCX fixture wrapper JSON as the user-facing source."
+    },
+    {
+      "query_id": "q-json-service-owner",
+      "corpus_id": "golden-admitted",
+      "query": "Which service owner is configured for payments?",
+      "accepted_result_count": {"min": 1, "max": 3},
+      "required_top_source_refs": [
+        "golden-admitted@docver-service-config:json:service-config.json#$.services[0].owner"
+      ],
+      "required_behavior": "Return JSONPath evidence showing payments owner is platform-payments.",
+      "prohibited_behavior": "Do not flatten the entire JSON file as the only citation."
+    },
+    {
+      "query_id": "q-json-class-reference",
+      "corpus_id": "golden-admitted",
+      "query": "Which config mentions PaymentService?",
+      "accepted_result_count": {"min": 1, "max": 3},
+      "required_top_source_refs": [
+        "golden-admitted@docver-service-config:json:service-config.json#$.services[0].className"
+      ],
+      "required_behavior": "Return JSON passage and code-entity candidate text; do not claim a resolved RIF link in P0.",
+      "prohibited_behavior": "Do not create DESCRIBES or claim RIF resolution unless compatibility fixture tests are enabled."
+    },
+    {
+      "query_id": "q-unknown",
+      "corpus_id": "golden-admitted",
+      "query": "What is the disaster recovery RTO?",
+      "accepted_result_count": {"min": 0, "max": 0},
+      "required_top_source_refs": [],
+      "required_behavior": "Return empty/no-evidence status.",
+      "prohibited_behavior": "Do not fabricate an RTO."
+    },
+    {
+      "query_id": "q-restricted-corpus",
+      "corpus_id": "golden-restricted",
+      "query": "What does the restricted corpus say?",
+      "accepted_result_count": {"min": 0, "max": 0},
+      "required_status": "corpus_not_admitted",
+      "required_top_source_refs": [],
+      "required_behavior": "Fail closed before retrieval.",
+      "prohibited_behavior": "Do not return restricted-corpus passages."
+    }
+  ]
+}
+

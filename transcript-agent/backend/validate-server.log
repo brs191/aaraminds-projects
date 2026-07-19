@@ -1,0 +1,31 @@
+{"time":"2026-07-19T20:10:50.499944707+05:30","level":"INFO","msg":"storage: in-memory (data is lost on restart)"}
+{"time":"2026-07-19T20:10:50.500082079+05:30","level":"INFO","msg":"serving built web UI","web_dist":"/sessions/blissful-gracious-planck/mnt/aaraminds-projects/transcript-agent/web/dist"}
+{"time":"2026-07-19T20:10:50.50012417+05:30","level":"WARN","msg":"SIGNING_SECRET is not set; using a random per-boot secret — signed links stop working on restart"}
+{"time":"2026-07-19T20:10:50.500334873+05:30","level":"WARN","msg":"AUTH_PROXY_SECRET is not set; header auth is running in development mode and must not be exposed directly"}
+{"time":"2026-07-19T20:10:50.500355773+05:30","level":"INFO","msg":"listening","addr":":18099","stt_provider":"mock","data_dir":"/sessions/blissful-gracious-planck/mnt/aaraminds-projects/transcript-agent/backend/data-validate"}
+{"time":"2026-07-19T20:10:50.502133351+05:30","level":"INFO","msg":"http","method":"GET","path":"/healthz","status":200,"duration_ms":0,"user":"","request_id":"273f38a6b59e8583"}
+{"time":"2026-07-19T20:10:50.508182815+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs","status":400,"duration_ms":0,"user":"producer-1","request_id":"59d153ae6e69a462"}
+{"time":"2026-07-19T20:10:50.516582396+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs","status":201,"duration_ms":0,"user":"producer-1","request_id":"2181f757c3bb1fe4"}
+{"time":"2026-07-19T20:10:50.527642147+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/645f20b0-6f93-444e-823f-2dd01bb8fb86","status":200,"duration_ms":0,"user":"producer-1","request_id":"82abcf7cf66381b9"}
+{"time":"2026-07-19T20:10:50.547712538+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/645f20b0-6f93-444e-823f-2dd01bb8fb86/transcripts","status":200,"duration_ms":0,"user":"producer-1","request_id":"e1c9f4f4b4476e29"}
+{"time":"2026-07-19T20:10:50.557384199+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/transcripts/3bcdd8cd-00b5-4c2c-bfee-0167333c2218/segments","status":200,"duration_ms":0,"user":"producer-1","request_id":"63f3fcc599286387"}
+{"time":"2026-07-19T20:10:50.57936138+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs/645f20b0-6f93-444e-823f-2dd01bb8fb86/review","status":201,"duration_ms":0,"user":"reviewer-1","request_id":"679c642b748f69af"}
+{"time":"2026-07-19T20:10:50.598380756+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs/645f20b0-6f93-444e-823f-2dd01bb8fb86/approve","status":201,"duration_ms":0,"user":"reviewer-1","request_id":"db17fd115a6d8b80"}
+{"time":"2026-07-19T20:10:50.618075731+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs/645f20b0-6f93-444e-823f-2dd01bb8fb86/exports","status":201,"duration_ms":1,"user":"reviewer-1","request_id":"dd9b497825c51686"}
+{"time":"2026-07-19T20:10:50.663478796+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/signed-links","status":201,"duration_ms":0,"user":"reviewer-1","request_id":"1ec827f6357c4488"}
+{"time":"2026-07-19T20:10:50.678817604+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/exports/63e15dc1-22eb-40d6-9ad2-d1ebbb8abf41/download","status":200,"duration_ms":0,"user":"","request_id":"2dbf106c826ea465"}
+{"time":"2026-07-19T20:10:50.686811368+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/exports/63e15dc1-22eb-40d6-9ad2-d1ebbb8abf41/download","status":401,"duration_ms":0,"user":"","request_id":"27b06d9bdace79b2"}
+{"time":"2026-07-19T20:10:50.698024972+05:30","level":"INFO","msg":"http","method":"POST","path":"/api/v1/jobs","status":400,"duration_ms":0,"user":"producer-1","request_id":"9895e1b95bd53d86"}
+{"time":"2026-07-19T20:10:50.713643504+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"37f29756ece6389c"}
+{"time":"2026-07-19T20:10:52.738163389+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"e7fb16ba62309521"}
+{"time":"2026-07-19T20:10:54.759204151+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"d73233e477497152"}
+{"time":"2026-07-19T20:10:56.78053886+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"1e41d711a7c4f5a2"}
+{"time":"2026-07-19T20:10:58.79784959+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"d0c4c6e3a0fa8c9e"}
+{"time":"2026-07-19T20:11:00.817811447+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"54adebafa5ac45c2"}
+{"time":"2026-07-19T20:11:02.838537248+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"6ceb8bfd29d6e951"}
+{"time":"2026-07-19T20:11:04.857512732+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"d950587bc69fe860"}
+{"time":"2026-07-19T20:11:06.875940601+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"d87481d217ea3033"}
+{"time":"2026-07-19T20:11:08.897884354+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"2327ec3ad6d64e11"}
+{"time":"2026-07-19T20:11:10.917447146+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"e23c33a2aa9dfe4d"}
+{"time":"2026-07-19T20:11:12.934772312+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"6e43a32357fb212e"}
+{"time":"2026-07-19T20:11:14.9558012+05:30","level":"INFO","msg":"http","method":"GET","path":"/api/v1/jobs/","status":404,"duration_ms":0,"user":"producer-1","request_id":"3685a647a11ce728"}

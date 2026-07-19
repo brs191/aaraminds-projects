@@ -1,0 +1,8 @@
+DIF P0 Runbook
+================
+This fixture is synthetic and safe for evaluation.
+Retry the ingestion job once after verifying the source path is reachable.
+If the retry fails, mark the ingestion run as failed.
+Do not promote an index when every document failed extraction.
+Record the outcome in audit and usage events.
+

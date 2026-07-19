@@ -1,0 +1,117 @@
+{
+  "case_id": "P2REQ-004",
+  "case_label": "[SYNTHETIC] Code Cartographer RIF missing business-rule discovery slice",
+  "input_type": "synthetic_missing_business_rules",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-004\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-004\n[SYNTHETIC] SOURCE: RepoLens | Priya Shah, Platform Analyst | synthetic-2026-07-08T09:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Priya Shah, Platform Analyst\n[SYNTHETIC] FACT: Code Cartographer RIF is the fictional repo-intelligence workflow for this missing-rule slice.\n[SYNTHETIC] FACT: RepoLens collects synthetic repository extraction signals for service, API, dependency, and ownership candidates.\n[SYNTHETIC] FACT: Platform Analyst asks the agent to auto-mark a repository map as ready for architecture review when extraction confidence is high.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no repository map is approved automatically.\n[SYNTHETIC] INFERRED: Readiness may depend on confidence, coverage, stale-source handling, and human-review rules.\n[SYNTHETIC] QUESTION: What confidence threshold defines high extraction confidence?\n[SYNTHETIC] QUESTION: Which missing ownership, dependency, or API fields block repository-map readiness?\n[SYNTHETIC] QUESTION: Who approves repository-map readiness before architecture review?",
+  "project_context": {
+    "project_name": "[SYNTHETIC] Code Cartographer RIF",
+    "business_domain": "[SYNTHETIC] repo intelligence requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Priya Shah, Platform Analyst",
+      "[SYNTHETIC] Priya Shah",
+      "[SYNTHETIC] Platform Analyst"
+    ],
+    "target_users": [
+      "[SYNTHETIC] architecture reviewers",
+      "[SYNTHETIC] platform engineers"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] RepoLens"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Repository-map readiness rule is missing"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Architecture review remains human-gated"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] RIF-004",
+    "confluence_space": "[SYNTHETIC] RIF-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft missing-rule discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] RepoLens",
+      "owner": "[SYNTHETIC] Priya Shah, Platform Analyst",
+      "timestamp": "synthetic-2026-07-08T09:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] analyst note",
+        "text": "[SYNTHETIC] synthetic missing-rule note only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] RepoLens",
+        "owner": "[SYNTHETIC] Priya Shah, Platform Analyst",
+        "timestamp": "synthetic-2026-07-08T09:00:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-004"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] Code Cartographer RIF lacks the business rules needed to decide when a synthetic repository map is ready for architecture review.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory missing-rule summary that asks for readiness criteria instead of inventing them.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: Code Cartographer RIF should hold repository-map readiness as unresolved until confidence, coverage, ownership, dependency, API, and approval rules are defined.",
+    "draft_story": "[SYNTHETIC] As a synthetic Platform Analyst, I want missing repository-map readiness rules surfaced as questions so that architecture reviewers do not receive unapproved maps.",
+    "facts": [
+      "[SYNTHETIC] RepoLens collects synthetic repository extraction signals for service, API, dependency, and ownership candidates.",
+      "[SYNTHETIC] Platform Analyst asks the agent to auto-mark a repository map as ready for architecture review when extraction confidence is high."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no repository map is approved automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] Readiness may depend on confidence, coverage, stale-source handling, and human-review rules."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] What confidence threshold defines high extraction confidence?",
+      "[SYNTHETIC] Which missing ownership, dependency, or API fields block repository-map readiness?",
+      "[SYNTHETIC] Who approves repository-map readiness before architecture review?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Architecture review remains human-gated."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-004:001 -> p2-obj:P2REQ-004:001 -> p2-req-draft:P2REQ-004:001 -> p2-story-draft:P2REQ-004:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Synthetic repository extraction signals exist.",
+      "[SYNTHETIC] Readiness request lacks threshold and blocker rules."
+    ],
+    "conflicts": [],
+    "missing_rules": [
+      "[SYNTHETIC] High-confidence threshold.",
+      "[SYNTHETIC] Required ownership/dependency/API coverage.",
+      "[SYNTHETIC] Human approval owner for repository-map readiness."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Architect [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-004"
+  ]
+}

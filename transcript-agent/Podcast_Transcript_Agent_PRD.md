@@ -1,11 +1,11 @@
-# PRD: Podcast Transcript Agent v1.6 — Handoff-Ready MVP
+# PRD: Podcast Transcript Agent v1.7 — Handoff-Ready MVP
 
 | | |
 |---|---|
-| **Status** | Draft v1.6 — MVP built; §25 blocking decisions recorded |
+| **Status** | Draft v1.7 — MVP built; all §25 blockers resolved; Personal Library Mode added (Addendum A) |
 | **Author** | Raja |
 | **Original Draft** | v1.0, July 3, 2026 |
-| **Updated** | July 9, 2026 — v1.6 records §25 decisions (no owned YouTube channel, same-person approval, 30-day retention) |
+| **Updated** | July 9, 2026 — v1.7 resolves the STT provider question (WhisperX local) and adds Addendum A: Personal Library Mode |
 | **Audience** | Internal enterprise media/content team, engineering, architecture, security, product, operations |
 | **Target Scale** | 1–10 podcast episodes/month, English-only |
 | **Primary Channel** | YouTube + direct media upload |
@@ -1884,12 +1884,12 @@ Add only if demand exists:
 
 Blocking questions must have a target resolution date. If the date is missed, the product owner must either cut scope, assign a decision owner, or pause the dependent workstream.
 
-**Status as of July 9, 2026:** three of the four blocking items are RESOLVED (recorded below). The STT provider bake-off remains the only open blocking item.
+**Status as of July 9, 2026:** all four blocking items are RESOLVED (recorded below). No open blocking questions remain; §17.3 pilot gates are the next milestone.
 
 | Question | Owner | Blocking? | Target Resolution | Notes |
 |---|---|---|---|---|
 | Is the YouTube channel owned and OAuth-authorizable? | Content/Admin | Yes | **RESOLVED July 9, 2026** | **Decision: not owned, no OAuth.** Caption download/reuse is out of MVP scope; caption pre-check remains as availability logging only. `fetch_existing_captions`/`parse_captions_to_transcript` stay defined but inactive until an owned channel exists. Future auto-publish (Phase 3) is infeasible without channel ownership. |
-| Which STT provider should be selected? | Engineering | Yes | July 13, 2026 | Run 3-episode bake-off before final choice; pricing basis captured in section 20 |
+| Which STT provider should be selected? | Engineering | Yes | **RESOLVED July 9, 2026** | **Decision: WhisperX local (faster-whisper `large-v3-turbo` + pyannote 3.1 diarization) as the default provider** — open source, $0, runs on-machine, meets R4 (timestamps, diarization, confidence). Azure Speech batch remains a config-gated alternative. The 3-episode bake-off is repurposed as pilot validation of WhisperX quality against §17.2 targets. |
 | What is the clean transcript style policy? | Content/Reviewer | No | July 8, 2026 | Draft during MVP build |
 | Does guest consent cover transcript and derived content? | Legal/Policy | No, but needed before external guests | July 15, 2026 | **[VERIFY]** before processing external guest episodes |
 | Who can approve transcripts? | Team Lead | Yes | **RESOLVED July 9, 2026** | **Decision: same person allowed.** A producer may review and approve their own submission (small-team mode). Revisit if the team grows or governance requires separation of duties. |
@@ -1945,3 +1945,21 @@ Recommended MVP scope:
 Defer publishing automation until the team has operational confidence, quality metrics, and stable approval behavior.
 
 **Final decision:** Build as a **Level 2 Drafting Agent** now. Add **Level 3 Approval-Gated Execution** only for YouTube/CMS publishing in a later phase.
+
+---
+
+## Addendum A — Personal Library Mode (July 9, 2026)
+
+Personal Library Mode is a personal-use extension built on the same pipeline, outside the enterprise approval workflow. It exists to convert a podcast listening backlog into a private, searchable transcript library.
+
+**Scope.** The user subscribes to podcast RSS feeds. A poller (default every 30 minutes) fetches feed XML, upserts episodes, downloads new episode enclosures from the publisher's CDN into object storage, and auto-creates transcription jobs (capped per poll; backfill is manual per episode). Library jobs run the standard pipeline — metadata, audio, STT with diarization and confidence, cleanup, quality check — but **terminate at `drafted`**: no review gate, no approval, with a summary auto-generated on draft. Transcripts are immediately readable and searchable (Postgres full-text search with highlighted snippets; segment-level deep links into the reader).
+
+**Legitimacy basis.** Podcast RSS is an open distribution mechanism; enclosure download is the intended consumption path used by all podcast clients. Library jobs record `source_basis: open_rss_personal_use` in the audit trail in lieu of manual ownership attestation. The library is private; transcripts are not for republication. Third-party YouTube content remains out of scope entirely.
+
+**Boundaries with the enterprise product.** The review/approval/export workflow (R7–R8), immutability, and supersede rules are untouched and remain mandatory for the enterprise path. Library jobs never enter `in_review` and never produce approved versions. Exports from library transcripts are not exposed in the library UI.
+
+**STT.** WhisperX local sidecar (per the resolved §25 decision): faster-whisper `large-v3-turbo` + pyannote 3.1 diarization, HTTP sidecar on :9090, `STT_PROVIDER=whisperx`. Runs fully on-machine; audio never leaves the user's computer.
+
+**Configuration.** `LIBRARY_POLL_INTERVAL` (30m), `LIBRARY_AUTO_PER_POLL` (3), `LIBRARY_MAX_DOWNLOAD_BYTES` (500MiB), standard 30-day source-media retention applies to downloaded enclosures; transcripts are durable.
+
+**Feed deletion semantics.** Deleting a feed soft-deletes it: the feed and its episodes disappear from library listings, but jobs, transcripts, summaries, and search hits are kept and remain accessible via their job IDs and global search.

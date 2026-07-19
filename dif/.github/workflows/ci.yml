@@ -1,0 +1,68 @@
+name: ci
+
+# DIF CI baseline (P0 gate + migration idempotency).
+#
+# Safety posture (validated by evaluation/path_checks.py):
+# - no deployment, publish, or container push jobs
+# - no cloud credentials or secrets
+# - PostgreSQL runs as an ephemeral service container only
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  p0-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: code/go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Golden P0 evaluation gate
+        run: python3 evaluation/run_p0.py
+
+  migration-idempotency:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dif
+          POSTGRES_PASSWORD: dif
+          POSTGRES_DB: dif_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U dif"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: dif
+      PGPASSWORD: dif
+      PGDATABASE: dif_scratch
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations (first run)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f code/migrations/001_dif_meta_initial.sql
+          psql -v ON_ERROR_STOP=1 -f code/migrations/002_dif_meta_describes_edges.sql
+      - name: Apply migrations again (idempotency)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f code/migrations/001_dif_meta_initial.sql
+          psql -v ON_ERROR_STOP=1 -f code/migrations/002_dif_meta_describes_edges.sql
+      - name: Verify dif_meta table inventory
+        run: |
+          count=$(psql -A -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'dif_meta' AND table_type = 'BASE TABLE';")
+          echo "dif_meta base tables: ${count}"
+          test "${count}" = "13"
+      - name: Verify DESCRIBES edge kind is enabled
+        run: |
+          psql -v ON_ERROR_STOP=1 -A -t -c "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'edges_edge_kind_check';" | grep DESCRIBES

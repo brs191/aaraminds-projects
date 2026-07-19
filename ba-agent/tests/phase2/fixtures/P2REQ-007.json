@@ -1,0 +1,117 @@
+{
+  "case_id": "P2REQ-007",
+  "case_label": "[SYNTHETIC] FlowDesk process-pain discovery slice",
+  "input_type": "synthetic_process_pain_point",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-007\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-007\n[SYNTHETIC] SOURCE: FlowDesk | Omar Iqbal, Operations Analyst | synthetic-2026-07-09T11:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Omar Iqbal, Operations Analyst; Operations Analyst\n[SYNTHETIC] FACT: FlowDesk is the fictional process-pain input for this process-readiness slice.\n[SYNTHETIC] FACT: Operations Analyst says invoice exception routing requires three manual handoffs.\n[SYNTHETIC] FACT: FlowDesk note says no approved future-state process map exists.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no final process map is generated automatically.\n[SYNTHETIC] INFERRED: A future-state routing rule may reduce handoffs if ownership and exception categories are defined.\n[SYNTHETIC] QUESTION: Which exception categories require specialist review?\n[SYNTHETIC] QUESTION: Who owns the future-state process map?\n[SYNTHETIC] RISK: Manual handoffs may delay invoice exception resolution.\n[SYNTHETIC] DEPENDENCY: Process-map approval remains dependent on operations and compliance review.",
+  "project_context": {
+    "project_name": "[SYNTHETIC] FlowDesk",
+    "business_domain": "[SYNTHETIC] process pain requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Omar Iqbal, Operations Analyst",
+      "[SYNTHETIC] Operations Analyst"
+    ],
+    "target_users": [
+      "[SYNTHETIC] invoice analysts",
+      "[SYNTHETIC] operations supervisors"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] FlowDesk"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] No approved future-state process map exists"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Process-map approval requires human review"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] FLW-007",
+    "confluence_space": "[SYNTHETIC] FLW-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft process-pain discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] FlowDesk",
+      "owner": "[SYNTHETIC] Omar Iqbal, Operations Analyst",
+      "timestamp": "synthetic-2026-07-09T11:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] process pain note",
+        "text": "[SYNTHETIC] synthetic process pain only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] FlowDesk",
+        "owner": "[SYNTHETIC] Omar Iqbal, Operations Analyst",
+        "timestamp": "synthetic-2026-07-09T11:00:00Z",
+        "retrieved_at": "synthetic-2026-07-09T11:05:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-007"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] FlowDesk invoice exception routing has manual handoffs and no approved future-state process map.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory process-pain discovery summary that identifies current-state issue, future-state need, gap candidate, and open ownership questions.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: FlowDesk should preserve invoice exception routing as a process-gap candidate until exception categories, owners, and process-map approval are defined.",
+    "draft_story": "[SYNTHETIC] As a synthetic invoice analyst, I want manual handoff pain points surfaced with evidence so that operations reviewers can define a future-state routing process.",
+    "facts": [
+      "[SYNTHETIC] Operations Analyst says invoice exception routing requires three manual handoffs.",
+      "[SYNTHETIC] FlowDesk note says no approved future-state process map exists."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no final process map is generated automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] A future-state routing rule may reduce handoffs if ownership and exception categories are defined."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Which exception categories require specialist review?",
+      "[SYNTHETIC] Who owns the future-state process map?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Manual handoffs may delay invoice exception resolution.",
+      "[SYNTHETIC] Process-map approval remains dependent on operations and compliance review."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-007:001 -> p2-obj:P2REQ-007:001 -> p2-req-draft:P2REQ-007:001 -> p2-story-draft:P2REQ-007:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Invoice exception routing has three manual handoffs.",
+      "[SYNTHETIC] No approved future-state process map exists."
+    ],
+    "conflicts": [],
+    "missing_rules": [
+      "[SYNTHETIC] Exception category routing.",
+      "[SYNTHETIC] Process-map owner."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Architect [RAJA]",
+    "Compliance/legal owner [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-007"
+  ]
+}

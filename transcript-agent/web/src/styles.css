@@ -717,3 +717,139 @@ details summary {
   gap: 0.5rem;
   max-width: 480px;
 }
+
+/* ---------- Library ---------- */
+
+.library-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .library-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.feed-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.feed-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.feed-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.feed-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+.feed-card-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.feed-actions button {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85rem;
+}
+.feed-delete-confirm .button-row {
+  margin-top: 0.5rem;
+}
+.chip-none {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px dashed var(--border);
+}
+.episode-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.episode-filters .episode-q {
+  flex: 1 1 160px;
+  max-width: 300px;
+}
+.episode-title {
+  font-weight: 600;
+}
+.episode-action {
+  white-space: nowrap;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+/* ---------- Library search ---------- */
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.search-form input {
+  flex: 1;
+}
+.search-results {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.search-result {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.search-result:hover {
+  border-color: var(--primary);
+}
+.search-result-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+.search-result-time {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+.search-snippet {
+  font-size: 0.9rem;
+}
+.search-snippet mark {
+  background: var(--amber-bg);
+  color: inherit;
+  padding: 0 0.1em;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* Deep-link (?t=) target segment in the Review tab */
+.segment.deep-linked {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}

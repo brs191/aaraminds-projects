@@ -1,0 +1,116 @@
+{
+  "case_id": "P2REQ-006",
+  "case_label": "[SYNTHETIC] Atlas Insights product-idea discovery slice",
+  "input_type": "synthetic_product_idea",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-006\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-006\n[SYNTHETIC] SOURCE: IdeaBoard | Samira Noor, Product Strategist | synthetic-2026-07-09T10:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Samira Noor, Product Strategist; Product Strategist\n[SYNTHETIC] FACT: Atlas Insights is the fictional product idea for this trace-skeleton slice.\n[SYNTHETIC] FACT: IdeaBoard note proposes a monthly executive insight digest for portfolio managers.\n[SYNTHETIC] FACT: Product Strategist wants a draft objective, requirement, and story skeleton before prioritization.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no roadmap priority is assigned automatically.\n[SYNTHETIC] INFERRED: Portfolio managers may need filters for project health, risk, and leadership asks.\n[SYNTHETIC] QUESTION: Which executive insight categories are in first-slice scope?\n[SYNTHETIC] QUESTION: Which stakeholder approves prioritization?\n[SYNTHETIC] DEPENDENCY: Product priority remains dependent on Product Owner review.",
+  "project_context": {
+    "project_name": "[SYNTHETIC] Atlas Insights",
+    "business_domain": "[SYNTHETIC] product idea requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Samira Noor, Product Strategist",
+      "[SYNTHETIC] Product Strategist",
+      "[SYNTHETIC] Product Owner"
+    ],
+    "target_users": [
+      "[SYNTHETIC] portfolio managers",
+      "[SYNTHETIC] delivery leads"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] IdeaBoard"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Roadmap priority is not assigned automatically"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Product Owner review is required before prioritization"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] ATI-006",
+    "confluence_space": "[SYNTHETIC] ATI-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft product-idea discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] IdeaBoard",
+      "owner": "[SYNTHETIC] Samira Noor, Product Strategist",
+      "timestamp": "synthetic-2026-07-09T10:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] product idea",
+        "text": "[SYNTHETIC] synthetic product idea only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] IdeaBoard",
+        "owner": "[SYNTHETIC] Samira Noor, Product Strategist",
+        "timestamp": "synthetic-2026-07-09T10:00:00Z",
+        "retrieved_at": "synthetic-2026-07-09T10:05:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-006"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] Atlas Insights needs a draft discovery path for a monthly executive insight digest before roadmap prioritization.",
+    "business_objective": "[SYNTHETIC] Produce a draft objective, draft requirement, draft story skeleton, and trace links for Product Owner review.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: Atlas Insights should provide a draft monthly executive insight digest concept with scope questions and evidence-linked traceability.",
+    "draft_story": "[SYNTHETIC] As a synthetic portfolio manager, I want a monthly executive insight digest concept so that leadership can review project health, risk, and asks before prioritization.",
+    "facts": [
+      "[SYNTHETIC] IdeaBoard note proposes a monthly executive insight digest for portfolio managers.",
+      "[SYNTHETIC] Product Strategist wants a draft objective, requirement, and story skeleton before prioritization."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no roadmap priority is assigned automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] Portfolio managers may need filters for project health, risk, and leadership asks."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Which executive insight categories are in first-slice scope?",
+      "[SYNTHETIC] Which stakeholder approves prioritization?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Product priority remains dependent on Product Owner review."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-006:001 -> p2-obj:P2REQ-006:001 -> p2-req-draft:P2REQ-006:001 -> p2-story-draft:P2REQ-006:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Monthly executive insight digest idea exists.",
+      "[SYNTHETIC] Draft objective/requirement/story skeleton is requested."
+    ],
+    "conflicts": [],
+    "missing_rules": [
+      "[SYNTHETIC] First-slice insight categories.",
+      "[SYNTHETIC] Prioritization approval owner."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Architect [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-006"
+  ]
+}

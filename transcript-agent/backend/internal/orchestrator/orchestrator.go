@@ -41,6 +41,12 @@ type Orchestrator struct {
 	// reclaimed back to queued (PRD 18.4/18.5; STUCK_JOB_THRESHOLD env,
 	// default 10m).
 	StuckThreshold time.Duration
+	// LibraryPollInterval is the cadence of the library feed poll run inside
+	// the scan loop (LIBRARY_POLL_INTERVAL env; zero means the 30m default).
+	LibraryPollInterval time.Duration
+	// LibraryAutoPerPoll caps auto-transcribed NEW episodes per feed per poll
+	// (LIBRARY_AUTO_PER_POLL env; zero means the default of 3).
+	LibraryAutoPerPoll int
 
 	queue chan uuid.UUID
 	// done closes once the post-shutdown drain has completed (see Wait).
@@ -53,6 +59,11 @@ type Orchestrator struct {
 	// inFlight tracks IDs that are enqueued or being processed so the requeue
 	// scanner never floods the queue with duplicates of the same job.
 	inFlight map[uuid.UUID]bool
+	// nextLibraryPoll is when the scan loop next polls every library feed.
+	nextLibraryPoll time.Time
+	// pollBusy guards against concurrent polls of the same feed (scan cadence
+	// vs. manual POST /library/feeds/{id}/poll).
+	pollBusy map[uuid.UUID]bool
 }
 
 // New returns an orchestrator with a buffered queue.
@@ -74,6 +85,7 @@ func New(ts *tools.Toolset, log *slog.Logger, backoff time.Duration, sync bool) 
 		done:           make(chan struct{}),
 		running:        map[uuid.UUID]bool{},
 		inFlight:       map[uuid.UUID]bool{},
+		pollBusy:       map[uuid.UUID]bool{},
 	}
 }
 
@@ -194,6 +206,7 @@ var midPipelineStatuses = []domain.Status{
 func (o *Orchestrator) scan(ctx context.Context) {
 	o.reclaimStuck(ctx)
 	o.SweepRetention(ctx)
+	o.libraryScan(ctx)
 
 	o.mu.Lock()
 	paused := time.Now().Before(o.pauseUntil)
@@ -394,6 +407,13 @@ func (o *Orchestrator) Drive(ctx context.Context, jobID uuid.UUID) {
 		case domain.StatusQualityChecking:
 			proceed = o.stepQualityCheck(ctx, job)
 		case domain.StatusDrafted:
+			if job.LibraryMode {
+				// Library jobs stop at drafted — no review gate. The summary is
+				// auto-generated fire-and-forget: a failure is tolerated and the
+				// episode stays drafted (transcript readable/searchable now).
+				o.finishLibraryDraft(ctx, job)
+				return
+			}
 			proceed = o.setStatus(ctx, job, domain.StatusInReview)
 		default:
 			// in_review, approved, exported, needs_user_action, failed,
@@ -439,8 +459,8 @@ func (o *Orchestrator) setStatus(ctx context.Context, job *domain.Job, to domain
 		return false
 	}
 	*job = *updated
-	if to == domain.StatusInReview {
-		metrics.JobsCompleted.Add(1) // pipeline complete: review handoff (18.2)
+	if to == domain.StatusInReview || (to == domain.StatusDrafted && job.LibraryMode) {
+		metrics.JobsCompleted.Add(1) // pipeline complete: review handoff, or library drafted (18.2)
 	}
 	// Status-change audit is informational: fire-and-forget (failures are
 	// logged and counted by the writer; high-risk actions use AuditStrict).
@@ -513,6 +533,29 @@ func (o *Orchestrator) stepValidate(ctx context.Context, job *domain.Job) bool {
 	if job.JobConfigID == nil {
 		if _, err := o.Tools.CreateConfigSnapshot(ctx, job, "system:orchestrator"); err != nil {
 			o.toFailed(ctx, job, err)
+			return false
+		}
+	}
+	// Library jobs: download the episode enclosure first (new first pipeline
+	// step for library mode — runs here so the worker pool bounds concurrency).
+	// Over-cap enclosures park the job in needs_user_action/replace_media
+	// (documented choice for the size-cap failure mode); transient download
+	// failures retry once then park the same way.
+	if job.LibraryMode {
+		err := o.Tools.EnsureLibraryMedia(ctx, job)
+		if err != nil && domain.CodeOf(err) == domain.CodeLibraryDownloadFailed {
+			if !o.retryBackoff(ctx) { // ctx-aware retry backoff
+				return false
+			}
+			err = o.Tools.EnsureLibraryMedia(ctx, job)
+		}
+		if err != nil {
+			switch domain.CodeOf(err) {
+			case domain.CodeLibraryDownloadTooLarge, domain.CodeLibraryDownloadFailed:
+				o.toNeedsUserAction(ctx, job, domain.ActionReplaceMedia, err)
+			default:
+				o.toFailed(ctx, job, err)
+			}
 			return false
 		}
 	}

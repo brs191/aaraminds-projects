@@ -1,0 +1,81 @@
+{
+  "version": "0.1.0",
+  "mcp_call_expectations": [
+    {
+      "case_id": "search-docs-success",
+      "principal_id": "principal-p0-qa",
+      "tenant_id": "tenant-p0",
+      "project_id": "dif-p0-golden",
+      "corpus_id": "golden-admitted",
+      "tool_name": "search_docs",
+      "tool_version": "p0",
+      "parameters": {
+        "corpus_id": "golden-admitted",
+        "query_id": "q-architecture-owner",
+        "limit": 3
+      },
+      "outcome": "success",
+      "latency_ms": 42,
+      "source_refs": [
+        "golden-admitted@docver-architecture-overview:md:architecture-overview.md#L5-L8"
+      ],
+      "usage_event_type": "mcp_tool_call",
+      "usage_counts": {
+        "request_count": 1,
+        "result_count": 1,
+        "source_ref_count": 1,
+        "denied_count": 0
+      }
+    },
+    {
+      "case_id": "search-docs-corpus-not-admitted",
+      "principal_id": "principal-p0-qa",
+      "tenant_id": "tenant-p0",
+      "project_id": "dif-p0-golden",
+      "corpus_id": "golden-restricted",
+      "tool_name": "search_docs",
+      "tool_version": "p0",
+      "parameters": {
+        "corpus_id": "golden-restricted",
+        "query_id": "q-restricted-corpus",
+        "limit": 3
+      },
+      "outcome": "denied",
+      "latency_ms": 9,
+      "source_refs": [],
+      "error_class": "corpus_not_admitted",
+      "usage_event_type": "mcp_tool_call",
+      "usage_counts": {
+        "request_count": 1,
+        "result_count": 0,
+        "source_ref_count": 0,
+        "denied_count": 1
+      }
+    }
+  ],
+  "required_audit_fields": [
+    "principal_id",
+    "project_id",
+    "corpus_id",
+    "tool_name",
+    "parameters_hash",
+    "outcome",
+    "latency_ms",
+    "source_refs"
+  ],
+  "required_usage_fields": [
+    "project_id",
+    "corpus_id",
+    "event_type",
+    "counts",
+    "latency_ms"
+  ],
+  "prohibited_record_fields": [
+    "parameters",
+    "query",
+    "snippet",
+    "document_text",
+    "raw_text",
+    "content"
+  ]
+}

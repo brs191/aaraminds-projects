@@ -1,0 +1,110 @@
+{
+  "version": "phase2-sandbox-auth-v0.9",
+  "rows": [
+    {
+      "tool_name": "get_sprint_status",
+      "mcp_server_name": "apm0045942-cc-mcp-server:/jira-cloud/mcp",
+      "environment": "sandbox",
+      "permission": "read",
+      "approved_scopes": [],
+      "implementation_status": "approved_for_evidence_preparation",
+      "validation_status": "schema_observed_not_validated_for_execution",
+      "owner": "RAJA acting owner",
+      "actual_request_schema_ref": "localhost:8000 /jira-cloud/mcp tools/list captured 2026-07-10; candidate read-like tools: FetchItrackJiraIssuesList, GetJiraItrackJobStatus, JiraItrackValidate",
+      "actual_response_schema_ref": "localhost:8000 /jira-cloud/mcp tools/list captured 2026-07-10; output schemas present for GetJiraItrackJobStatus and JiraItrackValidate; FetchItrackJiraIssuesList response schema not fully captured",
+      "schema_diff_ref": "docs/development/phase-2-jira-sandbox-evidence-package.md#6-schema-validation-contract",
+      "auth_model_ref": "Local config evidence: auth disabled; execution auth model not approved",
+      "rate_limit_ref": "Local config evidence: rate limiting disabled; execution rate limits not approved",
+      "approval_evidence_ref": "docs/development/phase-2-jira-sandbox-evidence-package.md#9-register-update-conditions",
+      "validated_at": null,
+      "open_blockers": [
+        "Execution not authorized",
+        "Jira row-level evidence package prepared, but execution not authorized",
+        "Jira project, board, JQL, issue-type, and field/comment scope not captured",
+        "Data classification, redaction, retention, residency, and approved field/comment policy not captured",
+        "Auth and rate-limit guardrails are disabled in local evidence",
+        "Synthetic audit examples prepared, but execution audit evidence for allowed, denied, degraded, throttled, schema-mismatch, and stale-source outcomes not captured or approved",
+        "Raw Jira MCP surface also exposes CreateJiraCloudIssue, UpdateJiraCloudIssue, UpdateJiraCloudStatus, DeleteJiraCloudIssue, and RevertJiraItrackIssue",
+        "BA Agent read-only allowlist/no-write proof is implemented locally but not approved by security/control review for execution"
+      ]
+    },
+    {
+      "tool_name": "get_confluence_source_pages",
+      "mcp_server_name": "apm0045942-cc-mcp-server:/",
+      "environment": "sandbox",
+      "permission": "read",
+      "approved_scopes": [],
+      "implementation_status": "approved_for_evidence_preparation",
+      "validation_status": "schema_observed_not_validated_for_execution",
+      "owner": "RAJA acting owner",
+      "actual_request_schema_ref": "localhost:8000 root MCP tools/list captured 2026-07-10; candidate tools: confluence_search, confluence_get_page, confluence_list_spaces, confluence_space_pages, confluence_page_children, confluence_page_attachments, confluence_page_comments",
+      "actual_response_schema_ref": "localhost:8000 root MCP tools/list captured 2026-07-10; response schemas require separate capture before execution",
+      "schema_diff_ref": "docs/development/phase-2-confluence-sandbox-evidence-package.md#6-schema-validation-contract",
+      "auth_model_ref": "Local config evidence: auth disabled; execution auth model not approved",
+      "rate_limit_ref": "Local config evidence: rate limiting disabled; execution rate limits not approved",
+      "approval_evidence_ref": "docs/development/phase-2-confluence-sandbox-evidence-package.md#9-register-update-conditions",
+      "validated_at": null,
+      "open_blockers": [
+        "Execution not authorized",
+        "Confluence space/page scope not captured",
+        "Restricted-page, body-content, attachment, and comment handling policy not captured",
+        "Auth and rate-limit guardrails are disabled in local evidence",
+        "Available Confluence tools are exposed only on a broad root MCP surface with unrelated and write-like tools",
+        "BA Agent read-only allowlist/no-write proof is implemented locally but not approved by security/control review for execution"
+      ]
+    },
+    {
+      "tool_name": "get_recent_activity",
+      "mcp_server_name": "[RAJA]",
+      "environment": "sandbox",
+      "permission": "read",
+      "approved_scopes": [],
+      "implementation_status": "approved_for_evidence_preparation",
+      "validation_status": "not_validated",
+      "owner": "RAJA acting owner",
+      "actual_request_schema_ref": null,
+      "actual_response_schema_ref": null,
+      "schema_diff_ref": null,
+      "auth_model_ref": null,
+      "rate_limit_ref": null,
+      "approval_evidence_ref": "docs/development/phase-2-git-sandbox-evidence-package.md#9-register-update-conditions",
+      "validated_at": null,
+      "open_blockers": [
+        "Git/GitHub row-level evidence package prepared, but execution not authorized",
+        "No Git/GitHub read MCP endpoint or tool family found in the running local server",
+        "Git provider not confirmed",
+        "Repository scope not captured",
+        "Source-code classification, field minimization, redaction, retention, and residency not approved",
+        "Auth and rate-limit guardrails not captured",
+        "Actual schema not captured",
+        "No BA Agent read-only allowlist/no-write proof can be implemented until an endpoint/tool family is identified"
+      ]
+    },
+    {
+      "tool_name": "send_adaptive_card",
+      "mcp_server_name": "[RAJA]",
+      "environment": "sandbox",
+      "permission": "write_like",
+      "approved_scopes": [],
+      "implementation_status": "blocked",
+      "validation_status": "blocked",
+      "owner": "[RAJA]",
+      "actual_request_schema_ref": null,
+      "actual_response_schema_ref": null,
+      "schema_diff_ref": null,
+      "auth_model_ref": null,
+      "rate_limit_ref": null,
+      "approval_evidence_ref": "docs/development/phase-2-teams-sandbox-blocked-package.md#4-reopen-conditions",
+      "validated_at": null,
+      "open_blockers": [
+        "Teams preparation not approved by current RAJA decision",
+        "Teams sandbox channel not approved",
+        "Teams tenant/app registration, scopes, and Graph/API surface not approved",
+        "Privacy, retention, residency, and deletion policy not approved",
+        "Auto-response policy not approved",
+        "External side effect remains approval-gated",
+        "No Teams adapter, MCP wrapper, Graph API client, or no-write proof should be implemented until Teams preparation is explicitly reopened"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "fixture_type": "docx_paragraph_model",
+  "source_path": "requirements.docx",
+  "heading_path": "Requirements",
+  "paragraphs": [
+    {
+      "paragraph_index": 0,
+      "heading_path": "Requirements > Scope",
+      "text": "DIF P0 must index only uniformly readable synthetic corpus fixtures."
+    },
+    {
+      "paragraph_index": 1,
+      "heading_path": "Requirements > Evidence",
+      "text": "Every search result must include a resolvable source anchor."
+    },
+    {
+      "paragraph_index": 2,
+      "heading_path": "Requirements > Governance",
+      "text": "Any production corpus requires owner approval before indexing."
+    }
+  ]
+}
+

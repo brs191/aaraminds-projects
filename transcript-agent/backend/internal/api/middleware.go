@@ -99,7 +99,7 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		if origin != "" && origin == s.CORSOrigin {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-Id, X-User-Role")
 			w.Header().Set("Access-Control-Expose-Headers", "X-Superseded, X-Request-Id")
 			w.Header().Set("Access-Control-Max-Age", "600")

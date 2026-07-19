@@ -1,0 +1,5 @@
+{
+  "fixture": "invalid-json",
+  "purpose": "trigger json_parse_error",
+  "missingClosingBrace": true
+

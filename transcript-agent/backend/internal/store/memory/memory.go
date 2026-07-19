@@ -36,6 +36,13 @@ type Store struct {
 	artOrder  []uuid.UUID
 	exports   map[uuid.UUID]*domain.ExportRecord
 	expOrder  []uuid.UUID
+
+	// library mode
+	feeds        map[uuid.UUID]*domain.Feed
+	feedOrder    []uuid.UUID
+	episodes     map[uuid.UUID]*domain.Episode
+	epOrder      []uuid.UUID
+	epByFeedGUID map[string]uuid.UUID // feedID + "\x00" + guid -> episode
 }
 
 // New returns an empty in-memory store.
@@ -51,6 +58,10 @@ func New() *Store {
 		approvals: map[uuid.UUID]*domain.Approval{},
 		artifacts: map[uuid.UUID]*domain.MediaArtifact{},
 		exports:   map[uuid.UUID]*domain.ExportRecord{},
+
+		feeds:        map[uuid.UUID]*domain.Feed{},
+		episodes:     map[uuid.UUID]*domain.Episode{},
+		epByFeedGUID: map[string]uuid.UUID{},
 	}
 }
 
@@ -59,6 +70,7 @@ func (s *Store) Stores() store.Stores {
 	return store.Stores{
 		Jobs: s, Transcripts: s, Summaries: s, Quality: s,
 		Approvals: s, Audit: s, Artifacts: s, Review: s,
+		Library: s, Search: s,
 	}
 }
 

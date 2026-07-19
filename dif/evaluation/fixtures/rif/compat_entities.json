@@ -1,0 +1,124 @@
+{
+  "version": "0.1.0",
+  "description": "Synthetic RIF compatibility entities for DIF ADR-016 fixture checks.",
+  "repo_id": "demo-rif",
+  "sha": "1111111111111111111111111111111111111111",
+  "required_fields": [
+    "node_id",
+    "repo_id",
+    "kind",
+    "qualified_name",
+    "source_ref",
+    "origin",
+    "confidence"
+  ],
+  "entities": [
+    {
+      "entity_alias": "file-payment-service",
+      "kind": "FILE",
+      "qualified_name": "src/main/java/com/example/payments/PaymentService.java",
+      "simple_name": "",
+      "source_ref": "demo-rif@1111111111111111111111111111111111111111:src/main/java/com/example/payments/PaymentService.java:1",
+      "origin": "first_party",
+      "confidence": "exact"
+    },
+    {
+      "entity_alias": "class-payment-service",
+      "kind": "CLASS",
+      "qualified_name": "com.example.payments.PaymentService",
+      "simple_name": "PaymentService",
+      "source_ref": "demo-rif@1111111111111111111111111111111111111111:src/main/java/com/example/payments/PaymentService.java:12",
+      "origin": "first_party",
+      "confidence": "exact"
+    },
+    {
+      "entity_alias": "method-payment-authorize",
+      "kind": "METHOD",
+      "qualified_name": "com.example.payments.PaymentService#authorize(com.example.payments.PaymentRequest)",
+      "simple_name": "authorize",
+      "source_ref": "demo-rif@1111111111111111111111111111111111111111:src/main/java/com/example/payments/PaymentService.java:42",
+      "origin": "first_party",
+      "confidence": "exact"
+    },
+    {
+      "entity_alias": "method-billing-authorize",
+      "kind": "METHOD",
+      "qualified_name": "com.example.billing.PaymentService#authorize(com.example.billing.PaymentRequest)",
+      "simple_name": "authorize",
+      "source_ref": "demo-rif@1111111111111111111111111111111111111111:src/main/java/com/example/billing/PaymentService.java:39",
+      "origin": "first_party",
+      "confidence": "exact"
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_alias": "payment-authorize-same-file",
+      "from_entity_alias": "class-payment-service",
+      "to_entity_alias": "method-payment-authorize",
+      "label": "SAME_FILE_CALLS"
+    }
+  ],
+  "variants": [
+    {
+      "variant": "no-rif",
+      "schemas": [],
+      "age_available": false,
+      "age_entities": [],
+      "shadow_available": false,
+      "shadow_entities": [],
+      "missing_fields": []
+    },
+    {
+      "variant": "rif-incompatible",
+      "schemas": ["rif"],
+      "age_available": true,
+      "age_entities": [
+        {
+          "entity_alias": "method-payment-authorize",
+          "omit_fields": ["source_ref", "confidence"]
+        }
+      ],
+      "shadow_available": false,
+      "shadow_entities": [],
+      "missing_fields": ["source_ref", "confidence"]
+    },
+    {
+      "variant": "age-only-compatible",
+      "schemas": ["rif", "rif_meta"],
+      "age_available": true,
+      "age_entities": [
+        {"entity_alias": "file-payment-service"},
+        {"entity_alias": "class-payment-service"},
+        {"entity_alias": "method-payment-authorize"},
+        {"entity_alias": "method-billing-authorize"}
+      ],
+      "shadow_available": true,
+      "shadow_entities": [],
+      "missing_fields": []
+    },
+    {
+      "variant": "shadow-compatible",
+      "schemas": ["rif_meta"],
+      "age_available": false,
+      "age_entities": [],
+      "shadow_available": true,
+      "shadow_entities": [
+        {"entity_alias": "file-payment-service"},
+        {"entity_alias": "class-payment-service"},
+        {"entity_alias": "method-payment-authorize"},
+        {"entity_alias": "method-billing-authorize"}
+      ],
+      "missing_fields": []
+    },
+    {
+      "variant": "shadow-empty-no-age",
+      "schemas": ["rif_meta"],
+      "age_available": false,
+      "age_entities": [],
+      "shadow_available": true,
+      "shadow_entities": [],
+      "missing_fields": []
+    }
+  ]
+}
+

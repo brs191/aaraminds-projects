@@ -11,6 +11,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
@@ -44,8 +45,14 @@ type Toolset struct {
 	// RETENTION_DAYS env, default 30). Exports and approved transcripts are
 	// exempt and never swept.
 	RetentionDays int
-	Auditor       *audit.Writer
-	Log           *slog.Logger
+	// LibraryMaxDownloadBytes caps library-mode enclosure downloads
+	// (LIBRARY_MAX_DOWNLOAD_BYTES env; zero means the 500 MiB default).
+	LibraryMaxDownloadBytes int64
+	// HTTPClient performs feed fetches and enclosure downloads (library mode).
+	// Nil means http.DefaultClient; timeouts are enforced per request context.
+	HTTPClient *http.Client
+	Auditor    *audit.Writer
+	Log        *slog.Logger
 }
 
 // DefaultRetentionDays is the PRD 16.4 default media retention window.
@@ -166,11 +173,27 @@ func (t *Toolset) ResolveUploadURI(ctx context.Context, uri string) (*domain.Med
 }
 
 // mediaSourceURI returns the URI handed to the media processor: upload://
-// sources resolve to the staged artifact's object-store URI; everything else
-// (youtube URLs, mock:// markers) passes through unchanged.
+// sources resolve to the staged artifact's object-store URI; library://
+// sources resolve to the downloaded enclosure artifact the same way;
+// everything else (youtube URLs, mock:// markers) passes through unchanged.
 func (t *Toolset) mediaSourceURI(ctx context.Context, job *domain.Job) (string, error) {
 	if job.SourceType == domain.SourceUpload && strings.HasPrefix(job.SourceURI, UploadURIScheme) {
 		art, err := t.ResolveUploadURI(ctx, job.SourceURI)
+		if err != nil {
+			return "", err
+		}
+		return art.URI, nil
+	}
+	if job.SourceType == domain.SourceUpload && strings.HasPrefix(job.SourceURI, LibraryURIScheme) {
+		ep, err := t.episodeFromLibraryURI(ctx, job.SourceURI)
+		if err != nil {
+			return "", err
+		}
+		if ep.MediaArtifactID == nil {
+			return "", domain.E(domain.CodeMediaNotFound,
+				"library episode %s has no downloaded media yet", ep.EpisodeID)
+		}
+		art, err := t.Stores.Artifacts.GetArtifact(ctx, *ep.MediaArtifactID)
 		if err != nil {
 			return "", err
 		}

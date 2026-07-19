@@ -31,6 +31,7 @@ import (
 	"github.com/aaraminds/transcript-agent/internal/providers/stt"
 	"github.com/aaraminds/transcript-agent/internal/providers/stt/azure"
 	sttmock "github.com/aaraminds/transcript-agent/internal/providers/stt/mock"
+	"github.com/aaraminds/transcript-agent/internal/providers/stt/whisperx"
 	"github.com/aaraminds/transcript-agent/internal/store"
 	"github.com/aaraminds/transcript-agent/internal/store/memory"
 	"github.com/aaraminds/transcript-agent/internal/store/postgres"
@@ -128,6 +129,15 @@ func main() {
 			Model:        os.Getenv("AZURE_SPEECH_MODEL"),
 			LocalDataDir: dataDir,
 		})
+	case "whisperx":
+		// Local WhisperX sidecar (stt-sidecar/): run scripts/stt-setup.sh once,
+		// then scripts/stt-run.sh, and point WHISPERX_URL at it.
+		sttProvider = whisperx.New(whisperx.Config{
+			BaseURL:      env("WHISPERX_URL", "http://localhost:9090"),
+			LocalDataDir: dataDir,
+			PollInterval: envDuration("WHISPERX_POLL_INTERVAL", 5*time.Second),
+			Timeout:      envDuration("WHISPERX_TIMEOUT", 2*time.Hour),
+		})
 	default:
 		log.Error("unknown STT_PROVIDER", "value", sttName)
 		os.Exit(1)
@@ -196,6 +206,13 @@ func main() {
 			maxUploadBytes = n
 		}
 	}
+	// Library mode (personal-use RSS feeds).
+	libraryMaxDownload := int64(500) << 20 // 500 MiB default
+	if v := os.Getenv("LIBRARY_MAX_DOWNLOAD_BYTES"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			libraryMaxDownload = n
+		}
+	}
 	// --- built web UI (optional) ----------------------------------------------
 	// WEB_DIST points at the built React UI (vite build output). Default
 	// ../web/dist is used only when it exists; an explicit WEB_DIST that is
@@ -237,7 +254,11 @@ func main() {
 		DrainTimeout:      envDuration("DRAIN_TIMEOUT", 30*time.Second),
 		StuckJobThreshold: envDuration("STUCK_JOB_THRESHOLD", 10*time.Minute),
 		RetentionDays:     envInt("RETENTION_DAYS", 30),
-		WebDist:           webDist,
+		// Library mode: feed poll cadence, auto-transcribe cap, download cap.
+		LibraryPollInterval:     envDuration("LIBRARY_POLL_INTERVAL", 30*time.Minute),
+		LibraryAutoPerPoll:      envInt("LIBRARY_AUTO_PER_POLL", 3),
+		LibraryMaxDownloadBytes: libraryMaxDownload,
+		WebDist:                 webDist,
 	})
 	if os.Getenv("AUTH_PROXY_SECRET") == "" {
 		log.Warn("AUTH_PROXY_SECRET is not set; header auth is running in development mode and must not be exposed directly")

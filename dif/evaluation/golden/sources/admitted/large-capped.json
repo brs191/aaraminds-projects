@@ -1,0 +1,31 @@
+{
+  "fixture_type": "json_cap_generator_spec",
+  "description": "Compact synthetic declaration for generating cap-triggering JSON during executable tests.",
+  "deep": {
+    "generateDepth": 13
+  },
+  "generated": {
+    "blockCount": {
+      "generateBlocks": 2001
+    },
+    "objectWithManyProperties": {
+      "generateProperties": 201
+    },
+    "arrayWithManyElements": {
+      "generateElements": 101
+    },
+    "longScalar": {
+      "generateStringLength": 8193
+    },
+    "longBlock": {
+      "generateNormalizedBlockLength": 16385
+    },
+    "totalText": {
+      "generateTotalTextBytes": 5242881
+    },
+    "tooLargeFile": {
+      "generateFileBytes": 26214401
+    }
+  }
+}
+

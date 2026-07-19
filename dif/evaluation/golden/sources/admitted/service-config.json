@@ -1,0 +1,26 @@
+{
+  "environment": "golden",
+  "services": [
+    {
+      "name": "payments",
+      "owner": "platform-payments",
+      "className": "com.example.payments.PaymentService",
+      "endpoint": "/payments/{paymentId}",
+      "retry": {
+        "maxAttempts": 2,
+        "backoffSeconds": 5
+      }
+    },
+    {
+      "name": "documents",
+      "owner": "platform-docs",
+      "className": "com.example.documents.DocumentService",
+      "endpoint": "/documents/{documentId}",
+      "retry": {
+        "maxAttempts": 1,
+        "backoffSeconds": 3
+      }
+    }
+  ]
+}
+

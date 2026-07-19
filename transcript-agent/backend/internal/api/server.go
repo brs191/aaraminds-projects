@@ -101,6 +101,15 @@ func NewServer(ts *tools.Toolset, orch *orchestrator.Orchestrator, objects objec
 
 	mux.HandleFunc("PATCH /api/v1/summaries/{summaryID}", s.handleEditSummary)
 
+	// Library mode (personal-use RSS feeds; frozen contract with the UI).
+	mux.HandleFunc("POST /api/v1/library/feeds", s.handleAddFeed)
+	mux.HandleFunc("GET /api/v1/library/feeds", s.handleListFeeds)
+	mux.HandleFunc("DELETE /api/v1/library/feeds/{feedID}", s.handleDeleteFeed)
+	mux.HandleFunc("POST /api/v1/library/feeds/{feedID}/poll", s.handlePollFeed)
+	mux.HandleFunc("GET /api/v1/library/episodes", s.handleListEpisodes)
+	mux.HandleFunc("POST /api/v1/library/episodes/{episodeID}/transcribe", s.handleTranscribeEpisode)
+	mux.HandleFunc("GET /api/v1/library/search", s.handleLibrarySearch)
+
 	mux.HandleFunc("POST /api/v1/signed-links", s.handleCreateSignedLink)
 	mux.HandleFunc("GET /api/v1/jobs/{jobID}/audio", s.handleJobAudio)
 	mux.HandleFunc("GET /api/v1/exports/{exportID}/download", s.handleDownloadExport)

@@ -1,14 +1,16 @@
 # DIF — Documents Intelligence Factory
 ## Product Requirements Document (PRD)
 
-**Version:** 0.3 (Draft)
+**Version:** 0.3.3 (Draft)
 **Date:** 2026-07-08
 **Owner:** AaraMinds
 **Status:** Draft — pending review
 **Sibling product:** RIF (Repo Intelligence Factory)
 **v0.2 changes:** market-trend review applied — parsing router replaces hand-built PDF extraction, rerank stage added, low-level retrieval tools added, MCP 2026-07-28 spec + OAuth 2.1 targeted, structural citations + groundedness scoring, embedding default refreshed, long-context routing note.
-**v0.3 changes (D-007):** RIF+DIF federation promoted from v2 candidate to core v1 architecture — DIF deploys per project into the project's existing RIF Postgres (`dif_meta` beside `rif_meta`), `DESCRIBES` doc→code edges added (P1), cross-graph tools `docs_for_code`/`code_for_doc` (P1) and `drift_report` (P2), shared NodeIdComputer now a hard requirement.
+**v0.3 changes (D-007):** RIF+DIF federation promoted from v2 candidate to core v1 architecture — DIF deploys per project into the project's existing RIF Postgres (`dif_meta` beside RIF schemas), `DESCRIBES` doc→code edges added (P1), cross-graph tools `docs_for_code`/`code_for_doc` (P1) and `drift_report` (P2), shared NodeIdComputer semantics now a hard requirement.
 **v0.3.1 changes (D-008):** `.json` added as a P0 first-class artifact (JSONPath anchors, expansion caps via ADR); `.xlsx` committed at v1.5 with cell/range anchors; format admission policy adopted from design-decisions DD-01.
+**v0.3.2 changes (D-009):** RIF compatibility corrected after `cc-rif`/local database review — existing RIF deployments may have populated AGE graph tables with empty or absent `rif_meta` shadows, so cross-graph features now depend on a RIF compatibility layer/contract rather than direct `rif_meta.method_nodes`/`file_nodes` assumptions.
+**v0.3.3 changes (D-010):** v1 source ACL posture pinned to uniformly readable corpora only for the limited-engineer rollout; per-user source ACL propagation moves to post-production-readiness/GA v2.
 
 ---
 
@@ -20,7 +22,7 @@ The product answers questions no keyword search or naive RAG can: *"Which contra
 
 DIF reuses RIF's proven architecture: ingestion → extractors → Postgres + pgvector storage → hybrid retriever (vector + FTS + graph, RRF fusion) → MCP server → agent service. Same stack, same ops model, new extraction domain.
 
-**DIF is code-aware by design (D-007).** DIF deploys per project, into the same Postgres database where that project's RIF code graph already lives (`dif_meta` beside `rif_meta`). Document blocks link to code entities via `DESCRIBES` edges, making cross-graph questions first-class: *"which documents describe this code?"*, *"this method changed — which docs are now stale?"* (documentation drift), *"this policy changed — which code is affected?"*. DIF works standalone on doc-only corpora, but co-working with RIF is the default deployment and the core differentiator — no competitor can answer these questions without owning a code graph.
+**DIF is code-aware by design (D-007/D-009).** DIF deploys per project, into the same Postgres database where that project's RIF code graph already lives (`dif_meta` beside RIF schemas such as `rif` and `rif_meta`). Document blocks link to code entities via `DESCRIBES` edges resolved through a RIF compatibility layer, making cross-graph questions first-class: *"which documents describe this code?"*, *"this method changed — which docs are now stale?"* (documentation drift), *"this policy changed — which code is affected?"*. DIF works standalone on doc-only corpora, but co-working with RIF is the default deployment and the core differentiator — no competitor can answer these questions without owning a code graph.
 
 ## 2. Problem statement
 
@@ -45,7 +47,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 4. MCP server exposing search, reference-tracing, impact-analysis, and explain tools — consumable from Claude, Copilot, or any MCP client.
 5. Agent service producing **citation-gated narratives**: every claim block carries at least one validated `source_ref`; unsupported claims fail closed or become caveats.
 6. Incremental re-indexing: only changed documents/sections re-extract and re-embed.
-7. **RIF federation (D-007):** per-project deployment into the project's RIF Postgres; `DESCRIBES` edges linking doc blocks to `rif_meta` code nodes; cross-graph tools (`docs_for_code`, `code_for_doc`, `drift_report`). P0 lays the foundation (co-located schema, compatible node IDs) at zero extra cost; P1–P2 deliver the capability.
+7. **RIF federation (D-007/D-009):** per-project deployment into the project's RIF Postgres; `DESCRIBES` edges linking doc blocks to RIF code nodes through the compatibility layer; cross-graph tools (`docs_for_code`, `code_for_doc`, `drift_report`). P0 lays the foundation (co-located schema, compatible ID/source-ref semantics, compatibility contract); P1–P2 deliver the capability.
 
 ### Non-goals (v1)
 
@@ -55,7 +57,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 - Semantic contradiction detection between documents (v2 candidate; v1 surfaces the references, humans judge).
 - Fine-tuned/custom embedding models — v1 uses the same embedding service and model options as RIF.
 - Email, chat, or ticket ingestion — documents only.
-- Per-user source ACL propagation for mixed-permission corpora — v1 pilots use uniformly-readable corpora or separately indexed corpora per access boundary; ACL inheritance is v2.
+- Per-user source ACL propagation for mixed-permission corpora — v1 uses uniformly readable corpora only; ACL inheritance is post-production-readiness/GA v2.
 
 ## 4. Users and use cases
 
@@ -83,7 +85,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 - **R1.** Sources are phased. **P0:** local/mounted file trees and Git repositories (docs-in-repo). **P3:** SharePoint/OneDrive via Graph API connector. Webhook-triggered and scheduled ingestion are connector features, not P0 skeleton blockers.
 - **R2.** Formats are phased (D-008). **P0:** `.md`, `.txt`, `.docx`, and `.json`. **P1:** `.pdf` and `.pptx`. **v1.5:** `.xlsx` (visible sheets, ranges, formulas, named ranges — with explicit caveats). Format detection is by content, not extension alone. Every new format enters via the **format admission policy**: parser, source-anchor type, graph node mapping, extraction caveats, golden tests, and cost profile — no ad hoc format additions.
-- **R2b.** **JSON extraction (P0, D-008).** Deterministic traversal with JSONPath source anchors; graph expansion capped (max depth/nodes per document, ADR before P0 JSON ingestion) so a pathological config can't flood `dif_meta`. JSON artifacts participate in `DESCRIBES` detection (D-007) — service names, class references, and file paths in configs resolve against `rif_meta`, making policies-as-code and configuration first-class drift sources.
+- **R2b.** **JSON extraction (P0, D-008).** Deterministic traversal with JSONPath source anchors; graph expansion capped (max depth/nodes per document, ADR before P0 JSON ingestion) so a pathological config can't flood `dif_meta`. JSON artifacts participate in `DESCRIBES` detection (D-007/D-009) — service names, class references, and file paths in configs resolve through the RIF compatibility layer, making policies-as-code and configuration first-class drift sources.
 - **R2a.** PDF handling is a **parsing router, not a hand-built extractor**. Parsing is a commoditized layer in 2026 (Docling, Unstructured, Reducto, VLM-based OCR) — DIF's IP is the graph on top, not the parser. Route: text-layer fast path for clean born-digital PDFs; IBM Docling (self-hosted, TableFormer for tables) for complex layout, tables, and multi-column; VLM parse as fallback for pathological pages. Parsed output is stored as structured blocks with **page + bounding-box provenance** — bbox provenance is what makes clause-level citations possible. The router's outputs feed the same deterministic NDJSON contract as native extractors; determinism gates (R9) apply to the router's post-processing, with parser version pinned and recorded per run.
 - **R3.** Every ingestion run is recorded with provenance (source, timestamp, content hashes). A run that extracts zero or degenerate content **must not** replace the prior index version (RIF's B1/B2 gate pattern — carry it over verbatim).
 - **R4.** Atomic version swap with optimistic locking; a failed run leaves the previous index fully serving.
@@ -91,26 +93,26 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 ### 5.2 Extraction — the document graph
 
-- **R6.** Node types: `document`, `section` (heading hierarchy), `block` (paragraph, table, figure, slide), `entity` (v1.5: named policies, systems, parties). Deterministic, content-addressed node IDs using the same NUL-separator SHA-256 scheme as RIF's NodeIdComputer. **One shared implementation is now a hard requirement, not hygiene (D-007):** `DESCRIBES` edges join `dif_meta` blocks to `rif_meta` code nodes by ID convention — a divergent ID scheme silently breaks federation, the product's core capability.
+- **R6.** Node types: `document`, `section` (heading hierarchy), `block` (paragraph, table, figure, slide), `entity` (v1.5: named policies, systems, parties). Deterministic, content-addressed node IDs. RIF compatibility uses the exact RIF NodeIdComputer semantics for code entities: normal node IDs are SHA-256 of `repoId + NUL + qualifiedName + NUL + kind`, normal edge IDs are SHA-256 of `fromNodeId + NUL + label + NUL + toNodeId`, and synthetic RIF nodes use their documented prefixed IDs. **Shared semantics are a hard requirement, not hygiene (D-007/D-009):** `DESCRIBES` edges join `dif_meta` blocks to RIF code nodes by stable ID/source-ref contract — a divergent ID scheme silently breaks federation, the product's core capability.
 - **R7.** Edge types are phased. **P0:** `CONTAINS` structure. **P1:** `REFERENCES` (explicit citations, hyperlinks, "see section X"), `VERSION_OF`, `SUPERSEDES`. Every edge carries a confidence tier (`exact` / `inferred`) and completeness caveats, surfaced to consumers.
-- **R7a.** **`DESCRIBES` edges — doc block → code node (P1, D-007).** Doc extractors run a code-entity detector over blocks: qualified names, file paths, method/class references (backtick spans, code fences, and inline identifiers). Candidates resolve against `rif_meta.method_nodes`/`file_nodes` at load time. Confidence tiers: `exact` (qualified-name match), `inferred` (path or fuzzy simple-name match). Unresolved candidates are flagged per R8, never silently minted. Resolution rate per corpus is recorded and surfaced — it is both a quality gate and the drift-detection denominator. When no `rif_meta` schema exists (standalone/doc-only deployment), the detector still runs and stores candidates as `unresolved`, so a later RIF deployment upgrades them in place on the next re-index.
+- **R7a.** **`DESCRIBES` edges — doc block → code node (P1, D-007/D-009).** Doc extractors run a code-entity detector over blocks: qualified names, file paths, method/class references (backtick spans, code fences, and inline identifiers). Candidates resolve at load time through the RIF compatibility layer, not by assuming `rif_meta.method_nodes`/`file_nodes` are populated. Required resolver fields: `node_id`, `repo_id`, `kind`, `qualified_name`, `simple_name` when available, `source_ref`, `origin`, and `confidence`. Confidence tiers: `exact` (qualified-name/source-ref match), `inferred` (path or fuzzy simple-name match). Unresolved candidates are flagged per R8, never silently minted. Resolution rate per corpus is recorded and surfaced — it is both a quality gate and the drift-detection denominator. When no compatible RIF graph exists (standalone/doc-only deployment), the detector still runs and stores candidates as `unresolved`, so a later compatible RIF deployment upgrades them in place on the next re-index.
 - **R8.** Unresolvable references are flagged `unresolved:true` — never silently minted as dangling nodes (RIF review finding M20).
 - **R9.** Extractors are deterministic: sorted traversal, stable output ordering, byte-reproducible NDJSON. Edge IDs include position discriminators to prevent duplicate-edge collisions (RIF finding M19).
 - **R10.** Tables are extracted as structured blocks (rows/columns preserved), not flattened text.
 
 ### 5.3 Storage and retrieval
 
-- **R11.** Postgres + pgvector for embeddings and FTS; graph edges as relational adjacency with recursive CTEs (D-003). **DIF lands in the project's existing RIF Postgres database as a sibling schema: `dif_meta` beside `rif_meta` (D-007).** Cross-graph queries are plain SQL joins across the two schemas — no federation protocol, no second database, shared BYOC ops footprint. `dif_meta` migrations are idempotent (RIF-validated approach) and never touch `rif_meta` objects; a documented minimum `rif_meta` schema version is a deploy-time compatibility check. Standalone mode (no `rif_meta` present) is supported: DIF creates only `dif_meta` and cross-graph tools return an explicit `rif_not_deployed` status, not empty results.
+- **R11.** DIF storage uses Postgres + pgvector for embeddings and FTS; DIF graph edges are relational adjacency with recursive CTEs (D-003). **DIF lands in the project's existing RIF Postgres database as a sibling schema: `dif_meta` beside RIF schemas (D-007/D-009).** Existing RIF deployments may store the canonical code graph in Apache AGE schema `rif`, while `rif_meta` shadows are optional, empty, or not vector/FTS-ready. Cross-graph queries are still same-database SQL, but they must go through a pinned RIF compatibility layer: populated `rif_meta` views/tables, AGE-backed SQL views/resolvers, or a RIF-provided API with equivalent fields. `dif_meta` migrations are idempotent and never mutate `rif_meta` or `rif` objects. Deploy-time checks return explicit statuses: `rif_not_deployed` when no RIF graph is present, `rif_incompatible` when the contract is missing, and `rif_shadow_empty` or equivalent when optional shadows cannot satisfy resolution.
 - **R12.** Hybrid retrieval: vector similarity + Postgres FTS + graph proximity signal, fused via RRF (reuse RIF's `rrf.go` and fusion logic). Vector queries must push `ORDER BY embedding <=> $n LIMIT k` into index-eligible per-table branches (RIF finding M5 — do not repeat).
 - **R12a.** **Reranking stage (P1).** Broad hybrid recall → cross-encoder rerank before results ship. Reranking is the single highest-leverage retrieval component in 2026 benchmarks (+17pp MRR@3 over unreranked hybrid on text-and-table documents). Provider-abstracted (Cohere Rerank v4 API or open-weight cross-encoder self-hosted); rerank scores recorded alongside RRF scores for evaluation. pgvector notes: `halfvec` + HNSW as the default index recipe; pgvectorscale when a corpus passes ~50M vectors.
 - **R13.** Every retrieval result carries a source anchor: `doc_id@version : section_path : page/slide/line` — plus `JSONPath` for JSON artifacts and `sheet!cell/range` for Excel at v1.5 (D-008). No anchor type defined = format not admitted (R2).
 - **R13a.** Impact-analysis semantics are explicit. `REFERENCES` edges point from the citing node to the cited node. `impact_of_change(anchor)` traverses inbound `REFERENCES` paths from the changed anchor to affected citing documents, returns path evidence, depth, edge confidence, and unresolved-edge caveats, and does not claim semantic contradiction. Defaults: `max_depth=2`, hard cap `5`, `version_scope=current`, `edge_confidence=exact`; callers may opt into `inferred`, `all_versions`, or `as_of`.
 - **R13b.** `trace_references(anchor)` supports `direction=outbound|inbound|both`, `max_depth`, `version_scope`, `edge_confidence`, and `include_unresolved`. Results are sorted deterministically by path length, confidence, document ID, then anchor.
-- **R13c.** **Cross-graph traversal (P1–P2, D-007).** Impact analysis becomes bidirectional across schemas: `docs_for_code(entity)` resolves the entity in `rif_meta`, then follows inbound `DESCRIBES` edges to doc blocks; `code_for_doc(anchor)` follows outbound `DESCRIBES` edges from a doc anchor into code nodes. `drift_report(repo_id)` (P2) joins `DESCRIBES` edges against code-node content hashes: a doc block whose described code node changed after the doc's version timestamp is flagged as *potentially stale* — with the explicit caveat that staleness is heuristic (code changed ≠ doc wrong); DIF surfaces candidates, humans judge. All cross-graph results carry both doc anchors and code `source_ref`s.
+- **R13c.** **Cross-graph traversal (P1–P2, D-007/D-009).** Impact analysis becomes bidirectional across DIF and RIF graph surfaces: `docs_for_code(entity)` resolves the entity through the RIF compatibility layer, then follows inbound `DESCRIBES` edges to doc blocks; `code_for_doc(anchor)` follows outbound `DESCRIBES` edges from a doc anchor into code nodes. `drift_report(repo_id)` (P2) joins `DESCRIBES` edges against RIF code-node version/content evidence exposed by the compatibility layer: a doc block whose described code node changed after the doc's version timestamp is flagged as *potentially stale* — with the explicit caveat that staleness is heuristic (code changed ≠ doc wrong); DIF surfaces candidates, humans judge. All cross-graph results carry both doc anchors and code `source_ref`s.
 
 ### 5.4 MCP server
 
-- **R14.** Tool surface is phased. **P0:** `search_docs`. **P1:** `trace_references`, `impact_of_change`, **`docs_for_code`, `code_for_doc` (D-007)**. **P2:** `diff_versions`, `explain_topic`, **`drift_report` (D-007)**. Tool schemas **generated from code**, not hand-maintained (RIF finding M3). Cross-graph tools return `rif_not_deployed` explicitly on standalone deployments (R11).
+- **R14.** Tool surface is phased. **P0:** `search_docs`. **P1:** `trace_references`, `impact_of_change`, **`docs_for_code`, `code_for_doc` (D-007/D-009)**. **P2:** `diff_versions`, `explain_topic`, **`drift_report` (D-007/D-009)**. Tool schemas **generated from code**, not hand-maintained (RIF finding M3). Cross-graph tools return explicit RIF status (`rif_not_deployed`, `rif_incompatible`, or compatible) rather than empty results when the RIF graph/contract is unavailable (R11).
 - **R14a.** **Low-level retrieval tools (P2):** `keyword_search`, `semantic_search`, `read_block` — alongside the fixed-function tools. The 2026 pattern is agentic retrieval: consuming agents iterate over retrieval primitives rather than accepting one-shot answers (the pattern Azure AI Search shipped GA in April 2026). Fixed-function tools serve simple clients; primitives serve capable agents. Both share the same auth, audit, and citation contracts.
 - **R15.** All required fields validated non-empty server-side; ILIKE wildcards escaped.
 - **R16.** Auth from day one, targeting the **MCP 2026-07-28 spec** (stateless core — no `Mcp-Session-Id`, any request routable to any instance): bearer-token (constant-time compare) is acceptable for P0 internal deployments only; remote/pilot deployments require **OAuth 2.1 + PKCE per the MCP auth spec** (RFC 9728 protected-resource metadata, RFC 8707 resource indicators, no token passthrough). Design for deployment behind an enterprise MCP gateway — gateways are the 2026 enterprise control plane for tool authorization and audit; DIF must not assume it terminates auth alone. RIF shipped v1 with zero auth — DIF does not.
@@ -144,7 +146,7 @@ RIF proved the pattern for code: deterministic extraction → content-addressed 
 
 ## 6. Architecture (adopted from RIF)
 
-Deployment unit is **per project**: DIF services deploy beside the project's existing RIF stack and write to the same Postgres (`dif_meta` beside `rif_meta`). The Postgres box below is the project's RIF database, not a new one.
+Deployment unit is **per project**: DIF services deploy beside the project's existing RIF stack and write to the same Postgres (`dif_meta` beside RIF schemas such as `rif` and `rif_meta`). The Postgres box below is the project's RIF database, not a new one. RIF's canonical code graph may be AGE-backed even when `rif_meta` shadows are empty; the cross-graph boundary is the RIF compatibility layer, not direct assumptions about optional shadow tables.
 
 ```
  Sources (files / git / SharePoint)
@@ -182,19 +184,19 @@ Baselines to be established during pilot; no targets ship without a measured bas
 - **Adoption:** MCP tool calls/week from non-DIF-team consumers.
 - **Extraction determinism:** repeated extraction of unchanged corpus yields byte-identical output (CI-enforced, boolean).
 - **Metering completeness:** 100% of ingestion runs, MCP calls, and agent requests emit usage events before paid pilot.
-- **`DESCRIBES` resolution rate (D-007):** % of detected code-entity candidates that resolve `exact` against `rif_meta`, per corpus — quality gate for federation and the drift-report denominator (baseline set in the reference-density spike).
+- **`DESCRIBES` resolution rate (D-007/D-009):** % of detected code-entity candidates that resolve `exact` through the RIF compatibility layer, per corpus — quality gate for federation and the drift-report denominator (baseline set in the reference-density spike).
 
 ## 8. Phasing
 
 | Phase | Scope | Exit criteria |
 |-------|-------|---------------|
-| P0 — Skeleton | Own repo, CI, auth-on-day-one service scaffolds, **`dif_meta` schema in the RIF Postgres with RIF-compatible node IDs (D-007)**, local/Git ingestion, `.md/.txt/.docx`, `CONTAINS` graph, `search_docs`, audit/health/usage-event schema | E2E: docx in → cited search result out, in CI; golden demo corpus checked in; `dif_meta` migration idempotent against a live `rif_meta` database |
-| P1 — Core graph + federation | PDF/pptx via parsing router, `REFERENCES`/`VERSION_OF`/`SUPERSEDES` edges, **`DESCRIBES` code-entity detector + resolution against `rif_meta`**, hybrid retriever, `trace_references`, `impact_of_change`, **`docs_for_code`, `code_for_doc`** | Golden-query set passing; impact-analysis semantics tested; determinism check green; `DESCRIBES` resolution rate measured on a real RIF project |
+| P0 — Skeleton | Own repo, CI, auth-on-day-one service scaffolds, **`dif_meta` schema in the RIF Postgres with RIF-compatible ID/source-ref semantics (D-007/D-009)**, local/Git ingestion, `.md/.txt/.docx/.json`, `CONTAINS` graph, `search_docs`, audit/health/usage-event schema, RIF compatibility ADR + contract-test fixture | E2E: docx/json in → cited search result out, in CI; golden demo corpus checked in; `dif_meta` migration idempotent against a live RIF Postgres; RIF contract check distinguishes compatible, missing, and incompatible RIF deployments |
+| P1 — Core graph + federation | PDF/pptx via parsing router, `REFERENCES`/`VERSION_OF`/`SUPERSEDES` edges, **`DESCRIBES` code-entity detector + resolution through the RIF compatibility layer**, hybrid retriever, `trace_references`, `impact_of_change`, **`docs_for_code`, `code_for_doc`** | Golden-query set passing; impact-analysis semantics tested; determinism check green; `DESCRIBES` resolution rate measured on a real RIF project with populated AGE graph even if `rif_meta` shadows are empty |
 | P2 — Agents + incremental + drift | Agent service, claim-level citation gate, incremental re-index, `diff_versions`, `explain_topic`, **`drift_report`** | Claim citation gate 100%; incremental correctness proven; usage metering complete; drift report validated against a known code change |
-| P3 — Connectors + hardening | SharePoint/OneDrive connector for uniformly-readable corpora, observability, Terraform, deployment hardening | Paid pilot deployment with a real admissible corpus |
+| P3 — Connectors + hardening | SharePoint/OneDrive connector for uniformly readable corpora only, observability, Terraform, deployment hardening | Paid pilot deployment with a real admissible corpus |
 | v2 candidates | Scanned-corpus OCR, ColPali-style page-image retrieval index, contradiction detection, entity extraction, ACL propagation | — |
 
-Federation (D-007) is deliberately foundation-first: P0 pays the near-zero cost of landing in the right database with the right ID scheme; P1–P2 turn that into `DESCRIBES` edges, cross-graph tools, and drift detection — a feature rollout, not a re-architecture.
+Federation (D-007/D-009) is deliberately foundation-first: P0 lands in the right database with the right ID/source-ref semantics and pins the RIF compatibility contract; P1–P2 turn that into `DESCRIBES` edges, cross-graph tools, and drift detection — a feature rollout, not a re-architecture.
 
 ## 9. Risks
 
@@ -206,7 +208,7 @@ Federation (D-007) is deliberately foundation-first: P0 pays the near-zero cost 
 | SharePoint connector auth/throttling complexity | P3 slip | Isolate as connector module; file-drop and git paths carry v1 |
 | Naive-RAG competitors ship "good enough" | Differentiation pressure | Lead with citation integrity + impact analysis — what chunk-RAG structurally cannot do |
 | Repeating RIF's hygiene debt | Same cleanup cost twice | R25–R29 are P0 requirements, not follow-ups; CI-enforced |
-| `rif_meta` schema evolves under DIF (D-007) | Cross-graph joins silently break | Documented minimum `rif_meta` version checked at deploy time (R11); cross-graph queries behind a thin view layer so RIF schema changes are absorbed in one place; contract test in CI against a pinned RIF fixture database |
+| RIF compatibility assumptions are wrong (D-009) | Cross-graph joins silently miss code entities even when RIF's AGE graph is populated | RIF compatibility layer required before P1; deploy-time statuses distinguish `rif_not_deployed`, `rif_incompatible`, and empty optional shadows; CI contract test against a pinned RIF fixture database |
 | Low `DESCRIBES` resolution on real corpora | Federation value doesn't materialize | Reference-density spike measures doc→code resolution before P0 commits; `inferred` tier + resolution-rate metric make quality visible per corpus |
 
 ## 10. Open questions
@@ -214,8 +216,8 @@ Federation (D-007) is deliberately foundation-first: P0 pays the near-zero cost 
 1. ~~Graph store~~ — **DECIDED (D-003, 2026-07-08):** relational adjacency + recursive CTEs. See `DECISIONS.md`.
 2. ~~Embedding model for prose~~ — **DECIDED (D-002, 2026-07-08):** Voyage via shared LiteLLM service, ≤1024d Matryoshka; exact model/dimension pinned at end of P0 spike (D-005).
 3. ~~Multi-tenancy model~~ — **RESOLVED by D-001 (BYOC, 2026-07-08):** isolation by customer tenancy; no in-app row-level tenancy needed for pilot.
-4. Access control inheritance v2 design: once v1 proves uniformly-readable corpora, decide whether ACL propagation is row-level filtering, per-corpus partitioning, or tenant-specific indexes (D-006, needs a committed roadmap date per BRD BR4).
-5. `rif_meta` compatibility contract (D-007): which RIF schema version is the documented minimum, and does RIF need a version stamp table for DIF's deploy-time check? Decide during P0 against the current RIF schema.
+4. Access control inheritance v2 design: once v1 proves uniformly readable corpora and production readiness/GA is complete, design ACL propagation (D-006/D-010). Row-level filtering, per-corpus partitioning, or tenant-specific indexes are v2 design options, not v1 defaults.
+5. RIF compatibility contract (D-007/D-009): which RIF graph/schema capabilities are required, how does DIF resolve code entities when AGE is populated but `rif_meta` shadows are empty, and does RIF need a version stamp/capability view for DIF's deploy-time check? Decide during P0 against the current RIF schema and local `rif_p19` fixture.
 6. JSON graph expansion limits (D-008): max traversal depth and nodes-per-document caps — ADR before P0 JSON ingestion (design-decisions ADR-006).
 
 ---

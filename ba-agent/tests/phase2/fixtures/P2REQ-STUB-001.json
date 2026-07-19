@@ -1,0 +1,14 @@
+{
+  "case_id": "P2REQ-STUB-001",
+  "description": "Stub synthetic fixture — no real data. GTS-P2-REQ format placeholder.",
+  "expected_routing": "phase2_requirement_discovery",
+  "project_context": {
+    "project_name": "SYNTH-PROJ-001",
+    "business_domain": "[RAJA]",
+    "stakeholders": ["synthetic-product-owner", "synthetic-ba"],
+    "source_systems": ["synthetic-jira", "synthetic-confluence"]
+  },
+  "raw_input": "Synthetic rough input text for stub fixture. No real content.",
+  "expected_sections": ["business_problem", "facts", "open_questions", "traceability_skeleton"],
+  "note": "P2-G1 stub fixture — full GTS-P2-REQ seed cases added at P2-G2."
+}

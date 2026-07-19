@@ -31,6 +31,7 @@ func (s *Store) Stores() store.Stores {
 	return store.Stores{
 		Jobs: s, Transcripts: s, Summaries: s, Quality: s,
 		Approvals: s, Audit: s, Artifacts: s, Review: s,
+		Library: s, Search: s,
 	}
 }
 
@@ -44,7 +45,7 @@ const jobColumns = `job_id, source_type, source_uri, status, submitted_by,
 	ownership_attested, language, job_config_id, duration_seconds,
 	action_required, last_error_code, last_error_message,
 	captions_available, caption_track_id, caption_reuse, cancel_reason,
-	created_at, updated_at`
+	library_mode, source_basis, created_at, updated_at`
 
 func scanJob(row pgx.Row) (*domain.Job, error) {
 	var (
@@ -59,7 +60,7 @@ func scanJob(row pgx.Row) (*domain.Job, error) {
 		&j.OwnershipAttested, &j.Language, &jobConfigID, &j.DurationSeconds,
 		&j.ActionRequired, &errCode, &errMsg,
 		&j.CaptionsAvailable, &j.CaptionTrackID, &reuse, &j.CancelReason,
-		&j.CreatedAt, &j.UpdatedAt)
+		&j.LibraryMode, &j.SourceBasis, &j.CreatedAt, &j.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +83,14 @@ func jobArgs(j *domain.Job) []any {
 		j.OwnershipAttested, j.Language, j.JobConfigID, j.DurationSeconds,
 		j.ActionRequired, errCode, errMsg,
 		j.CaptionsAvailable, j.CaptionTrackID, j.CaptionReuse, j.CancelReason,
-		j.CreatedAt, j.UpdatedAt,
+		j.LibraryMode, j.SourceBasis, j.CreatedAt, j.UpdatedAt,
 	}
 }
 
 func (s *Store) CreateJob(ctx context.Context, j *domain.Job) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO jobs (`+jobColumns+`)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
 		jobArgs(j)...)
 	return err
 }
@@ -110,7 +111,7 @@ const updateJobSQL = `
 		ownership_attested=$6, language=$7, job_config_id=$8, duration_seconds=$9,
 		action_required=$10, last_error_code=$11, last_error_message=$12,
 		captions_available=$13, caption_track_id=$14, caption_reuse=$15,
-		cancel_reason=$16, updated_at=$17
+		cancel_reason=$16, library_mode=$17, source_basis=$18, updated_at=$19
 	WHERE job_id=$1`
 
 func updateJobArgs(j *domain.Job) []any {
@@ -123,7 +124,7 @@ func updateJobArgs(j *domain.Job) []any {
 		j.OwnershipAttested, j.Language, j.JobConfigID, j.DurationSeconds,
 		j.ActionRequired, errCode, errMsg,
 		j.CaptionsAvailable, j.CaptionTrackID, j.CaptionReuse, j.CancelReason,
-		j.UpdatedAt,
+		j.LibraryMode, j.SourceBasis, j.UpdatedAt,
 	}
 }
 

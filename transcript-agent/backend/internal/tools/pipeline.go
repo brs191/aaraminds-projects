@@ -13,6 +13,7 @@ import (
 	"github.com/aaraminds/transcript-agent/internal/metrics"
 	"github.com/aaraminds/transcript-agent/internal/objectstore"
 	"github.com/aaraminds/transcript-agent/internal/providers/llm"
+	"github.com/aaraminds/transcript-agent/internal/providers/stt"
 )
 
 // ---------------------------------------------------------------------
@@ -90,7 +91,17 @@ func (t *Toolset) LatestAudioArtifactURI(ctx context.Context, jobID uuid.UUID) (
 // transcript version (PRD 14.7). Confidence flagging uses the threshold from
 // the job_config snapshot only.
 func (t *Toolset) TranscribeAudio(ctx context.Context, job *domain.Job, audioArtifactURI string, cfg *domain.JobConfig) (*domain.TranscriptVersion, error) {
-	res, err := t.STT.Transcribe(ctx, audioArtifactURI, cfg.Language, cfg.EnableDiarization)
+	var (
+		res *stt.Result
+		err error
+	)
+	// Providers that support an expected speaker count for diarization get it
+	// from the job_config snapshot (PRD 13.3 expected_speaker_count).
+	if hinter, ok := t.STT.(stt.SpeakerHinter); ok {
+		res, err = hinter.TranscribeWithSpeakerHint(ctx, audioArtifactURI, cfg.Language, cfg.EnableDiarization, cfg.ExpectedSpeakerCount)
+	} else {
+		res, err = t.STT.Transcribe(ctx, audioArtifactURI, cfg.Language, cfg.EnableDiarization)
+	}
 	if err != nil {
 		t.Audit(ctx, &job.JobID, "tool", "transcribe_audio", "tool.transcribe_audio.failed",
 			map[string]any{"error_code": domain.CodeOf(err), "error": err.Error(), "job_config_id": cfg.JobConfigID.String()})

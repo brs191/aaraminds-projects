@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import {
   useApprovals,
@@ -47,9 +48,22 @@ interface SegmentRowProps {
   onPlay?: () => void;
   /** True while audio playback is inside this segment's time range. */
   playing?: boolean;
+  /** DOM id so deep links (?t=) can scroll to the row. */
+  domId?: string;
+  /** True when this row is the ?t= deep-link target. */
+  deepLinked?: boolean;
 }
 
-function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: SegmentRowProps) {
+function SegmentRow({
+  segment,
+  threshold,
+  editable,
+  onSave,
+  onPlay,
+  playing,
+  domId,
+  deepLinked,
+}: SegmentRowProps) {
   const [editingText, setEditingText] = useState(false);
   const [text, setText] = useState(segment.text);
   const [speaker, setSpeaker] = useState(segment.speaker_label);
@@ -93,12 +107,13 @@ function SegmentRow({ segment, threshold, editable, onSave, onPlay, playing }: S
     "segment",
     low ? "low-confidence" : "",
     playing ? "playing" : "",
+    deepLinked ? "deep-linked" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className={rowClass}>
+    <div className={rowClass} id={domId}>
       <div className="segment-meta">
         {onPlay && (
           <button
@@ -421,6 +436,37 @@ export default function ReviewTab({ job }: { job: Job }) {
   const [audioBroken, setAudioBroken] = useState(false);
   const [playingSegmentId, setPlayingSegmentId] = useState<string | null>(null);
 
+  // Deep link from library search: /jobs/{id}?t=<start_ms>. Highlight + scroll
+  // to the segment containing t once segments load, and seek the audio player
+  // there when its metadata is ready. Each applies exactly once per mount.
+  const [searchParams] = useSearchParams();
+  const deepLinkMs = useMemo(() => {
+    const raw = searchParams.get("t");
+    if (raw === null) return null;
+    const ms = Number(raw);
+    return Number.isFinite(ms) && ms >= 0 ? ms : null;
+  }, [searchParams]);
+  const [deepLinkSegmentId, setDeepLinkSegmentId] = useState<string | null>(null);
+  const deepLinkScrolled = useRef(false);
+  const deepLinkSeeked = useRef(false);
+  const loadedSegments = segmentsQuery.data?.segments;
+  useEffect(() => {
+    if (deepLinkScrolled.current || deepLinkMs === null) return;
+    if (!loadedSegments || loadedSegments.length === 0) return;
+    deepLinkScrolled.current = true;
+    const target =
+      loadedSegments.find((s) => deepLinkMs >= s.start_ms && deepLinkMs < s.end_ms) ??
+      [...loadedSegments].reverse().find((s) => s.start_ms <= deepLinkMs) ??
+      loadedSegments[0];
+    setDeepLinkSegmentId(target.segment_id);
+    // Wait a frame so the row exists in the DOM before scrolling.
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`segment-${target.segment_id}`)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [deepLinkMs, loadedSegments]);
+
   if (versionsQuery.isLoading) return <Loading label="Loading transcript versions…" />;
   if (versionsQuery.error)
     return <ErrorBox error={versionsQuery.error} prefix="Could not load transcript versions:" />;
@@ -476,6 +522,15 @@ export default function ReviewTab({ job }: { job: Job }) {
     const active = segments.find((s) => ms >= s.start_ms && ms < s.end_ms);
     const id = active?.segment_id ?? null;
     setPlayingSegmentId((prev) => (prev === id ? prev : id));
+  };
+
+  // Seek to the ?t= deep-link position once (without autoplay) as soon as the
+  // audio element knows its duration — seeking before metadata is unreliable.
+  const handleLoadedMetadata = () => {
+    if (deepLinkMs === null || deepLinkSeeked.current) return;
+    deepLinkSeeked.current = true;
+    const el = audioRef.current;
+    if (el) el.currentTime = deepLinkMs / 1000;
   };
 
   const handleAudioError = () => {
@@ -641,6 +696,7 @@ export default function ReviewTab({ job }: { job: Job }) {
               preload="metadata"
               src={audioLink.data.url}
               onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
               onError={handleAudioError}
             />
             {audioBroken && (
@@ -672,6 +728,8 @@ export default function ReviewTab({ job }: { job: Job }) {
                 onSave={(patch) => patchSegment.mutate({ segmentId: seg.segment_id, ...patch })}
                 onPlay={audioAvailable ? () => seekTo(seg.start_ms) : undefined}
                 playing={seg.segment_id === playingSegmentId}
+                domId={`segment-${seg.segment_id}`}
+                deepLinked={seg.segment_id === deepLinkSegmentId}
               />
             ))}
           </div>

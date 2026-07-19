@@ -1,0 +1,24 @@
+[00:00:00.000] Speaker 1: Welcome back to the show, today we are talking about shipping small reliable systems.
+[00:00:05.400] Speaker 2: Thanks for having me, it is great to be here again.
+[00:00:09.400] Speaker 1: So, let's start with the basics, what does a minimum viable pipeline actually look like?
+[00:00:15.000] Speaker 2: In my experience it is three things, intake, processing, and a human approval gate.
+[00:00:20.800] Speaker 1: Right, and, the approval gate is the part most teams skip first.
+[00:00:25.400] Speaker 2: Which is exactly backwards, because trust is the whole product.
+[00:00:29.800] Speaker 1: Can you give a concrete example from a project you shipped?
+[00:00:34.000] Speaker 2: Sure, we built a transcript workflow where every export required an approved version.
+[00:00:39.600] Speaker 1: That sounds slow though, did reviewers push back on the extra step?
+[00:00:44.400] Speaker 2: At first yes, but the audit trail saved us in the first compliance review.
+[00:00:49.800] Speaker 1: That matches what we hear from other teams about governance.
+[00:00:54.200] Speaker 2: The other lesson is to keep raw output immutable, never edit the source of truth.
+[00:00:59.400] Speaker 1: How do you handle sections where the audio quality drops?
+[00:01:03.800] Speaker 2: We flag low confidence segments and route reviewer attention there first.
+[00:01:08.800] Speaker 1: So the machine does the pass and the human does the judgment.
+[00:01:13.200] Speaker 2: Exactly, and, that division of labor is what makes the effort reduction real.
+[00:01:18.400] Speaker 1: What about summaries, do you generate those automatically too?
+[00:01:23.000] Speaker 2: Yes, but grounded only in transcript content, no invented claims allowed.
+[00:01:27.800] Speaker 1: That seems like the right guardrail for derived content.
+[00:01:32.000] Speaker 2: It is, and every summary records which transcript version it came from.
+[00:01:36.600] Speaker 1: Before we wrap up, what is the one thing listeners should do tomorrow?
+[00:01:41.800] Speaker 2: Write down your approval boundary, decide what a human must sign off on.
+[00:01:47.200] Speaker 1: That is a great note to end on, thanks so much for joining us.
+[00:01:51.800] Speaker 2: Thank you, this was fun.

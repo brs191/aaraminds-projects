@@ -109,6 +109,16 @@ const (
 	// 14.15 publish_caption_file (disabled in MVP)
 	CodeDisabledInMVP = "DISABLED_IN_MVP"
 
+	// Library mode (feeds, episodes, enclosure downloads)
+	CodeFeedURLInvalid            = "FEED_URL_INVALID"
+	CodeFeedFetchFailed           = "FEED_FETCH_FAILED"
+	CodeFeedAlreadyExists         = "FEED_ALREADY_EXISTS"
+	CodeFeedNotFound              = "FEED_NOT_FOUND"
+	CodeEpisodeNotFound           = "EPISODE_NOT_FOUND"
+	CodeEpisodeAlreadyTranscribed = "EPISODE_ALREADY_TRANSCRIBED"
+	CodeLibraryDownloadFailed     = "LIBRARY_DOWNLOAD_FAILED"
+	CodeLibraryDownloadTooLarge   = "LIBRARY_DOWNLOAD_TOO_LARGE"
+
 	// Cross-cutting
 	CodeStatusConflict             = "STATUS_CONFLICT"
 	CodeRequestTooLarge            = "REQUEST_TOO_LARGE"

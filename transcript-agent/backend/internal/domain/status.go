@@ -60,6 +60,11 @@ const (
 	SourceUpload  = "upload"
 )
 
+// SourceBasisOpenRSSPersonalUse is the ownership basis recorded on library
+// jobs in lieu of the manual attestation: the media came from an open RSS
+// enclosure and is transcribed for personal use only.
+const SourceBasisOpenRSSPersonalUse = "open_rss_personal_use"
+
 // Artifact types (PRD 13.3 media_artifacts.artifact_type).
 const (
 	ArtifactSourceMedia   = "source_media"

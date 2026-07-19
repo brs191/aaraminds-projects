@@ -132,6 +132,54 @@ type ReviewTxStore interface {
 	ReopenJob(ctx context.Context, p ReopenJobParams) (*domain.Job, error)
 }
 
+// LibraryStore persists library-mode feeds and episodes.
+type LibraryStore interface {
+	CreateFeed(ctx context.Context, f *domain.Feed) error
+	GetFeed(ctx context.Context, id uuid.UUID) (*domain.Feed, error)
+	// GetFeedByURL returns the non-deleted feed with this URL, or nil.
+	GetFeedByURL(ctx context.Context, feedURL string) (*domain.Feed, error)
+	UpdateFeed(ctx context.Context, f *domain.Feed) error
+	// ListFeeds returns non-deleted feeds, newest first.
+	ListFeeds(ctx context.Context) ([]*domain.Feed, error)
+
+	// UpsertEpisode inserts the episode keyed by (feed_id, guid). Returns true
+	// when a new row was created; on conflict only feed-supplied metadata
+	// (title, description, audio_url, published_at, duration_seconds) is
+	// refreshed — media_artifact_id and job_id are never clobbered.
+	UpsertEpisode(ctx context.Context, e *domain.Episode) (bool, error)
+	GetEpisode(ctx context.Context, id uuid.UUID) (*domain.Episode, error)
+	// GetEpisodeByJobID returns the episode owning the job, or nil.
+	GetEpisodeByJobID(ctx context.Context, jobID uuid.UUID) (*domain.Episode, error)
+	UpdateEpisode(ctx context.Context, e *domain.Episode) error
+	// ClaimEpisodeJob atomically sets episodes.job_id when it is still NULL;
+	// EPISODE_ALREADY_TRANSCRIBED when another job claimed the episode first.
+	ClaimEpisodeJob(ctx context.Context, episodeID, jobID uuid.UUID) error
+	// ListEpisodes returns episodes newest published_at first (nulls last).
+	// feedID nil lists episodes of every non-deleted feed.
+	ListEpisodes(ctx context.Context, feedID *uuid.UUID) ([]*domain.Episode, error)
+	CountEpisodes(ctx context.Context, feedID uuid.UUID) (int, error)
+}
+
+// SearchResult is one transcript segment hit from SegmentSearcher.
+type SearchResult struct {
+	JobID               uuid.UUID
+	TranscriptVersionID uuid.UUID
+	SegmentID           uuid.UUID
+	StartMS             int
+	// Snippet is the segment text with matches wrapped in <b>...</b>.
+	Snippet string
+	Rank    float64
+}
+
+// SegmentSearcher searches transcript segment text. Eligible versions are:
+// the latest clean (raw fallback) version of each drafted library job, and
+// the current approved version of each non-library job. Postgres implements
+// this with a tsvector GIN index (websearch_to_tsquery + ts_headline +
+// ts_rank); the memory store uses naive case-insensitive substring matching.
+type SegmentSearcher interface {
+	SearchSegments(ctx context.Context, query string, limit int) ([]*SearchResult, error)
+}
+
 // Stores bundles all persistence interfaces for wiring.
 type Stores struct {
 	Jobs        JobStore
@@ -142,4 +190,6 @@ type Stores struct {
 	Audit       AuditStore
 	Artifacts   ArtifactStore
 	Review      ReviewTxStore
+	Library     LibraryStore
+	Search      SegmentSearcher
 }

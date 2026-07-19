@@ -1,0 +1,115 @@
+{
+  "case_id": "P2REQ-002",
+  "case_label": "[SYNTHETIC] HelpHub support-ticket cluster discovery slice",
+  "input_type": "synthetic_support_ticket_cluster",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-002\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-002\n[SYNTHETIC] SOURCE: HelpHub | Riley Chen, Support Lead | synthetic-2026-07-09T08:00:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Riley Chen, Support Lead; Support Lead\n[SYNTHETIC] FACT: HelpHub is the fictional support-ticket cluster for this operational pain-point slice.\n[SYNTHETIC] FACT: Support tickets show repeated billing-adjustment requests waiting for manual policy lookup.\n[SYNTHETIC] FACT: Support Lead reports that agents cannot tell which adjustment policy applies to each request.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no support ticket is updated automatically.\n[SYNTHETIC] INFERRED: Ticket triage may need a policy-decision matrix before workflow automation is considered.\n[SYNTHETIC] QUESTION: Which billing-adjustment scenarios require supervisor review?\n[SYNTHETIC] QUESTION: Which support-ticket fields prove policy eligibility?\n[SYNTHETIC] RISK: Repeated manual lookup creates response-delay risk for support agents.\n[SYNTHETIC] DEPENDENCY: Support policy ownership must be confirmed before drafting workflow rules.",
+  "project_context": {
+    "project_name": "[SYNTHETIC] HelpHub",
+    "business_domain": "[SYNTHETIC] support operations requirement discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Riley Chen, Support Lead",
+      "[SYNTHETIC] Support Lead"
+    ],
+    "target_users": [
+      "[SYNTHETIC] support agents",
+      "[SYNTHETIC] support supervisors"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] HelpHub"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Billing-adjustment policy eligibility is unresolved"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Support ticket updates remain blocked"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] HLP-002",
+    "confluence_space": "[SYNTHETIC] HLP-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft support-ticket discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] HelpHub",
+      "owner": "[SYNTHETIC] Riley Chen, Support Lead",
+      "timestamp": "synthetic-2026-07-09T08:00:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] support ticket cluster",
+        "text": "[SYNTHETIC] synthetic support tickets only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] HelpHub",
+        "owner": "[SYNTHETIC] Riley Chen, Support Lead",
+        "timestamp": "synthetic-2026-07-09T08:00:00Z",
+        "retrieved_at": "synthetic-2026-07-09T08:05:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-002"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "business_problem": "[SYNTHETIC] HelpHub support agents face repeated billing-adjustment requests without clear policy eligibility rules.",
+    "business_objective": "[SYNTHETIC] Produce a draft advisory support-ticket discovery summary that surfaces impacted users, risks, dependencies, and policy questions.",
+    "draft_requirement": "[SYNTHETIC] Draft requirement: HelpHub should preserve billing-adjustment eligibility as an unresolved policy decision until supervisor-review scenarios and evidence fields are defined.",
+    "draft_story": "[SYNTHETIC] As a synthetic Support Lead, I want repeated billing-adjustment pain points grouped with evidence so that policy owners can define triage rules.",
+    "facts": [
+      "[SYNTHETIC] Support tickets show repeated billing-adjustment requests waiting for manual policy lookup.",
+      "[SYNTHETIC] Support Lead reports that agents cannot tell which adjustment policy applies to each request."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no support ticket is updated automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] Ticket triage may need a policy-decision matrix before workflow automation is considered."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] Which billing-adjustment scenarios require supervisor review?",
+      "[SYNTHETIC] Which support-ticket fields prove policy eligibility?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] Repeated manual lookup creates response-delay risk for support agents.",
+      "[SYNTHETIC] Support policy ownership must be confirmed before drafting workflow rules."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-002:001 -> p2-obj:P2REQ-002:001 -> p2-req-draft:P2REQ-002:001 -> p2-story-draft:P2REQ-002:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Repeated billing-adjustment tickets exist.",
+      "[SYNTHETIC] Policy eligibility is unclear to support agents."
+    ],
+    "conflicts": [],
+    "missing_rules": [
+      "[SYNTHETIC] Supervisor-review scenarios.",
+      "[SYNTHETIC] Eligibility evidence fields."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-002"
+  ]
+}

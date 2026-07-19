@@ -5,12 +5,16 @@ import {
 } from "@tanstack/react-query";
 import { api, apiMaybe, ApiError, mintSignedLink, uploadMediaFile } from "./client";
 import {
+  isEpisodeJobActive,
   isJobActive,
   type Approval,
   type AuditEvent,
+  type Episode,
   type ExportArtifact,
   type ExportFormat,
+  type Feed,
   type Job,
+  type LibrarySearchResult,
   type QualityReport,
   type Segment,
   type SignedLink,
@@ -320,6 +324,107 @@ export function usePatchSummary(jobId: string) {
       void qc.invalidateQueries({ queryKey: ["summary", jobId] });
       void qc.invalidateQueries({ queryKey: ["audit", jobId] });
     },
+  });
+}
+
+// ---------- Library ----------
+
+export function useFeeds() {
+  return useQuery({
+    queryKey: ["feeds"],
+    queryFn: () => api<{ feeds: Feed[] }>("/library/feeds"),
+  });
+}
+
+export interface AddFeedInput {
+  feed_url: string;
+  auto_transcribe: boolean;
+}
+
+export function useAddFeed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AddFeedInput) =>
+      api<Feed>("/library/feeds", { method: "POST", json: input }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      void qc.invalidateQueries({ queryKey: ["episodes"] });
+    },
+  });
+}
+
+/** Removes the feed only — episodes and transcripts are kept (server contract). */
+export function useDeleteFeed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (feedId: string) =>
+      api<void>(`/library/feeds/${feedId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      void qc.invalidateQueries({ queryKey: ["episodes"] });
+    },
+  });
+}
+
+/** 202 {"status":"poll_queued"} — the poll runs async, so refetch to pick up results. */
+export function usePollFeed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (feedId: string) =>
+      api<{ status: string }>(`/library/feeds/${feedId}/poll`, { method: "POST", json: {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      void qc.invalidateQueries({ queryKey: ["episodes"] });
+    },
+  });
+}
+
+export interface EpisodeFilters {
+  /** Empty string = all feeds. */
+  feedId: string;
+  /** Empty string = no text filter. */
+  q: string;
+  /** Null = both transcribed and not. */
+  transcribed: boolean | null;
+}
+
+export function useEpisodes(filters: EpisodeFilters) {
+  const params = new URLSearchParams();
+  if (filters.feedId) params.set("feed_id", filters.feedId);
+  if (filters.q) params.set("q", filters.q);
+  if (filters.transcribed !== null) params.set("transcribed", String(filters.transcribed));
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["episodes", filters.feedId, filters.q, filters.transcribed],
+    queryFn: () => api<{ episodes: Episode[] }>(`/library/episodes${qs ? `?${qs}` : ""}`),
+    // Poll only while some episode's job is still moving through the pipeline
+    // (library jobs settle at "drafted"; terminal states never poll).
+    refetchInterval: (query) => {
+      const episodes = query.state.data?.episodes ?? [];
+      return episodes.some(isEpisodeJobActive) ? 5000 : false;
+    },
+  });
+}
+
+/** 202 → Episode with job_id/job_status populated; the job also shows on /jobs. */
+export function useTranscribeEpisode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (episodeId: string) =>
+      api<Episode>(`/library/episodes/${episodeId}/transcribe`, { method: "POST", json: {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["episodes"] });
+      void qc.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export function useLibrarySearch(q: string) {
+  return useQuery({
+    queryKey: ["library-search", q],
+    queryFn: () =>
+      api<{ results: LibrarySearchResult[] }>(`/library/search?q=${encodeURIComponent(q)}`),
+    enabled: q.trim().length >= 2,
   });
 }
 

@@ -32,7 +32,8 @@ func httpStatusFor(code string) int {
 	switch code {
 	case domain.CodeValidationError, domain.CodeOwnershipAttestationMissing,
 		domain.CodeUnsupportedSourceType, domain.CodeInvalidSourceURI,
-		domain.CodeUnsupportedFormat, domain.CodeLanguageUnsupported:
+		domain.CodeUnsupportedFormat, domain.CodeLanguageUnsupported,
+		domain.CodeFeedURLInvalid, domain.CodeFeedFetchFailed:
 		return http.StatusBadRequest
 	case domain.CodeUnauthenticated, domain.CodeTokenInvalid:
 		return http.StatusUnauthorized
@@ -40,13 +41,15 @@ func httpStatusFor(code string) int {
 		return http.StatusForbidden
 	case domain.CodeJobNotFound, domain.CodeTranscriptNotFound, domain.CodeSegmentNotFound,
 		domain.CodeSummaryNotFound, domain.CodeExportNotFound, domain.CodeQualityReportNotFound,
-		domain.CodeMediaNotFound, domain.CodeAudioNotAvailable:
+		domain.CodeMediaNotFound, domain.CodeAudioNotAvailable,
+		domain.CodeFeedNotFound, domain.CodeEpisodeNotFound:
 		return http.StatusNotFound
 	case domain.CodeTranscriptVersionImmutable, domain.CodeTranscriptVersionNotReviewable,
 		domain.CodeApprovedTranscriptRequired, domain.CodeJobNotInActionableState,
 		domain.CodeJobAlreadyTerminal, domain.CodeInvalidStateTransition,
 		domain.CodeDisabledInMVP, domain.CodeOpenCriticalIssues,
-		domain.CodeStatusConflict:
+		domain.CodeStatusConflict,
+		domain.CodeFeedAlreadyExists, domain.CodeEpisodeAlreadyTranscribed:
 		return http.StatusConflict
 	case domain.CodeRequestTooLarge:
 		return http.StatusRequestEntityTooLarge
@@ -108,8 +111,11 @@ type jobJSON struct {
 	DurationSeconds   int               `json:"duration_seconds"`
 	ActionRequired    string            `json:"action_required"`
 	LastError         *domain.ErrorInfo `json:"last_error"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
+	// Additive library-mode fields (nil/false on regular jobs).
+	LibraryMode bool      `json:"library_mode"`
+	SourceBasis *string   `json:"source_basis"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (s *Server) jobView(ctx context.Context, job *domain.Job) jobJSON {
@@ -124,8 +130,13 @@ func (s *Server) jobView(ctx context.Context, job *domain.Job) jobJSON {
 		DurationSeconds:   job.DurationSeconds,
 		ActionRequired:    job.ActionRequired,
 		LastError:         job.LastError,
+		LibraryMode:       job.LibraryMode,
 		CreatedAt:         job.CreatedAt,
 		UpdatedAt:         job.UpdatedAt,
+	}
+	if job.SourceBasis != "" {
+		basis := job.SourceBasis
+		out.SourceBasis = &basis
 	}
 	if job.JobConfigID != nil {
 		if cfg, err := s.Tools.Stores.Jobs.GetJobConfig(ctx, *job.JobConfigID); err == nil {

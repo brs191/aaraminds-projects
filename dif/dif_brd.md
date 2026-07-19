@@ -1,21 +1,23 @@
 # DIF — Documents Intelligence Factory
 ## Business Requirements Document (BRD)
 
-**Version:** 0.2 (Draft)
+**Version:** 0.3.2 (Draft)
 **Date:** 2026-07-08
 **Owner:** AaraMinds
 **Status:** Draft — pending review
 **Related:** DIF_PRD.md, RIF (Repo Intelligence Factory)
 **v0.2 changes:** market-trend review applied — citations repositioned as table stakes, differentiation table rewritten, named competitors added to risks, EU AI Act added to "why now", ACL roadmap commitment added (BR4).
 **v0.3 changes (D-007):** RIF federation promoted to core v1 — positioning updated to code-aware document intelligence, deployment/pricing unit is per project attached to RIF, cross-sell motion inverted (DIF attaches to every RIF deployment), joint-graph demo moved from v2 to P2.
+**v0.3.1 changes (D-009):** RIF compatibility clarified after `cc-rif`/local database review — DIF still attaches to RIF by default, but cross-graph features require a compatibility layer because existing RIF deployments may have populated AGE graph data while `rif_meta` shadow tables are empty or absent.
+**v0.3.2 changes (D-010):** v1 source ACL posture pinned to uniformly readable corpora only for the limited-engineer rollout; source ACL propagation deferred until after production readiness/GA.
 
 ---
 
 ## 1. Executive summary
 
-AaraMinds has a proven intelligence-factory pattern: deterministic extraction into a content-addressed knowledge graph, hybrid retrieval, and citation-gated agents. RIF applies it to code. DIF applies it to documents — and, decisively, **joins the two (D-007)**: DIF deploys per project into the project's existing RIF database, linking document claims to code entities. The combined product answers what neither search nor RAG nor any competitor can: *which documents describe this code, and are they still true?*
+AaraMinds has a proven intelligence-factory pattern: deterministic extraction into a content-addressed knowledge graph, hybrid retrieval, and citation-gated agents. RIF applies it to code. DIF applies it to documents — and, decisively, **joins the two (D-007/D-009)**: DIF deploys per project into the project's existing RIF database, linking document claims to code entities through a pinned RIF compatibility layer. The combined product answers what neither search nor RAG nor any competitor can: *which documents describe this code, and are they still true?*
 
-The business case rests on three points. First, **every enterprise has the problem**: knowledge trapped in Word/PDF/PowerPoint estates, invisible cross-references, and AI initiatives blocked because answers can't be traced or audited. Second, **the differentiator is structural, not incremental** — and it is *not* citations, which are 2026 table stakes (Microsoft ships passage-level "deep citations"; Harvey and Hebbia do character/sentence-level). The differentiators are the three things no one ships: a productized, incrementally-maintained document knowledge graph; cross-document lineage/impact analysis; and citation *gating* — grounding enforced and scored as a contract, not offered as a feature. Competitors must re-architect to match. Third, **the marginal cost is low**: DIF reuses RIF's stack, ops model, embedding service, and hardening lessons, so most engineering spend goes into the new extraction domain rather than re-solving solved problems.
+The business case rests on three points. First, **every enterprise has the problem**: knowledge trapped in Word/PDF/PowerPoint estates, invisible cross-references, and AI initiatives blocked because answers can't be traced or audited. Second, **the differentiator is structural, not incremental** — and it is *not* citations, which are 2026 table stakes (Microsoft ships passage-level "deep citations"; Harvey and Hebbia do character/sentence-level). The differentiators are the three things no one ships: a productized, incrementally-maintained document knowledge graph; cross-document lineage/impact analysis; and citation *gating* — grounding enforced and scored as a contract, not offered as a feature. Competitors must re-architect to match. Third, **the marginal cost is still lower than a clean-sheet platform, but not zero**: DIF reuses RIF's stack, ops model, embedding-service pattern, and hardening lessons; it also needs explicit RIF compatibility work because current RIF deployments may expose the code graph via AGE rather than populated relational shadows.
 
 Recommendation: fund DIF as the second product in an "Intelligence Factory" family, targeting a design-partner pilot at the end of Phase 3 (per PRD phasing) and a joint RIF+DIF story ("your code and your documents in one queryable graph") as the medium-term wedge no point-solution competitor can tell.
 
@@ -25,7 +27,7 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 |---|-----------|---------|
 | B1 | Establish DIF as a sellable AaraMinds product (not a client one-off) | Clean IP: `com.aaraminds` namespace from first commit; no client branding; licensing decided pre-pilot |
 | B2 | Land 1–2 design partners on the P3 pilot | Signed pilot agreements with defined corpora and golden-query success criteria |
-| B3 | Prove the factory-family thesis | ≥60% infrastructure/service reuse from RIF, measured as shared modules vs new code [VERIFY at P2] |
+| B3 | Prove the factory-family thesis | ≥60% infrastructure/service/pattern reuse from RIF, measured as shared neutral modules plus deliberately reused architecture patterns vs new code [VERIFY at P2; direct imports from legacy RIF namespaces do not count] |
 | B4 | DIF attaches to every RIF deployment by default (D-007 — the motion is attach, not cross-sell) | 100% of RIF projects offered DIF at deployment; joint-graph (`docs_for_code`) demo at P1, drift demo at P2 |
 | B5 | Keep engineering economics honest | Pilot delivered within the P0–P3 phasing without a phase-6-style "hardening deferred" debt (RIF's known failure mode) |
 
@@ -57,12 +59,12 @@ Recommendation: fund DIF as the second product in an "Intelligence Factory" fami
 | Document-AI APIs (Unstructured, Reducto, LlamaParse) | Commoditized high-accuracy parsing (DIF *buys* this layer, per PRD R2a) | They extract; they don't build a corpus-wide graph, retrieval layer, or agent contract |
 | DIY internal builds | Full control | DIF ships the hard parts (determinism, provenance gates, incremental indexing, MCP contract, grounding scoring) that internal teams underestimate |
 
-**The family story (now core, not v2 — D-007):** RIF answers "what does our code do and what breaks if we change it?" DIF answers the same for documents — *in the same database*. `DESCRIBES` edges link doc blocks to code entities, so the federated graph ships in v1: `docs_for_code` and `code_for_doc` at P1, `drift_report` (documentation drift detection as a product) at P2. This is the moat: Glean, Microsoft, and every RAG vendor would need to own a per-project code graph to copy it. DIF also runs standalone on doc-only corpora, but the attach-to-RIF deployment is the default and the demo.
+**The family story (now core, not v2 — D-007/D-009):** RIF answers "what does our code do and what breaks if we change it?" DIF answers the same for documents — *in the same database*. `DESCRIBES` edges link doc blocks to code entities through the RIF compatibility layer, so the federated graph ships in v1 once the compatibility contract is pinned: `docs_for_code` and `code_for_doc` at P1, `drift_report` (documentation drift detection as a product) at P2. This is the moat: Glean, Microsoft, and every RAG vendor would need to own a per-project code graph to copy it. DIF also runs standalone on doc-only corpora, but the attach-to-RIF deployment is the default and the demo.
 
 ## 5. Target market and customers
 
 **Initial ICP (pilot):**
-- **Every project with a RIF deployment (D-007)** — DIF's primary channel is attachment to the existing RIF footprint: same Postgres, same BYOC stack, immediate `docs_for_code` value on day one.
+- **Every project with a compatible RIF deployment (D-007/D-009)** — DIF's primary channel is attachment to the existing RIF footprint: same Postgres, same BYOC stack, and `docs_for_code` value once the RIF compatibility contract passes.
 - Mid-to-large engineering organizations with document governance pain: telecom, financial services, healthcare-adjacent — sectors where citations are compliance-relevant, not cosmetic.
 - Teams already deploying MCP-based agents that need governed, grounded document context.
 
@@ -86,12 +88,12 @@ Decisions needed before pilot close (owner: AaraMinds leadership):
 | BR1 | Clean, owned IP from day one: `com.aaraminds.dif`, own repo, no client namespaces or client-environment policy in governance files | RIF's costliest review finding; a sellable product cannot carry another company's branding |
 | BR2 | Multi-tenancy posture: resolved by D-001 (BYOC) — isolation by customer tenancy; revisit only if an AaraMinds-hosted tier is ever added | Sales blocker if undefined; BYOC gives the strongest isolation answer by construction |
 | BR3 | Security is a sales feature: auth on every surface, non-root containers, vuln-scanned dependencies, SOC 2-aligned controls documented from the skills-pack | Enterprise procurement gate; RIF review showed the debt cost when deferred |
-| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly-readable corpora or separately indexed corpora per access boundary), **with a committed, dated v2 ACL-propagation roadmap item** — permission-aware retrieval is a named 2026 procurement gate and compliance buyers ask in the first meeting | Overclaiming loses compliance-sensitive deals permanently; having no roadmap answer loses them in meeting one |
+| BR4 | Source-ACL limitation stated honestly in all sales material (v1 = uniformly readable corpora only), **with ACL propagation kept as the first post-production-readiness/GA v2 roadmap item** — permission-aware retrieval is a named 2026 procurement gate and compliance buyers ask in the first meeting | Overclaiming loses compliance-sensitive deals permanently; having no roadmap answer loses them in meeting one |
 | BR5 | Citation integrity is contractual: 100% of claim blocks resolve to source anchors and pass grounding checks, structurally enforced and auditable via the audit log | This is the product's core promise; it must be demonstrable in a procurement bake-off |
 | BR6 | Every pilot has a golden-query set and measured baseline before success targets are agreed | No fabricated metrics — internal policy and customer credibility |
 | BR7 | Demo corpus + demo script maintained from P0 (public documents), so sales demos never require customer data | Shortens sales cycle; avoids NDA friction at top of funnel |
-| BR8 | RIF and DIF share embedding service, deployment tooling, and MCP conventions; divergence requires an ADR | Protects the reuse economics (B3) |
-| BR9 | Paid-pilot qualification includes an admissible corpus check before kickoff: corpus is uniformly readable, or customer accepts separate indexes per access boundary | Prevents ACL mismatch from surfacing as a late procurement blocker |
+| BR8 | RIF and DIF share embedding service patterns, deployment tooling, MCP conventions, and a pinned code-entity compatibility contract; divergence requires an ADR | Protects the reuse economics (B3) while avoiding brittle joins to optional RIF internals |
+| BR9 | Paid-pilot qualification includes an admissible corpus check before kickoff: every indexed source in the corpus is readable by every authorized DIF user for that corpus | Prevents ACL mismatch from surfacing as a late procurement blocker |
 | BR10 | Usage metering is live before paid pilot: ingestion, indexed documents, embedding batches, MCP calls, agent requests, connector syncs | Supports pricing, cost control, and usage-based renewal discussions |
 
 ## 8. Financial view
@@ -116,11 +118,12 @@ No revenue or cost figures are stated in this draft — [VERIFY: build the pilot
 | **Microsoft bundles "good enough" for free** — SharePoint Knowledge Agent + deep citations included in Copilot licenses buyers already own | Market | Sell where M365 stops: cross-source graphs, impact analysis, grounding enforcement, non-M365 corpora; ICP screens for multi-source estates |
 | **Foundation vendors give away connect-and-cite** — OpenAI Company Knowledge, Claude enterprise connectors, inside the chat subscription | Market | They're a channel, not just a threat: DIF serves those same agents via MCP as the governed context layer; differentiation is gating + graph, never basic cited search |
 | Single-team capacity: DIF competes with RIF hardening for the same engineers | Execution | RIF review remediation (its priority list) is scheduled work, not background noise; sequence explicitly — do not run both at full tilt |
+| RIF compatibility is more complex than assumed — existing RIF databases may have populated AGE graph data while `rif_meta` shadows are empty or absent | Execution | D-009: add a compatibility layer/contract before P1 federation; test against a pinned RIF fixture; do not sell `docs_for_code`/`drift_report` until compatibility gates pass |
 | ACL/permission expectations from compliance buyers exceed v1 | Sales | BR4 honesty rule + committed dated ACL roadmap; qualify pilots on admissible corpora (BR9) |
 | Pilot partners treat it as free consulting | Commercial | Paid pilots only (§6) |
 | Hygiene debt recurrence (RIF pattern) | Execution | PRD R25–R29 are P0, CI-enforced; BRD sign-off requires the P0 exit criteria met |
 
-**Dependencies:** RIF embedding service fixes (PRD R23) land before DIF P1; multi-tenancy ADR (BR2) before P3; licensing decision (§6) before pilot contracts.
+**Dependencies:** RIF embedding service fixes (PRD R23) land before DIF P1; RIF compatibility contract and fixture pass before P1 federation tools; multi-tenancy ADR (BR2) before P3; licensing decision (§6) before pilot contracts.
 
 ## 11. Success criteria (business)
 

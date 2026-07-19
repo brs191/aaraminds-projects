@@ -13,6 +13,9 @@ services:
     environment:
       STORAGE: postgres
       DATABASE_URL: postgres://transcript:transcript@postgres:5432/transcript?sslmode=disable
+      STT_PROVIDER: whisperx # local WhisperX sidecar below; set to "mock" to skip it
+      WHISPERX_URL: http://stt-whisperx:9090
+      # WHISPERX_TIMEOUT: 2h          # overall per-transcription deadline
       # SIGNING_SECRET: change-me     # signed links survive restarts when set
       # RETENTION_DAYS: "30"          # approved retention policy default
       # MAX_DURATION_SECONDS: "0"     # 0 = duration guardrail disabled
@@ -21,6 +24,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      stt-whisperx:
+        condition: service_started
+    restart: unless-stopped
+
+  # WhisperX STT sidecar (CPU image; untested — no docker in the authoring
+  # environment, correct by inspection). First run downloads the whisper
+  # model (~1.5GB) into the whisper-cache volume. Speaker diarization needs
+  # HF_TOKEN (gated pyannote models — see stt-sidecar/README.md); without it
+  # jobs still succeed with null speakers.
+  stt-whisperx:
+    build: ./stt-sidecar
+    ports:
+      - "9090:9090"
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      # WHISPER_MODEL: large-v3-turbo
+      # DEVICE: cpu
+    volumes:
+      - whisper-cache:/root/.cache # HF + whisper model cache (~1.5GB+)
     restart: unless-stopped
 
   postgres:
@@ -41,3 +63,4 @@ services:
 volumes:
   pgdata:
   appdata:
+  whisper-cache:

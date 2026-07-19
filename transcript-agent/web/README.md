@@ -1,7 +1,8 @@
 # Podcast Transcript Agent — Review UI
 
 Minimal React review UI for the Podcast Transcript Agent MVP (PRD v1.5). Covers file/YouTube submission,
-job list, review editor, approval, exports, summary, quality report, and audit trail.
+job list, review editor, approval, exports, summary, quality report, audit trail, and the
+podcast library (RSS feeds, episodes, full-text transcript search).
 
 ## Stack
 
@@ -47,6 +48,7 @@ src/
 │   └── hooks.ts     # TanStack Query hooks for every endpoint
 ├── identity.tsx     # dev identity switcher (localStorage + context)
 ├── pages/           # Submit, Jobs list, Job detail (tabbed)
+│   └── library/     # Library (feeds + episodes) and transcript search
 ├── tabs/            # Overview, Review, Summary, Quality, Exports, Audit
 ├── components/ui.tsx# badges, error box, formatting helpers
 └── styles.css
@@ -98,6 +100,41 @@ Overview status timeline switches to a caption-path variant that omits
 `extracting_audio` / `transcribing` — those stages never ran, so they are not rendered
 as completed steps. The Review tab shows the caption-origin banner when the report says
 so OR when any visible segment carries `flags.caption_origin`.
+
+## Library (feeds, episodes, search)
+
+`/library` is a two-panel page backed by the `/api/v1/library/*` endpoints (same auth
+headers, same error envelope):
+
+- **Feeds panel** — add-feed form (`POST /library/feeds {feed_url, auto_transcribe}`;
+  `FEED_URL_INVALID`, `FEED_FETCH_FAILED`, and `409 FEED_ALREADY_EXISTS` map to friendly
+  messages) plus one card per feed: artwork, title, episode count, last-polled time,
+  `poll_error` in red when set, a "Poll now" button (`POST /library/feeds/{id}/poll`,
+  202 `poll_queued`), and delete with an inline confirm — deleting a feed keeps its
+  episodes and transcripts (`DELETE /library/feeds/{id}`, 204).
+- **Episodes panel** — `GET /library/episodes?feed_id=&q=&transcribed=` (newest published
+  first) with a feed dropdown, a debounced text filter, and an All / Transcribed /
+  Not transcribed toggle. Rows show title + feed, published date, duration as `h:mm`, and
+  a status chip (`job_status`, or "not transcribed" when no job). Episodes without a job
+  get a **Transcribe** button (`POST /library/episodes/{id}/transcribe`, 202); episodes
+  with a job get an **Open** link to `/jobs/{job_id}`. The list polls every 5s only while
+  some episode has an active job (anything before `drafted` that is not terminal —
+  library jobs stop at `drafted`, so the existing job detail page works for them as-is).
+
+### Transcript search
+
+`/library/search` calls `GET /library/search?q=…` (submit on Enter, minimum 2
+characters). Each result shows the episode title, feed, a `mm:ss` timestamp, and the
+snippet. Snippets are plain text with matches wrapped in `<b>…</b>` — the UI splits on
+the markers and renders matches as `<mark>` elements; the string is never injected as
+HTML (no `dangerouslySetInnerHTML`).
+
+### Deep links (`?t=`)
+
+Search results link to `/jobs/{job_id}?t={start_ms}`. When `?t=` is present the job page
+opens on the Review tab, scrolls to and outlines the segment containing `t`, and — when
+the job has audio — seeks the player to `t` (once, on `loadedmetadata`, without
+autoplay).
 
 ## Contract notes
 

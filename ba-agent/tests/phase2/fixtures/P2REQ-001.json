@@ -1,0 +1,111 @@
+{
+  "case_id": "P2REQ-001",
+  "case_label": "[SYNTHETIC] Arcadia Retail Ltd replenishment discovery slice",
+  "input_type": "synthetic_meeting_notes",
+  "data_source_mode": "synthetic",
+  "classification": "SYNTHETIC-FICTIONAL",
+  "fixture_version": "p2-g2-synthetic-thin-slice-v0.1",
+  "input": "[SYNTHETIC] META: data_source_mode=synthetic; classification=SYNTHETIC-FICTIONAL; case_id=P2REQ-001\n[SYNTHETIC] EVIDENCE REF: eval:P2REQ-001\n[SYNTHETIC] SOURCE: StoreTrak | Jordan Kim, Operations Manager | synthetic-2026-07-06T09:15:00Z | SYNTHETIC-FICTIONAL\n[SYNTHETIC] STAKEHOLDER: Jordan Kim, Operations Manager\n[SYNTHETIC] FACT: Arcadia Retail Ltd is the fictional retail company for this thin slice.\n[SYNTHETIC] FACT: StoreTrak is the fictional internal tool referenced in the note.\n[SYNTHETIC] FACT: Replenish when stock drops below 20% of safety threshold.\n[SYNTHETIC] FACT: Must integrate with StoreTrak API v2.\n[SYNTHETIC] ASSUMPTION: The review stays draft/advisory and no replenishment order is sent automatically.\n[SYNTHETIC] INFERRED: SKU categories may need separate threshold tuning because the safety-threshold definition is category-specific.\n[SYNTHETIC] QUESTION: What defines safety threshold per SKU category?",
+  "project_context": {
+    "project_name": "[SYNTHETIC] Arcadia Retail Ltd",
+    "business_domain": "[SYNTHETIC] retail replenishment discovery",
+    "stakeholders": [
+      "[SYNTHETIC] Jordan Kim, Operations Manager"
+    ],
+    "target_users": [
+      "[SYNTHETIC] store operations analysts"
+    ],
+    "source_systems": [
+      "[SYNTHETIC] StoreTrak"
+    ],
+    "delivery_methodology": "[SYNTHETIC] synthetic thin-slice",
+    "known_business_rules": [
+      "[SYNTHETIC] Replenish when stock drops below 20% of safety threshold"
+    ],
+    "constraints": [
+      "[SYNTHETIC] Must integrate with StoreTrak API v2"
+    ],
+    "definition_of_ready": "[SYNTHETIC] [RAJA]",
+    "definition_of_done": "[SYNTHETIC] [RAJA]",
+    "jira_project_key": "[SYNTHETIC] STK-001",
+    "confluence_space": "[SYNTHETIC] ARC-SYNTHETIC-SPACE",
+    "approved_artifact_templates": [
+      "[SYNTHETIC] draft requirement-discovery summary"
+    ],
+    "classification_label": "[SYNTHETIC] SYNTHETIC-FICTIONAL",
+    "retention_rule": "[SYNTHETIC] [RAJA]",
+    "context_owner": "[SYNTHETIC] [RAJA]",
+    "last_reviewed_by": "[SYNTHETIC] [RAJA]"
+  },
+  "source_register": [
+    {
+      "system": "[SYNTHETIC] StoreTrak",
+      "owner": "[SYNTHETIC] Jordan Kim, Operations Manager",
+      "timestamp": "synthetic-2026-07-06T09:15:00Z",
+      "classification": "SYNTHETIC-FICTIONAL"
+    }
+  ],
+  "fixture_data": {
+    "mock_responses": [
+      {
+        "channel": "[SYNTHETIC] notes",
+        "text": "[SYNTHETIC] synthetic meeting notes only"
+      }
+    ],
+    "source_metadata": [
+      {
+        "system": "[SYNTHETIC] StoreTrak",
+        "owner": "[SYNTHETIC] Jordan Kim, Operations Manager",
+        "timestamp": "synthetic-2026-07-06T09:15:00Z",
+        "classification": "SYNTHETIC-FICTIONAL",
+        "evidence_ref": "eval:P2REQ-001"
+      }
+    ]
+  },
+  "expected_routing": "phase2_requirement_discovery",
+  "expected_output_characteristics": {
+    "facts": [
+      "[SYNTHETIC] Arcadia Retail Ltd is the fictional retail company for this thin slice.",
+      "[SYNTHETIC] StoreTrak is the fictional internal tool referenced in the note.",
+      "[SYNTHETIC] Replenish when stock drops below 20% of safety threshold.",
+      "[SYNTHETIC] Must integrate with StoreTrak API v2."
+    ],
+    "assumptions": [
+      "[SYNTHETIC] The review stays draft/advisory and no replenishment order is sent automatically."
+    ],
+    "inferred_items": [
+      "[SYNTHETIC] SKU categories may need separate threshold tuning because the safety-threshold definition is category-specific."
+    ],
+    "open_questions": [
+      "[SYNTHETIC] What defines safety threshold per SKU category?"
+    ],
+    "risks_dependencies": [
+      "[SYNTHETIC] StoreTrak API v2 integration is a dependency for the synthetic slice."
+    ],
+    "traceability_links": [
+      "[SYNTHETIC] p2-input:P2REQ-001:001 -> p2-obj:P2REQ-001:001 -> p2-req-draft:P2REQ-001:001 -> p2-story-draft:P2REQ-001:001"
+    ]
+  },
+  "labeled_ground_truth": {
+    "facts": [
+      "[SYNTHETIC] Arcadia Retail Ltd / StoreTrak replenishment review."
+    ],
+    "conflicts": [
+      "[SYNTHETIC] 20% threshold is defined, but the SKU-category safety threshold owner is unresolved."
+    ],
+    "missing_rules": [
+      "[SYNTHETIC] SKU-category safety threshold definition."
+    ]
+  },
+  "expected_review_lanes": [
+    "BA SME [RAJA]",
+    "Product Owner [RAJA]",
+    "QA / AI evaluation reviewer [RAJA]",
+    "Architect [RAJA]",
+    "Security/privacy owner [RAJA]",
+    "Compliance/legal owner [RAJA]"
+  ],
+  "evidence_refs": [
+    "eval:P2REQ-001"
+  ]
+}

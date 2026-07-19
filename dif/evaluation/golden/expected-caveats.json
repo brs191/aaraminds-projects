@@ -1,0 +1,77 @@
+{
+  "version": "0.1.0",
+  "json_caveat_expectations": [
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_depth_capped",
+      "json_path": "$.deep",
+      "limit": 12,
+      "observed": 13
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_block_count_capped",
+      "json_path": "$.generated.blockCount",
+      "limit": 2000,
+      "observed": 2001
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_object_properties_capped",
+      "json_path": "$.generated.objectWithManyProperties",
+      "limit": 200,
+      "observed": 201
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_array_elements_capped",
+      "json_path": "$.generated.arrayWithManyElements",
+      "limit": 100,
+      "observed": 101
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_scalar_truncated",
+      "json_path": "$.generated.longScalar",
+      "limit": 8192,
+      "observed": 8193
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_block_text_truncated",
+      "json_path": "$.generated.longBlock",
+      "limit": 16384,
+      "observed": 16385
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_total_text_capped",
+      "json_path": "$",
+      "limit": 5242880,
+      "observed": 5242881
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "code": "json_file_too_large",
+      "json_path": "$.generated.tooLargeFile",
+      "limit": 26214400,
+      "observed": 26214401
+    },
+    {
+      "document_alias": "doc-invalid-json",
+      "code": "json_parse_error",
+      "json_path": "$"
+    }
+  ],
+  "failure_behavior": [
+    {
+      "code": "json_parse_error",
+      "emit_partial_graph": false
+    },
+    {
+      "code": "json_file_too_large",
+      "emit_partial_graph": false
+    }
+  ]
+}
+

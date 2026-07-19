@@ -27,3 +27,12 @@ type Result struct {
 type Provider interface {
 	Transcribe(ctx context.Context, audioArtifactURI, language string, enableDiarization bool) (*Result, error)
 }
+
+// SpeakerHinter is an optional Provider extension for backends whose
+// diarization accepts an expected speaker count (job_config
+// expected_speaker_count, PRD 13.3). The transcribe_audio tool prefers this
+// method when the provider implements it; expectedSpeakerCount is nil when
+// the job config carries no value.
+type SpeakerHinter interface {
+	TranscribeWithSpeakerHint(ctx context.Context, audioArtifactURI, language string, enableDiarization bool, expectedSpeakerCount *int) (*Result, error)
+}

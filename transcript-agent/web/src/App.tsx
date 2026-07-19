@@ -3,6 +3,8 @@ import { IDENTITIES, useIdentity } from "./identity";
 import JobsPage from "./pages/JobsPage";
 import SubmitPage from "./pages/SubmitPage";
 import JobDetailPage from "./pages/JobDetailPage";
+import LibraryPage from "./pages/library/LibraryPage";
+import LibrarySearchPage from "./pages/library/LibrarySearchPage";
 
 function Header() {
   const { identity, setIdentity } = useIdentity();
@@ -16,6 +18,7 @@ function Header() {
           <NavLink to="/" end>
             Jobs
           </NavLink>
+          <NavLink to="/library">Library</NavLink>
           <NavLink to="/submit">Submit</NavLink>
         </nav>
         <div className="identity-switcher">
@@ -49,6 +52,8 @@ export default function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<JobsPage />} />
+          <Route path="/library" element={<LibraryPage />} />
+          <Route path="/library/search" element={<LibrarySearchPage />} />
           <Route path="/submit" element={<SubmitPage />} />
           <Route path="/jobs/:jobId" element={<JobDetailPage />} />
           <Route

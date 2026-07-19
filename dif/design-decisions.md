@@ -110,18 +110,20 @@ Reference anchors:
 
 ### DD-04 - Identity, Authorization, and Source ACLs
 
+**✅ RESOLVED (D-010 / ADR-003, 2026-07-08):** v1 uses uniformly readable corpora only for the limited-engineer rollout. Per-user source ACL propagation and mixed-permission corpora are post-production-readiness/GA v2 work, with D-006 keeping ACL propagation as the first v2 priority.
+
 **Decision needed:** Decide how user identity and source permissions flow into DIF.
 
 | Area | Recommended Direction |
 |---|---|
 | User auth | OIDC/SAML via enterprise IdP; Entra ID first for Microsoft-heavy customers. |
 | Service auth | Managed identity / workload identity; no static cloud credentials. |
-| Source ACLs | v1 pilots may use uniformly-readable corpora; v2 must enforce source ACL propagation. |
+| Source ACLs | v1 uses uniformly readable corpora only; v2 must enforce source ACL propagation. |
 | Authorization model | RBAC for admin actions, ABAC/resource ACLs for retrieval. |
 
 **Why it matters:** In AT&T/B2B scale, retrieval without permission filtering is a procurement blocker.
 
-**Before implementation:** Define the v1 pilot rule clearly: either uniformly-readable corpora only, or ACL-enforced retrieval. Do not leave this ambiguous.
+**Before implementation:** Done via ADR-003. Add corpus admission checks and fail closed for non-admitted corpora.
 
 ---
 
@@ -540,15 +542,15 @@ Recommended admin capabilities:
 
 ### DD-28 - RIF/DIF Federation
 
-**✅ RESOLVED — AND REVERSED (D-007, 2026-07-08):** Federation is **core v1 architecture**, not deferred. The original "don't build joint queries in v1" default is overridden: each project already runs a RIF Postgres, so DIF deploys into it (`dif_meta` beside `rif_meta`), `DESCRIBES` doc→code edges land at P1, `docs_for_code`/`code_for_doc` tools at P1, `drift_report` at P2. See `DECISIONS.md` D-007 and PRD v0.3 (R7a, R11, R13c, R14).
+**✅ RESOLVED — AND REVERSED (D-007, 2026-07-08; refined by D-009):** Federation is **core v1 architecture**, not deferred. The original "don't build joint queries in v1" default is overridden: each project already runs a RIF Postgres, so DIF deploys into it (`dif_meta` beside RIF schemas), `DESCRIBES` doc→code edges land at P1, `docs_for_code`/`code_for_doc` tools at P1, `drift_report` at P2. D-009 corrects the implementation assumption: existing RIF deployments may have a populated AGE graph in schema `rif` while `rif_meta` shadow tables are empty or absent, so DIF resolves code entities through a RIF compatibility layer rather than raw `rif_meta` table assumptions. See `DECISIONS.md` D-007/D-009 and PRD v0.3.3 (R7a, R11, R13c, R14).
 
 Design constraints, now hard requirements:
 
-- Shared NodeIdComputer implementation (one artifact, not a copy) — PRD R6.
+- Shared NodeIdComputer semantics (and a neutral shared implementation when packaging allows) — PRD R6.
 - Shared source reference model spanning doc anchors and code `source_ref`s.
 - Shared MCP conventions; cross-graph tools return `rif_not_deployed` explicitly on standalone deployments.
 - Shared embedding service contracts.
-- Documented minimum `rif_meta` schema version, checked at deploy time; cross-graph queries behind a view layer (PRD R11, risk table).
+- Documented RIF compatibility contract, checked at deploy time; cross-graph queries behind a view/resolver layer that can read populated `rif_meta` shadows or AGE-backed RIF graph data (PRD R11, risk table).
 - Cross-product entity model and versioned graph export/import remain v2 work.
 
 ---
@@ -559,19 +561,20 @@ Design constraints, now hard requirements:
 |---|---|---|
 | ADR-001 | Deployment and tenancy model — **resolved by D-001/D-007** (BYOC, per-project, co-located with RIF) | ~~P0 start~~ done |
 | ADR-002 | Multi-tenant database isolation — **resolved by D-001/D-007** (per-tenancy + per-project DB) | ~~P0 start~~ done |
-| ADR-003 | Source ACL posture for v1 pilots — direction set (uniformly-readable or per-boundary indexes, BRD BR4/BR9); formalize | P0 start |
+| ADR-003 | Source ACL posture for v1 pilots — **resolved by D-010** (uniformly readable corpora only; ACL propagation after production readiness/GA) | ~~P0 start~~ done |
 | ADR-004 | Graph store — **resolved by D-003** (Postgres adjacency + recursive CTEs) | ~~P0 schema work~~ done |
-| ADR-005 | Parser strategy per supported format | P0 extraction work |
-| ADR-006 | JSON graph expansion limits | P0 JSON ingestion |
-| ADR-007 | Source anchor contract | P0 retrieval work |
-| ADR-008 | MCP gateway and authorization model | P0 MCP work |
-| ADR-009 | Ingestion orchestration pattern | P0 ingestion work |
-| ADR-010 | Embedding provider/model strategy — **prose default resolved by D-002** (Voyage, ≤1024d); per-artifact-type choices remain | P0 embedding integration |
-| ADR-011 | Evaluation harness and release gates | P0 CI work |
-| ADR-012 | Observability and audit event schema | P0 service scaffolding |
-| ADR-013 | Security threat model and prompt-injection controls | P0 exit |
+| ADR-005 | Parser strategy per supported format — **resolved** (Markdown/TXT line parsers, DOCX paragraph-model seam, bounded JSON parser) | ~~P0 extraction work~~ done |
+| ADR-006 | JSON graph expansion limits — **resolved** (deterministic traversal, caps, caveats, JSONPath anchors, tests) | ~~P0 JSON ingestion~~ done |
+| ADR-007 | Source anchor contract — **resolved** (canonical source refs, P0 anchor types, resolver failures, MCP/agent citation requirements) | ~~P0 retrieval work~~ done |
+| ADR-008 | MCP gateway and authorization model — **resolved** (P0 bearer-token internal gate; OAuth 2.1 + PKCE required before pilot/remote exposure) | ~~P0 MCP work~~ done |
+| ADR-009 | Ingestion orchestration pattern — **resolved** (run statuses, output counts, degenerate promotion guard) | ~~P0 ingestion work~~ done |
+| ADR-010 | Embedding provider/model strategy — **resolved for P0** (provider seam + deterministic hash stub; production dimensions deferred) | ~~P0 embedding integration~~ done |
+| ADR-011 | Evaluation harness and release gates — **resolved** (`evaluation/run_p0.py` plus CI migration idempotency) | ~~P0 CI work~~ done |
+| ADR-012 | Observability and audit event schema — **resolved** (safe structured logging, separate audit/usage records) | ~~P0 service scaffolding~~ done |
+| ADR-013 | Security threat model and prompt-injection controls — **resolved for P0** (auth, admission, grounding, logging, audit, CI safety) | ~~P0 exit~~ done |
 | ADR-014 | Excel v1.5 scope and parser choice | v1.5 planning |
 | ADR-015 | OCR/multimodal v2 strategy | v2 planning |
+| ADR-016 | RIF compatibility layer — **resolved** (required fields, AGE vs `rif_meta`, capability/status checks, contract fixture, service package) | ~~P0 exit / before P1 federation~~ done |
 
 ---
 
@@ -581,8 +584,8 @@ Design constraints, now hard requirements:
 |---|---|
 | Cloud posture | Azure-primary, customer-tenant deployment preferred for regulated B2B. |
 | Tenancy | DB-per-tenant for enterprise customers. |
-| Storage | Postgres + pgvector + FTS + relational graph adjacency. |
-| Retrieval | Hybrid vector + FTS + graph signal with RRF; optional reranker later. |
+| Storage | DIF-owned `dif_meta` in Postgres + pgvector + FTS + relational graph adjacency; RIF compatibility may read AGE schema `rif` or populated `rif_meta` shadows. |
+| Retrieval | Hybrid vector + FTS + graph signal with RRF; cross-encoder reranker is P1 baseline per PRD R12a. |
 | Ingestion | Async queue/workflow pipeline with idempotency, checkpoints, and atomic index promotion. |
 | Extraction | Deterministic parsers first; LLMs only for bounded explanation or later enrichment. |
 | JSON | v1 first-class artifact with JSONPath anchors and graph expansion caps. |
@@ -592,7 +595,7 @@ Design constraints, now hard requirements:
 | Agents | Thin citation-gated agent service; read-only tools in v1. |
 | Security | OIDC, RBAC/ABAC, prompt-injection controls, no raw text in logs, OWASP LLM controls. |
 | Observability | OpenTelemetry traces/metrics/logs plus GenAI telemetry and immutable audit events. |
-| Release gates | Golden evals, citation integrity, ACL negative tests, performance tests, vuln scans. |
+| Release gates | Golden evals, citation integrity, corpus admission/security-boundary tests, performance tests, vuln scans. |
 
 ---
 
@@ -608,17 +611,19 @@ Design constraints, now hard requirements:
 8. No hand-maintained MCP schemas when code generation is feasible.
 9. No release without golden-query evaluation.
 10. No pilot without baseline metrics and written success criteria.
+11. No cross-graph feature may depend on optional RIF shadow tables unless the deploy-time compatibility check proves they are present and populated.
 
 ---
 
 ## 7. First Engineering Checklist
 
-- Create the ADR folder and write ADR-001 through ADR-004 before coding service internals.
-- Define the source reference schema and citation resolver tests.
-- Build P0 with `.md`, `.docx`, and `.json` only, but design the extractor interface for PDF/PPTX/Excel/OCR.
-- Implement tenant, run, document, node, edge, source anchor, embedding, audit, and eval schemas early.
-- Stand up CI with lint, unit tests, e2e doc ingestion, golden evals, vuln scan, container scan, and doc-link validation.
-- Create a small public demo corpus covering Word, Markdown, JSON, PDF text-layer, PPTX, and later Excel.
+- Keep the completed P0 ADRs current when implementation uncovers conflicts: ADR-003, ADR-006, ADR-007, and ADR-016.
+- Use the completed source-anchor, JSON caveat, RIF compatibility, `search_docs`, audit/usage, and degenerate-run scaffold harnesses as the contract for service-level tests.
+- Establish the first implementation skeleton and project toolchain under `code/` before adding parser/retriever internals.
+- Build P0 with `.md`, `.txt`, `.docx`, and `.json`, but design the extractor interface for PDF/PPTX/Excel/OCR.
+- Implement tenant, run, document, node, edge, source anchor, retrieval passage, audit, usage, and RIF compatibility schemas through additive `dif_meta` migrations.
+- Stand up CI with lint, unit tests, e2e doc ingestion, golden evals, vuln scan, container scan, and doc-link validation once the toolchain exists.
+- Maintain the synthetic golden corpus and add deterministic generated IDs after the first extractor implementation lands.
 - Write the security threat model before exposing MCP to any external client.
 - Define the cost-metering model before the first design-partner pilot.
 

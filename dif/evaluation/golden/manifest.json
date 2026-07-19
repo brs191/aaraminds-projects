@@ -1,0 +1,121 @@
+{
+  "version": "0.1.0",
+  "description": "Synthetic DIF P0 golden corpus manifest.",
+  "project_id": "dif-p0-golden",
+  "corpora": [
+    {
+      "corpus_id": "golden-admitted",
+      "display_name": "DIF P0 Golden Admitted Corpus",
+      "admission_status": "admitted",
+      "readability_model": "uniform_readable",
+      "admission_evidence": {
+        "owner": "qa",
+        "confirmation": "All fixture sources are synthetic and readable by all authorized P0 test users."
+      }
+    },
+    {
+      "corpus_id": "golden-restricted",
+      "display_name": "DIF P0 Golden Restricted Corpus",
+      "admission_status": "rejected",
+      "readability_model": "uniform_readable",
+      "admission_evidence": {
+        "owner": "qa",
+        "confirmation": "This fixture intentionally fails admission to test corpus_not_admitted."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "src-golden-admitted-local",
+      "corpus_id": "golden-admitted",
+      "source_type": "local_tree",
+      "source_uri": "evaluation/golden/sources/admitted",
+      "scope_path": ".",
+      "admission_status": "admitted"
+    },
+    {
+      "source_id": "src-golden-restricted-local",
+      "corpus_id": "golden-restricted",
+      "source_type": "local_tree",
+      "source_uri": "evaluation/golden/sources/restricted",
+      "scope_path": ".",
+      "admission_status": "rejected"
+    }
+  ],
+  "documents": [
+    {
+      "document_alias": "doc-architecture-overview",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "architecture-overview.md",
+      "format": "md",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/architecture-overview.md"]
+    },
+    {
+      "document_alias": "doc-runbook",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "runbook.txt",
+      "format": "txt",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/runbook.txt"]
+    },
+    {
+      "document_alias": "doc-requirements",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "requirements.docx.fixture.json",
+      "format": "docx",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/requirements.docx"]
+    },
+    {
+      "document_alias": "doc-service-config",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "service-config.json",
+      "format": "json",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/service-config.json"]
+    },
+    {
+      "document_alias": "doc-large-capped",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "large-capped.json",
+      "format": "json",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/large-capped.json"]
+    },
+    {
+      "document_alias": "doc-invalid-json",
+      "corpus_id": "golden-admitted",
+      "source_id": "src-golden-admitted-local",
+      "path": "invalid.json",
+      "format": "json",
+      "expected_document_id_inputs": ["golden-admitted", "evaluation/golden/sources/admitted/invalid.json"]
+    },
+    {
+      "document_alias": "doc-restricted-corpus-sample",
+      "corpus_id": "golden-restricted",
+      "source_id": "src-golden-restricted-local",
+      "path": "restricted-corpus-sample.md",
+      "format": "md",
+      "expected_document_id_inputs": ["golden-restricted", "evaluation/golden/sources/restricted/restricted-corpus-sample.md"]
+    }
+  ],
+  "audit_dimensions": [
+    "principal_id",
+    "project_id",
+    "corpus_id",
+    "tool_name",
+    "parameters_hash",
+    "outcome",
+    "latency_ms",
+    "source_refs"
+  ],
+  "usage_dimensions": [
+    "project_id",
+    "corpus_id",
+    "event_type",
+    "counts",
+    "latency_ms"
+  ]
+}
+

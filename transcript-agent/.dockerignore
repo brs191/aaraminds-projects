@@ -1,0 +1,6 @@
+.git
+web/node_modules
+web/dist
+backend/bin
+backend/data
+Podcast_Transcript_Agent_PRD.md
