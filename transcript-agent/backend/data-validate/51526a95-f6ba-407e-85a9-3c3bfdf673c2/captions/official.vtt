@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.500
+Welcome back to the show, um, today we look at caption reuse.
+
+00:00:04.700 --> 00:00:09.200
+When official captions already exist, transcription cost can be avoided.
+
+00:00:09.400 --> 00:00:14.100
+The captions are parsed into the same transcript structures as speech to text.
+
+00:00:14.300 --> 00:00:18.900
+Caption derived segments carry no confidence scores at all.
+
+00:00:19.100 --> 00:00:23.600
+So the quality report marks the transcript confidence unavailable.
+
+00:00:23.800 --> 00:00:28.400
+Reviewers still edit, relabel speakers, and approve as usual.
+
+00:00:28.600 --> 00:00:33.000
+Exports are generated only from the approved version.
+
+00:00:33.200 --> 00:00:36.800
+And the audit trail records the caption reuse decision.

@@ -57,7 +57,8 @@ print("" if d is None else d)' "$1"
 
 start_server() { # $@ = extra env KEY=VAL pairs
   local bin="$ROOT/backend/bin/server"
-  if [ ! -x "$bin" ]; then
+  # rebuild if missing OR any Go source is newer than the binary (stale-binary guard)
+  if [ ! -x "$bin" ] || [ -n "$(find "$ROOT/backend" -name '*.go' -newer "$bin" -print -quit 2>/dev/null)" ]; then
     say "  building backend binary..."
     (cd "$ROOT/backend" && go build -o bin/server ./cmd/server) || { bad "backend build"; return 1; }
   fi
@@ -153,7 +154,7 @@ for e in json.load(sys.stdin)["exports"]:
 
   # caption path
   cj=$(curl -s "${PRODUCER[@]}" -H 'Content-Type: application/json' \
-    -d '{"source_type":"youtube","source_uri":"mock://video?captions=1","language":"en","ownership_attested":true}' "$BASE/jobs" | jget job_id)
+    -d '{"source_type":"youtube","source_uri":"https://www.youtube.com/watch?v=validate1&captions=1","language":"en","ownership_attested":true}' "$BASE/jobs" | jget job_id)
   wait_job "$cj" needs_user_action 30 \
     && ok "caption-decision pause reached" || bad "caption path pause"
   curl -s "${PRODUCER[@]}" -H 'Content-Type: application/json' -d '{"reuse_captions":true}' \
